@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>老乡鸡 IOI City Mall · 排班系统</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <style>
     /* ── DESIGN TOKENS ── */
     :root {
@@ -273,7 +273,15 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const STORE_ID    = 'ioi';
 const PASSWORDS   = { manager: 'manager2025', pic: 'pic2025' }; // ⚠️ Change these!
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession:    false,  // don't store session in localStorage
+    autoRefreshToken:  false,  // no background token refresh
+    detectSessionInUrl: false, // don't parse URL for auth tokens
+    // Disabling these prevents Supabase from calling window.postMessage
+    // with a Headers object, which causes DataCloneError in some browsers.
+  }
+});
 let currentRole = null;
 let selectedLoginRole = null;
 
@@ -316,7 +324,7 @@ async function loadScheduleForDate(date) {
     if (error) throw error;
     state.assignments = data?.assignments  || {};
     state.extraSlots  = data?.extra_slots  || [];
-  } catch (e) { console.error('loadScheduleForDate', e); }
+  } catch (e) { console.error('loadScheduleForDate', e?.message || e?.code || e); }
 }
 async function saveSchedule() {
   showSaving();
@@ -545,7 +553,9 @@ let state = {
 };
 
 let addShiftForm = { openPosition: null, startTime: '11:00', endTime: '20:00', employeeId: '' };
-let leaveForm    = { employeeId: '', type: 'planned', fromDate: '', toDate: '' };
+let leaveForm      = { employeeId: '', type: 'planned', fromDate: '', toDate: '' };
+let leaveFormToast      = null; // { empName, from, to } — shown briefly after submit
+let weekPreviewExpanded = false; // toggle for "no leave" employees section
 
 // Persistence: Supabase (see DB FUNCTIONS above)
 function saveToStorage() { scheduleSave(); }
@@ -554,28 +564,45 @@ function saveToStorage() { scheduleSave(); }
 // LEAVE SYSTEM
 // =============================================================================
 
-function getTodayAbsences() {
-  // Returns { empId: leaveType } for the currently selected date
+// Returns { empId: leaveType } for any given date string
+function getAbsencesForDate(dateStr) {
   const result = {};
-
-  // 1. Check planned leave ranges
   for (const [empId, leaves] of Object.entries(state.plannedLeave)) {
     if (!Array.isArray(leaves)) continue;
     for (const leave of leaves) {
-      if (state.selectedDate >= leave.from && state.selectedDate <= leave.to) {
-        result[empId] = leave.type;
-      }
+      if (dateStr >= leave.from && dateStr <= leave.to) result[empId] = leave.type;
     }
   }
-
-  // 2. Override with day-specific markings (MC, Unplanned, No-Show)
-  const dayLeave = state.dailyLeave[state.selectedDate] || {};
+  const dayLeave = state.dailyLeave[dateStr] || {};
   for (const [empId, type] of Object.entries(dayLeave)) {
-    if (type === null) delete result[empId];
+    if (type === null || type === 'present') delete result[empId];  // 'present' = cancelled for today only
     else result[empId] = type;
   }
-
   return result;
+}
+
+function getTodayAbsences() {
+  return getAbsencesForDate(state.selectedDate);
+}
+
+// Returns [Mon, Tue, Wed, Thu, Fri, Sat, Sun] ISO strings for the week containing dateStr
+function getWeekDates(dateStr) {
+  const d   = new Date(dateStr + 'T00:00:00');
+  const dow = d.getDay(); // 0=Sun
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const dd = new Date(monday);
+    dd.setDate(monday.getDate() + i);
+    // Use LOCAL date parts — toISOString() returns UTC and would shift the date
+    // by 8 hours for UTC+8 (Malaysia), producing the wrong day label.
+    const y  = dd.getFullYear();
+    const mo = String(dd.getMonth() + 1).padStart(2, '0');
+    const dy = String(dd.getDate()).padStart(2, '0');
+    dates.push(`${y}-${mo}-${dy}`);
+  }
+  return dates;
 }
 
 async function markDailyLeave(empId, type) {
@@ -593,12 +620,17 @@ async function markDailyLeave(empId, type) {
 
 async function cancelLeave(empId) {
   try {
-    await db.from('daily_leave').delete()
-      .eq('store_id', STORE_ID).eq('leave_date', state.selectedDate).eq('employee_id', empId);
-    const lvs = (state.plannedLeave[empId] || []).filter(lv => state.selectedDate >= lv.from && state.selectedDate <= lv.to);
-    for (const lv of lvs) await db.from('planned_leave').delete().eq('id', lv.id);
-    await loadDailyLeave(); await loadPlannedLeave(); render();
-  } catch(e) { console.error(e); }
+    // Use 'present' sentinel → "this person is in today", overrides planned-leave ranges
+    // and any day-specific leave. Never deletes the planned-leave range itself.
+    // (We avoid storing null to stay safe with NOT NULL DB constraints.)
+    await db.from('daily_leave').upsert({
+      store_id: STORE_ID, leave_date: state.selectedDate, employee_id: empId,
+      leave_type: 'present', updated_at: new Date().toISOString()
+    }, { onConflict: 'store_id,leave_date,employee_id' });
+    if (!state.dailyLeave[state.selectedDate]) state.dailyLeave[state.selectedDate] = {};
+    state.dailyLeave[state.selectedDate][empId] = 'present';
+    render();
+  } catch(e) { console.error('cancelLeave', e?.message || e); }
 }
 
 async function addPlannedLeave(empId, from, to, type) {
@@ -1156,16 +1188,142 @@ function renderEmployeesTab() {
 }
 
 // =============================================================================
-// LEAVE TAB
+// WEEK PREVIEW (Leave tab)
 // =============================================================================
+
+function renderWeekPreview() {
+  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const weekDates  = getWeekDates(state.selectedDate);
+  const weekAbs    = weekDates.map(d => getAbsencesForDate(d));
+
+  // Split employees: has any absence this week vs. none
+  const withLeave    = employees.filter(emp => weekAbs.some(dayAbs => emp.id in dayAbs));
+  const withoutLeave = employees.filter(emp => !weekAbs.some(dayAbs => emp.id in dayAbs));
+
+  const frag = document.createDocumentFragment();
+  frag.appendChild(el('p', { class: 'section-title', style: { marginTop: '0' } }, 'This Week'));
+
+  // ── Shared table header builder ──
+  const thBase = 'padding:6px 8px; font-weight:600; font-size:11px; color:var(--text-sub); border-bottom:1px solid var(--border); text-align:center;';
+  const tdBase = 'padding:5px 8px; text-align:center; border-bottom:1px solid var(--border); vertical-align:middle;';
+
+  function buildHeader() {
+    return el('thead', {}, el('tr', {}, ...[
+      el('th', { style: thBase + 'text-align:left; min-width:80px;' }, 'Employee'),
+      ...weekDates.map((d, i) => {
+        const isSel    = d === state.selectedDate;
+        const datePart = d.slice(5).replace('-', '/');
+        const th = el('th', { style: thBase + `min-width:56px;${isSel ? 'background:var(--blue-50);color:var(--blue-700);border-radius:4px 4px 0 0;' : ''}` });
+        th.appendChild(document.createTextNode(DAY_LABELS[i]));
+        th.appendChild(el('br', {}));
+        th.appendChild(el('span', { style: 'font-weight:400;' }, datePart));
+        return th;
+      })
+    ]));
+  }
+
+  // ── Section 1: employees WITH leave ──
+  if (withLeave.length === 0) {
+    frag.appendChild(el('p', { style: { fontSize:'13px', color:'var(--text-sub)', marginBottom:'8px' } }, '✅ No absences scheduled this week.'));
+  } else {
+    const wrap  = el('div', { style: { overflowX:'auto', marginBottom:'12px' } });
+    const table = el('table', { style: { width:'100%', borderCollapse:'collapse', fontSize:'12px' } });
+    table.appendChild(buildHeader());
+    const tbody = el('tbody', {});
+
+    for (const emp of withLeave) {
+      const tr = el('tr', {});
+      tr.appendChild(el('td', { style: tdBase + 'text-align:left; font-weight:600;' }, emp.shortName));
+
+      for (let i = 0; i < 7; i++) {
+        const leaveType = weekAbs[i][emp.id];
+        const isSel     = weekDates[i] === state.selectedDate;
+        const td = el('td', { style: tdBase + (isSel ? 'background:var(--blue-50);' : '') });
+
+        if (leaveType) {
+          const lt = LEAVE_TYPES[leaveType] || { label: leaveType, badgeClass: 'badge-gray' };
+          const planRecord = (state.plannedLeave[emp.id] || []).find(
+            lv => weekDates[i] >= lv.from && weekDates[i] <= lv.to
+          );
+          const b = el('span', {
+            class: `badge ${lt.badgeClass}`,
+            style: `font-size:10px;${planRecord ? 'cursor:pointer;' : ''}`,
+            title: planRecord ? 'Click to jump to record' : lt.label
+          }, lt.label);
+          if (planRecord) {
+            b.addEventListener('click', () => {
+              const target = document.getElementById('upcoming-item-' + planRecord.id);
+              if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.style.transition = 'background 0.3s';
+                target.style.background = 'var(--blue-50)';
+                setTimeout(() => { target.style.background = ''; }, 1600);
+              }
+            });
+          }
+          td.appendChild(b);
+        } else {
+          td.appendChild(el('span', { style: 'color:var(--text-muted);' }, '—'));
+        }
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    frag.appendChild(wrap);
+  }
+
+  // ── Section 2: employees WITHOUT leave (collapsible) ──
+  const colHeader = el('div', {
+    style: `display:flex; align-items:center; gap:6px; cursor:pointer; padding:6px 10px;
+            background:var(--gray-50); border:1px solid var(--border);
+            border-radius:var(--radius-sm); margin-bottom:${weekPreviewExpanded ? '0' : '20px'};
+            user-select:none;`,
+    onClick: () => { weekPreviewExpanded = !weekPreviewExpanded; render(); }
+  });
+  colHeader.appendChild(icon(weekPreviewExpanded ? 'chevron-down' : 'chevron-right'));
+  colHeader.appendChild(el('span', { style: 'font-size:12px; font-weight:600; color:var(--text-sub);' },
+    `No Leave This Week (${withoutLeave.length} staff)`));
+  frag.appendChild(colHeader);
+
+  if (weekPreviewExpanded && withoutLeave.length > 0) {
+    const wrap2  = el('div', { style: 'overflow-x:auto; margin-bottom:20px; border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius-sm) var(--radius-sm);' });
+    const table2 = el('table', { style: 'width:100%; border-collapse:collapse; font-size:12px;' });
+    table2.appendChild(buildHeader());
+    const tbody2 = el('tbody', {});
+
+    for (const emp of withoutLeave) {
+      const tr = el('tr', {});
+      tr.appendChild(el('td', { style: tdBase + 'text-align:left; font-weight:600;' }, emp.shortName));
+      for (let i = 0; i < 7; i++) {
+        const isSel = weekDates[i] === state.selectedDate;
+        const td = el('td', { style: tdBase + (isSel ? 'background:var(--blue-50);' : '') });
+        td.appendChild(el('span', { style: 'color:var(--text-muted);' }, '—'));
+        tr.appendChild(td);
+      }
+      tbody2.appendChild(tr);
+    }
+    table2.appendChild(tbody2);
+    wrap2.appendChild(table2);
+    frag.appendChild(wrap2);
+  }
+
+  return frag;
+}
+
+
 
 function renderLeaveTab(computed) {
   const frag    = document.createDocumentFragment();
   const absences = getTodayAbsences();
   const absList  = Object.entries(absences);
 
+  // ── This Week Preview ──
+  frag.appendChild(renderWeekPreview());
+
   // ── Today's absences ──
-  frag.appendChild(el('p', { class: 'section-title', style: { marginTop: '0' } }, "Today's Absences"));
+  frag.appendChild(el('p', { class: 'section-title' }, "Today's Absences"));
 
   if (absList.length === 0) {
     frag.appendChild(el('p', { style: { fontSize:'13px', color:'var(--text-sub)', marginBottom:'12px' } }, 'No absences today.'));
@@ -1239,11 +1397,12 @@ function renderLeaveTab(computed) {
 
   const scheduleBtn = el('button', { style: { alignSelf: 'flex-end' }, onClick: () => {
     if (!leaveForm.employeeId || !leaveForm.fromDate || !leaveForm.toDate) return;
-    addPlannedLeave(leaveForm.employeeId, leaveForm.fromDate, leaveForm.toDate, leaveForm.type);
-    leaveForm.employeeId = '';
-    leaveForm.fromDate   = '';
-    leaveForm.toDate     = '';
-    render();
+    const toastEmp = employees.find(e => e.id === leaveForm.employeeId);
+    const { employeeId, fromDate, toDate, type } = leaveForm;
+    leaveFormToast = { empName: toastEmp?.shortName || '', from: fromDate, to: toDate };
+    leaveForm.employeeId = ''; // keep dates + type for quick next entry
+    addPlannedLeave(employeeId, fromDate, toDate, type); // async, re-renders when done
+    setTimeout(() => { leaveFormToast = null; render(); }, 2500);
   }});
   scheduleBtn.appendChild(icon('calendar-plus'));
   scheduleBtn.appendChild(document.createTextNode(' Schedule'));
@@ -1251,6 +1410,15 @@ function renderLeaveTab(computed) {
 
   formCard.appendChild(row1);
   formCard.appendChild(row2);
+
+  // ── Toast confirmation ──
+  if (leaveFormToast) {
+    const toast = el('div', { style: { display:'flex', alignItems:'center', gap:'6px', marginTop:'10px', padding:'8px 12px', background:'var(--green-50)', border:'1px solid var(--green-100)', borderRadius:'var(--radius-sm)', fontSize:'13px', color:'var(--green-700)' } });
+    toast.appendChild(icon('check'));
+    toast.appendChild(document.createTextNode(` ${leaveFormToast.empName} — ${leaveFormToast.from} → ${leaveFormToast.to} added`));
+    formCard.appendChild(toast);
+  }
+
   frag.appendChild(formCard);
 
   // ── Upcoming leave list ──
@@ -1271,13 +1439,16 @@ function renderLeaveTab(computed) {
 
     for (const { emp, lv, empId, index } of upcoming) {
       const lt = LEAVE_TYPES[lv.type] || { label: lv.type, badgeClass: 'badge-gray' };
-      const item = el('div', { class: 'upcoming-item' });
+      const item = el('div', { class: 'upcoming-item', id: `upcoming-item-${lv.id}`, style: { transition: 'background 0.4s' } });
       const left = el('div', { class: 'flex items-center gap-2' });
       left.appendChild(el('span', { style: { fontWeight: '700', fontSize: '13px' } }, emp.shortName));
       left.appendChild(badge(lt.label, lt.badgeClass));
       left.appendChild(el('span', { class: 'text-xs', style: { color: 'var(--text-sub)' } }, `${lv.from} → ${lv.to}`));
       item.appendChild(left);
-      item.appendChild(el('button', { class: 'btn-sm btn-danger', onClick: () => removePlannedLeave(lv.id) }, icon('trash')));
+      const delBtn = el('button', { class: 'btn-sm btn-danger', onClick: () => removePlannedLeave(lv.id) });
+      delBtn.appendChild(icon('trash'));
+      delBtn.appendChild(document.createTextNode(' Delete range'));
+      item.appendChild(delBtn);
       frag.appendChild(item);
     }
   }
