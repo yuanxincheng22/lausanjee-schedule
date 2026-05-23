@@ -239,6 +239,33 @@
     .role-badge{font-size:11px;font-weight:700;border-radius:100px;padding:4px 10px;background:#1c1917;color:white;}
     .header-right{display:flex;align-items:center;gap:8px;}
 
+    /* ── EMPLOYEE MODAL ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
+    .modal-box{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.25);}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);font-size:15px;font-weight:700;}
+    .modal-body{padding:20px;overflow-y:auto;flex:1;}
+    .modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border);}
+    .form-row{margin-bottom:14px;}
+    .form-row label{display:block;font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:5px;}
+    .form-row input[type=text],.form-row input[type=number],.form-row select,.form-row textarea{width:100%;padding:8px 10px;border:1.5px solid var(--border-mid);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);outline:none;background:white;}
+    .form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--gray-700);}
+    .form-row textarea{resize:vertical;min-height:60px;}
+    .checkbox-grid{display:flex;flex-wrap:wrap;gap:6px;}
+    .checkbox-grid label{display:flex;align-items:center;gap:5px;padding:5px 9px;border:1.5px solid var(--border-mid);border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:500;user-select:none;}
+    .checkbox-grid label.checked{border-color:var(--gray-700);background:var(--gray-100);}
+    .checkbox-grid input[type=checkbox]{margin:0;}
+    .section-divider{font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px;}
+    .btn-danger{background:var(--red-50);color:var(--red-600);border:1px solid var(--red-100);}
+    .btn-danger:hover{background:var(--red-100);}
+    .btn-success{background:var(--green-50);color:var(--green-600);border:1px solid var(--green-100);}
+    .btn-success:hover{background:var(--green-100);}
+    .pos-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+    .pos-tag{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:100px;background:var(--gray-100);font-size:12px;font-weight:500;}
+    .emp-mgmt-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+    .emp-mgmt-bar .search-input{flex:1;min-width:140px;padding:7px 10px;border:1.5px solid var(--border-mid);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);outline:none;}
+    .inactive-header{display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--gray-50);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;user-select:none;}
+    .emp-row-inactive{opacity:0.55;}
+
   </style>
 </head>
 <body>
@@ -258,6 +285,7 @@
   </div>
 </div>
 <div id="save-indicator">Saving...</div>
+<div id="modal-root"></div>
 <div id="main-app" style="display:none">
 <div class="container">
   <div id="app"></div>
@@ -357,6 +385,64 @@ async function loadDailyLeave() {
     }
   } catch(e) { console.error(e); }
 }
+
+// ── EMPLOYEE DB FUNCTIONS ──
+function rowToEmp(row) {
+  return {
+    id: row.id, fullName: row.full_name, shortName: row.short_name,
+    role: row.role, positions: row.positions || [], canTrain: row.can_train || [],
+    tags: row.tags || [], managerNote: row.manager_note || '',
+    offDay: row.off_day || '', availableFrom: row.available_from || 0,
+  };
+}
+function empToRow(emp) {
+  return {
+    id: emp.id, store_id: STORE_ID,
+    full_name: emp.fullName, short_name: emp.shortName, role: emp.role,
+    positions: emp.positions, can_train: emp.canTrain, tags: emp.tags,
+    manager_note: emp.managerNote, off_day: emp.offDay,
+    available_from: emp.availableFrom, updated_at: new Date().toISOString(),
+  };
+}
+async function loadEmployees() {
+  try {
+    const { data, error } = await db.from('employees').select('*').eq('store_id', STORE_ID).order('id');
+    if (error) throw error;
+    employees         = (data || []).filter(e =>  e.is_active).map(rowToEmp);
+    inactiveEmployees = (data || []).filter(e => !e.is_active).map(rowToEmp);
+  } catch(e) { console.error('loadEmployees', e?.message || e); }
+}
+async function loadPositions() {
+  try {
+    const { data, error } = await db.from('positions_master').select('*').eq('store_id', STORE_ID).order('sort_order');
+    if (error) throw error;
+    allPositions = data || [];
+  } catch(e) { console.error('loadPositions', e?.message || e); }
+}
+function getNextEmpId() {
+  const all = [...employees, ...inactiveEmployees];
+  const max = all.reduce((m, e) => { const n = parseInt(e.id.replace('e','')); return isNaN(n)?m:Math.max(m,n); }, 0);
+  return 'e' + (max + 1);
+}
+async function saveEmployee(emp) {
+  const { error } = await db.from('employees').upsert(empToRow(emp), { onConflict: 'id' });
+  if (error) throw error;
+  await loadEmployees(); render();
+}
+async function markEmployeeInactive(empId) {
+  await db.from('employees').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', empId);
+  await loadEmployees(); render();
+}
+async function restoreEmployee(empId) {
+  await db.from('employees').update({ is_active: true, updated_at: new Date().toISOString() }).eq('id', empId);
+  await loadEmployees(); render();
+}
+async function addPosition(name, area, trainable) {
+  const maxOrder = allPositions.reduce((m, p) => Math.max(m, p.sort_order), 0);
+  const { error } = await db.from('positions_master').insert({ name, store_id: STORE_ID, area, trainable, sort_order: maxOrder + 1 });
+  if (error) throw error;
+  await loadPositions(); render();
+}
 function subscribeToChanges() {
   db.channel('lxj-sync')
     .on('postgres_changes', {
@@ -382,6 +468,14 @@ function subscribeToChanges() {
       event: '*', schema: 'public', table: 'daily_leave',
       filter: `store_id=eq.${STORE_ID}`,
     }, async () => { await loadDailyLeave(); render(); })
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'employees',
+      filter: `store_id=eq.${STORE_ID}`,
+    }, async () => { await loadEmployees(); render(); })
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'positions_master',
+      filter: `store_id=eq.${STORE_ID}`,
+    }, async () => { await loadPositions(); render(); })
     .subscribe();
 }
 
@@ -538,7 +632,20 @@ const DEFAULT_EMPLOYEES = [
 // APPLICATION STATE
 // =============================================================================
 
-let employees = DEFAULT_EMPLOYEES.map(e => ({ ...e, positions:[...e.positions], canTrain:[...e.canTrain], tags:[...e.tags] }));
+let employees         = [];   // active, loaded from Supabase
+let inactiveEmployees = [];   // is_active=false
+let allPositions      = [];   // positions_master table
+
+// Employee edit modal state
+let empModal = {
+  open: false, mode: 'add', empId: null, saving: false, error: '',
+  fullName: '', shortName: '', role: '员工',
+  positions: [], canTrain: [], tags: [],
+  managerNote: '', offDay: '', availableFrom: 0,
+};
+// Positions management modal state
+let posModal = { open: false, newName: '', newArea: '后厨', newTrainable: false, saving: false, error: '' };
+let inactiveExpanded = false;
 
 let state = {
   currentTab:      'schedule',
@@ -1085,8 +1192,458 @@ function renderScheduleTab(computed) {
 // =============================================================================
 
 function renderEmployeesTab() {
-  const frag    = document.createDocumentFragment();
+  const frag     = document.createDocumentFragment();
   const absences = getTodayAbsences();
+  const isMgr    = currentRole === 'manager';
+
+  // ── Management bar ──
+  const mgmtBar = el('div', { class: 'emp-mgmt-bar' });
+
+  if (isMgr) {
+    const addBtn = el('button', { onClick: () => openEmpModal('add', null) });
+    addBtn.appendChild(icon('user-plus'));
+    addBtn.appendChild(document.createTextNode(' 新增员工'));
+    mgmtBar.appendChild(addBtn);
+
+    const posBtn = el('button', { class: 'btn-sm', onClick: () => { posModal.open = true; renderPosModal(); } });
+    posBtn.appendChild(icon('settings'));
+    posBtn.appendChild(document.createTextNode(' 管理岗位'));
+    mgmtBar.appendChild(posBtn);
+  }
+
+  const searchInput = el('input', {
+    type: 'text', placeholder: '搜索员工...', class: 'search-input',
+    value: state.searchQuery,
+  });
+  searchInput.addEventListener('input', e => {
+    state.searchQuery = e.target.value;
+    const q = e.target.value.toLowerCase();
+    // Filter rows directly in DOM — no re-render, instant and keeps focus
+    let visible = 0;
+    document.querySelectorAll('.emp-row[data-emp-id]').forEach(row => {
+      const name = (row.dataset.empName || '').toLowerCase();
+      const show  = !q || name.includes(q);
+      row.style.display = show ? '' : 'none';
+      if (show && !row.closest('.inactive-wrap')) visible++;
+    });
+    const countEl = document.getElementById('emp-count');
+    if (countEl) countEl.textContent = `${visible} / ${employees.length} 名在职员工`;
+  });
+  mgmtBar.appendChild(searchInput);
+  frag.appendChild(mgmtBar);
+
+  const query = state.searchQuery.toLowerCase();
+  // Render ALL active employees (search filters in DOM, not here)
+  const countP = el('p', { id: 'emp-count', style: { fontSize:'12px', color:'var(--text-sub)', marginBottom:'10px' } },
+    `${employees.length} / ${employees.length} 名在职员工`);
+  frag.appendChild(countP);
+
+  for (const emp of employees) {
+    const row = buildEmpRow(emp, absences, isMgr, false);
+    // Apply current search filter on initial render
+    if (query && !emp.shortName.toLowerCase().includes(query) && !emp.fullName.toLowerCase().includes(query)) {
+      row.style.display = 'none';
+    }
+    frag.appendChild(row);
+  }
+
+  // ── 已离职 section (manager only) ──
+  if (isMgr && inactiveEmployees.length > 0) {
+    const section = el('div', { style: { marginTop: '1.5rem' } });
+    const hdr = el('div', {
+      class: 'inactive-header',
+      onClick: () => { inactiveExpanded = !inactiveExpanded; render(); },
+    });
+    hdr.appendChild(icon(inactiveExpanded ? 'chevron-down' : 'chevron-right'));
+    hdr.appendChild(el('span', { style: 'font-size:12px;font-weight:600;color:var(--text-sub);' },
+      `已离职 (${inactiveEmployees.length} 人)`));
+    section.appendChild(hdr);
+
+    if (inactiveExpanded) {
+      const wrap = el('div', { class: 'inactive-wrap', style: 'border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:8px;' });
+      const inFiltered = inactiveEmployees.filter(e => !query || e.shortName.toLowerCase().includes(query) || e.fullName.toLowerCase().includes(query));
+      if (inFiltered.length === 0) {
+        wrap.appendChild(el('p', { style: 'font-size:12px;color:var(--text-sub);padding:8px;' }, '无匹配'));
+      } else {
+        for (const emp of inFiltered) wrap.appendChild(buildEmpRow(emp, {}, isMgr, true));
+      }
+      section.appendChild(wrap);
+    }
+    frag.appendChild(section);
+  }
+
+  return frag;
+}
+
+function buildEmpRow(emp, absences, isMgr, isInactive) {
+  const leaveType = absences[emp.id];
+  const isAbsent  = !!leaveType;
+  const row = el('div', {
+    class: `emp-row${isAbsent ? ' absent' : ''}${isInactive ? ' emp-row-inactive' : ''}`,
+    'data-emp-id':   emp.id,
+    'data-emp-name': `${emp.shortName} ${emp.fullName}`.toLowerCase(),
+  });
+
+  // Avatar
+  const roleStyle = getRoleStyle(emp.role);
+  row.appendChild(el('div', { class: 'emp-avatar', style: { background: roleStyle.bg, color: roleStyle.color } }, emp.shortName[0]));
+
+  // Info
+  const info = el('div', { style: { flex: '1', minWidth: '0' } });
+
+  const nameRow = el('div', { class: 'flex items-center gap-2 mb-1', style: { flexWrap: 'wrap' } });
+  nameRow.appendChild(el('span', { class: 'emp-name' }, emp.shortName));
+  nameRow.appendChild(el('span', { class: 'emp-fname' }, emp.fullName));
+  if (leaveType) { const lt = LEAVE_TYPES[leaveType]; if (lt) nameRow.appendChild(badge(lt.label, lt.badgeClass)); }
+  info.appendChild(nameRow);
+
+  const metaRow = el('div', { class: 'emp-meta' });
+  metaRow.appendChild(el('span', { class: 'badge badge-gray', style: { background: roleStyle.bg, color: roleStyle.color } }, emp.role));
+  if (emp.availableFrom > 0) metaRow.appendChild(badge(`From ${emp.availableFrom}:00`, 'badge-amber'));
+  for (const tag of emp.tags) metaRow.appendChild(badge(tag, 'badge-blue'));
+  info.appendChild(metaRow);
+
+  const kitchenCount = emp.positions.filter(p => KITCHEN_POSITIONS.includes(p)).length;
+  info.appendChild(el('p', { class: 'emp-pos mb-1' }, emp.positions.join(' · ') + (kitchenCount >= 3 ? ' · 🔄 Reserve' : '')));
+
+  if (emp.canTrain.length > 0) {
+    const trainerRow = el('div', { class: 'flex-wrap', style: { marginBottom: '4px' } });
+    trainerRow.appendChild(icon('award'));
+    for (const pos of emp.canTrain) trainerRow.appendChild(badge('T: ' + pos, 'badge-blue'));
+    info.appendChild(trainerRow);
+  }
+  if (emp.offDay) {
+    const offRow = el('div', { class: 'flex items-center gap-1 text-xs', style: { color:'var(--text-sub)', marginBottom: emp.managerNote ? '4px' : '0' } });
+    offRow.appendChild(icon('calendar-off'));
+    offRow.appendChild(document.createTextNode(' ' + emp.offDay));
+    info.appendChild(offRow);
+  }
+  if (emp.managerNote && currentRole === 'manager') {
+    const noteBox   = el('div', { class: 'manager-note' });
+    const noteTitle = el('div', { class: 'flex items-center gap-1', style: { fontWeight:'600', marginBottom:'2px', fontSize:'11px' } });
+    noteTitle.appendChild(icon('lock'));
+    noteTitle.appendChild(document.createTextNode(' Manager note'));
+    noteBox.appendChild(noteTitle);
+    noteBox.appendChild(document.createTextNode(emp.managerNote));
+    info.appendChild(noteBox);
+  }
+  row.appendChild(info);
+
+  // ── Actions ──
+  const actions = el('div', { class: 'emp-actions' });
+
+  if (isInactive) {
+    // 已离职：只有恢复按钮
+    const restoreBtn = el('button', { class: 'btn-sm btn-success', onClick: () => restoreEmployee(emp.id) });
+    restoreBtn.appendChild(icon('user-check'));
+    restoreBtn.appendChild(document.createTextNode(' 恢复在职'));
+    actions.appendChild(restoreBtn);
+  } else {
+    // 在职：Leave 按钮
+    if (isAbsent) {
+      actions.appendChild(el('button', { class: 'btn-sm btn-success', onClick: () => cancelLeave(emp.id) }, 'Cancel Leave'));
+    } else {
+      for (const [type, info2] of Object.entries(LEAVE_TYPES)) {
+        const btn = el('button', { class: `btn-sm ${info2.badgeClass.replace('badge-','btn-')}`, onClick: () => markDailyLeave(emp.id, type) });
+        btn.textContent = info2.label;
+        actions.appendChild(btn);
+      }
+    }
+    // Manager 专属：编辑 + 离职
+    if (isMgr) {
+      const editBtn = el('button', { class: 'btn-sm', style: { marginLeft:'6px' }, onClick: () => openEmpModal('edit', emp) });
+      editBtn.appendChild(icon('pencil'));
+      editBtn.appendChild(document.createTextNode(' 编辑'));
+      actions.appendChild(editBtn);
+
+      const retireBtn = el('button', { class: 'btn-sm btn-danger', style: { marginLeft:'4px' }, onClick: () => {
+        if (confirm(`确认将 ${emp.shortName} 标记为离职？`)) markEmployeeInactive(emp.id);
+      }});
+      retireBtn.appendChild(icon('user-minus'));
+      retireBtn.appendChild(document.createTextNode(' 离职'));
+      actions.appendChild(retireBtn);
+    }
+  }
+
+  row.appendChild(actions);
+  return row;
+}
+
+// =============================================================================
+// EMPLOYEE MODAL
+// =============================================================================
+
+function openEmpModal(mode, emp) {
+  empModal.open = true; empModal.mode = mode; empModal.error = ''; empModal.saving = false;
+  if (mode === 'edit' && emp) {
+    empModal.empId       = emp.id;
+    empModal.fullName    = emp.fullName;
+    empModal.shortName   = emp.shortName;
+    empModal.role        = emp.role;
+    empModal.positions   = [...emp.positions];
+    empModal.canTrain    = [...emp.canTrain];
+    empModal.tags        = [...emp.tags];
+    empModal.managerNote = emp.managerNote;
+    empModal.offDay      = emp.offDay;
+    empModal.availableFrom = emp.availableFrom;
+  } else {
+    empModal.empId = null; empModal.fullName = ''; empModal.shortName = ''; empModal.role = '员工';
+    empModal.positions = []; empModal.canTrain = []; empModal.tags = [];
+    empModal.managerNote = ''; empModal.offDay = ''; empModal.availableFrom = 0;
+  }
+  renderEmpModal();
+}
+function closeEmpModal() { empModal.open = false; document.getElementById('modal-root').innerHTML = ''; }
+function closePosModal()  { posModal.open  = false; document.getElementById('modal-root').innerHTML = ''; }
+
+function formRow(labelText, inputEl) {
+  const row = el('div', { class: 'form-row' });
+  row.appendChild(el('label', {}, labelText));
+  row.appendChild(inputEl);
+  return row;
+}
+
+function renderEmpModal() {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = '';
+  if (!empModal.open) return;
+
+  const ROLES = ['店长','培训主管','培训员','副理','前厅员工','后厨员工','员工','兼职'];
+  const TAGS  = ['引流','收银'];
+
+  const overlay = el('div', { class: 'modal-overlay' });
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeEmpModal(); });
+  const box = el('div', { class: 'modal-box' });
+
+  // Header
+  const hdr = el('div', { class: 'modal-header' });
+  hdr.appendChild(el('span', {}, empModal.mode === 'add' ? '➕ 新增员工' : '✏️ 编辑员工'));
+  const xBtn = el('button', { class: 'btn-sm', onClick: closeEmpModal });
+  xBtn.appendChild(icon('x')); hdr.appendChild(xBtn);
+  box.appendChild(hdr);
+
+  // Body
+  const body = el('div', { class: 'modal-body' });
+
+  // Short name
+  const shortIn = el('input', { type:'text', placeholder:'例: Milk', value: empModal.shortName });
+  shortIn.addEventListener('input', e => empModal.shortName = e.target.value);
+  body.appendChild(formRow('昵称（排班显示）', shortIn));
+
+  // Full name
+  const fullIn = el('input', { type:'text', placeholder:'例: Milk Wang', value: empModal.fullName });
+  fullIn.addEventListener('input', e => empModal.fullName = e.target.value);
+  body.appendChild(formRow('全名', fullIn));
+
+  // Role
+  const roleSel = el('select', {});
+  for (const r of ROLES) {
+    const o = el('option', { value: r }, r);
+    if (r === empModal.role) o.selected = true;
+    roleSel.appendChild(o);
+  }
+  roleSel.addEventListener('change', e => { empModal.role = e.target.value; renderEmpModal(); });
+  body.appendChild(formRow('角色', roleSel));
+
+  // Positions checkboxes
+  body.appendChild(el('div', { class: 'section-divider' }, '会的岗位 (Positions)'));
+  const posGrid = el('div', { class: 'checkbox-grid' });
+  for (const pos of allPositions) {
+    const checked = empModal.positions.includes(pos.name);
+    const lbl = el('label', { class: checked ? 'checked' : '' });
+    const cb  = el('input', { type: 'checkbox' });
+    cb.checked = checked;
+    cb.addEventListener('change', () => {
+      if (cb.checked) { if (!empModal.positions.includes(pos.name)) empModal.positions.push(pos.name); }
+      else {
+        empModal.positions = empModal.positions.filter(p => p !== pos.name);
+        empModal.canTrain  = empModal.canTrain.filter(p => p !== pos.name);
+      }
+      renderEmpModal();
+    });
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(' ' + pos.name));
+    posGrid.appendChild(lbl);
+  }
+  body.appendChild(posGrid);
+
+  // Can Train checkboxes (only trainable positions they already have)
+  const trainable = allPositions.filter(p => p.trainable && empModal.positions.includes(p.name));
+  if (trainable.length > 0) {
+    body.appendChild(el('div', { class: 'section-divider' }, '可以带新人 (Can Train)'));
+    const trainGrid = el('div', { class: 'checkbox-grid' });
+    for (const pos of trainable) {
+      const checked = empModal.canTrain.includes(pos.name);
+      const lbl = el('label', { class: checked ? 'checked' : '' });
+      const cb  = el('input', { type: 'checkbox' });
+      cb.checked = checked;
+      cb.addEventListener('change', () => {
+        if (cb.checked) { if (!empModal.canTrain.includes(pos.name)) empModal.canTrain.push(pos.name); }
+        else empModal.canTrain = empModal.canTrain.filter(p => p !== pos.name);
+        // update label class without full re-render
+        lbl.className = cb.checked ? 'checked' : '';
+      });
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(' ' + pos.name));
+      trainGrid.appendChild(lbl);
+    }
+    body.appendChild(trainGrid);
+  }
+
+  // Tags
+  body.appendChild(el('div', { class: 'section-divider' }, '标签 (Tags)'));
+  const tagGrid = el('div', { class: 'checkbox-grid' });
+  for (const tag of TAGS) {
+    const checked = empModal.tags.includes(tag);
+    const lbl = el('label', { class: checked ? 'checked' : '' });
+    const cb  = el('input', { type: 'checkbox' });
+    cb.checked = checked;
+    cb.addEventListener('change', () => {
+      if (cb.checked) { if (!empModal.tags.includes(tag)) empModal.tags.push(tag); }
+      else empModal.tags = empModal.tags.filter(t => t !== tag);
+      lbl.className = cb.checked ? 'checked' : '';
+    });
+    lbl.appendChild(cb); lbl.appendChild(document.createTextNode(' ' + tag));
+    tagGrid.appendChild(lbl);
+  }
+  body.appendChild(tagGrid);
+
+  // Other fields
+  body.appendChild(el('div', { class: 'section-divider' }, '其他信息'));
+
+  const offIn = el('input', { type:'text', placeholder:'例: 周一/周二', value: empModal.offDay });
+  offIn.addEventListener('input', e => empModal.offDay = e.target.value);
+  body.appendChild(formRow('惯例休息日', offIn));
+
+  const availIn = el('input', { type:'number', placeholder:'0', value: String(empModal.availableFrom), style:{ width:'80px' } });
+  availIn.addEventListener('input', e => empModal.availableFrom = parseInt(e.target.value) || 0);
+  body.appendChild(formRow('最早上班时间（0 = 全天，18 = 仅晚班）', availIn));
+
+  const noteIn = el('textarea', { placeholder: '仅 Manager 可见...' });
+  noteIn.value = empModal.managerNote;
+  noteIn.addEventListener('input', e => empModal.managerNote = e.target.value);
+  body.appendChild(formRow('Manager 备注', noteIn));
+
+  if (empModal.error) {
+    body.appendChild(el('p', { style: { color:'var(--red-600)', fontSize:'12px', marginTop:'8px' } }, empModal.error));
+  }
+  box.appendChild(body);
+
+  // Footer
+  const footer = el('div', { class: 'modal-footer' });
+  footer.appendChild(el('button', { class: 'btn-sm', onClick: closeEmpModal }, '取消'));
+
+  const saveBtn = el('button', { onClick: async () => {
+    if (!empModal.shortName.trim() || !empModal.fullName.trim()) {
+      empModal.error = '请填写昵称和全名'; renderEmpModal(); return;
+    }
+    empModal.saving = true; empModal.error = ''; renderEmpModal();
+    try {
+      const id = empModal.mode === 'add' ? getNextEmpId() : empModal.empId;
+      await saveEmployee({
+        id, fullName: empModal.fullName.trim(), shortName: empModal.shortName.trim(),
+        role: empModal.role, positions: empModal.positions, canTrain: empModal.canTrain,
+        tags: empModal.tags, managerNote: empModal.managerNote,
+        offDay: empModal.offDay, availableFrom: empModal.availableFrom,
+      });
+      closeEmpModal();
+    } catch(e) { empModal.saving = false; empModal.error = '保存失败，请重试'; renderEmpModal(); }
+  }});
+  saveBtn.appendChild(icon(empModal.saving ? 'loader' : 'check'));
+  saveBtn.appendChild(document.createTextNode(empModal.saving ? ' 保存中...' : ' 保存'));
+  if (empModal.saving) saveBtn.disabled = true;
+  footer.appendChild(saveBtn);
+  box.appendChild(footer);
+  overlay.appendChild(box);
+  root.appendChild(overlay);
+}
+
+function renderPosModal() {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = '';
+  if (!posModal.open) return;
+
+  const AREA_LIST = ['后厨','前厅','管理','后备'];
+  const overlay = el('div', { class: 'modal-overlay' });
+  overlay.addEventListener('click', e => { if (e.target === overlay) closePosModal(); });
+  const box = el('div', { class: 'modal-box' });
+
+  // Header
+  const hdr = el('div', { class: 'modal-header' });
+  hdr.appendChild(el('span', {}, '⚙️ 管理岗位'));
+  const xBtn = el('button', { class: 'btn-sm', onClick: closePosModal });
+  xBtn.appendChild(icon('x')); hdr.appendChild(xBtn);
+  box.appendChild(hdr);
+
+  // Body
+  const body = el('div', { class: 'modal-body' });
+  body.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', marginBottom:'14px' } },
+    '新增岗位后，编辑员工时可以分配给他们。标记「可带新人」的岗位，员工可以成为 Trainer。'));
+
+  for (const area of AREA_LIST) {
+    const areaPos = allPositions.filter(p => p.area === area);
+    if (areaPos.length === 0) continue;
+    body.appendChild(el('div', { class: 'section-divider' }, area));
+    const list = el('div', { class: 'pos-list' });
+    for (const p of areaPos) {
+      const tag = el('div', { class: 'pos-tag' });
+      tag.appendChild(document.createTextNode(p.name));
+      if (p.trainable) tag.appendChild(badge('T', 'badge-blue'));
+      list.appendChild(tag);
+    }
+    body.appendChild(list);
+  }
+
+  body.appendChild(el('div', { class: 'section-divider' }, '新增岗位'));
+
+  const nameIn = el('input', { type:'text', placeholder:'岗位名称，例: E 备菜', value: posModal.newName });
+  nameIn.addEventListener('input', e => posModal.newName = e.target.value);
+  body.appendChild(formRow('岗位名称', nameIn));
+
+  const areaSel = el('select', {});
+  for (const a of AREA_LIST) {
+    const o = el('option', { value: a }, a);
+    if (a === posModal.newArea) o.selected = true;
+    areaSel.appendChild(o);
+  }
+  areaSel.addEventListener('change', e => posModal.newArea = e.target.value);
+  body.appendChild(formRow('所属区域', areaSel));
+
+  const trainLbl = el('label', { style: { display:'flex', alignItems:'center', gap:'8px', fontSize:'13px', cursor:'pointer' } });
+  const trainCb  = el('input', { type: 'checkbox' });
+  trainCb.checked = posModal.newTrainable;
+  trainCb.addEventListener('change', () => posModal.newTrainable = trainCb.checked);
+  trainLbl.appendChild(trainCb);
+  trainLbl.appendChild(document.createTextNode(' 可以有 Trainer（带新人）'));
+  body.appendChild(el('div', { class: 'form-row' }, trainLbl));
+
+  if (posModal.error) {
+    body.appendChild(el('p', { style: { color:'var(--red-600)', fontSize:'12px' } }, posModal.error));
+  }
+  box.appendChild(body);
+
+  // Footer
+  const footer = el('div', { class: 'modal-footer' });
+  footer.appendChild(el('button', { class: 'btn-sm', onClick: closePosModal }, '关闭'));
+
+  const addBtn = el('button', { onClick: async () => {
+    const name = posModal.newName.trim();
+    if (!name) { posModal.error = '请填写岗位名称'; renderPosModal(); return; }
+    if (allPositions.find(p => p.name === name)) { posModal.error = '该岗位已存在'; renderPosModal(); return; }
+    posModal.saving = true; posModal.error = ''; renderPosModal();
+    try {
+      await addPosition(name, posModal.newArea, posModal.newTrainable);
+      posModal.newName = ''; posModal.saving = false;
+      renderPosModal();
+    } catch(e) { posModal.saving = false; posModal.error = '添加失败，请重试'; renderPosModal(); }
+  }});
+  addBtn.appendChild(icon('plus'));
+  addBtn.appendChild(document.createTextNode(' 添加岗位'));
+  footer.appendChild(addBtn);
+  box.appendChild(footer);
+  overlay.appendChild(box);
+  root.appendChild(overlay);
+}
 
   // Search input
   const searchInput = el('input', {
@@ -1096,96 +1653,6 @@ function renderEmployeesTab() {
   });
   searchInput.addEventListener('input', e => { state.searchQuery = e.target.value; render(); });
   frag.appendChild(searchInput);
-
-  const query    = state.searchQuery.toLowerCase();
-  const filtered = employees.filter(e => !query || e.shortName.toLowerCase().includes(query) || e.fullName.toLowerCase().includes(query));
-
-  frag.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', marginBottom:'10px' } }, `${filtered.length} / ${employees.length} staff`));
-
-  for (const emp of filtered) {
-    const leaveType = absences[emp.id];
-    const isAbsent  = !!leaveType;
-
-    const row = el('div', { class: `emp-row${isAbsent ? ' absent' : ''}` });
-
-    // Avatar
-    const roleStyle = getRoleStyle(emp.role);
-    const avatar = el('div', { class: 'emp-avatar', style: { background: roleStyle.bg, color: roleStyle.color } }, emp.shortName[0]);
-    row.appendChild(avatar);
-
-    // Info
-    const info = el('div', { style: { flex: '1', minWidth: '0' } });
-
-    // Name row
-    const nameRow = el('div', { class: 'flex items-center gap-2 mb-1', style: { flexWrap: 'wrap' } });
-    nameRow.appendChild(el('span', { class: 'emp-name' }, emp.shortName));
-    nameRow.appendChild(el('span', { class: 'emp-fname' }, emp.fullName));
-    if (leaveType) {
-      const lt = LEAVE_TYPES[leaveType];
-      if (lt) nameRow.appendChild(badge(lt.label, lt.badgeClass));
-    }
-    info.appendChild(nameRow);
-
-    // Meta badges
-    const metaRow = el('div', { class: 'emp-meta' });
-    metaRow.appendChild(el('span', { class: 'badge badge-gray', style: { background: roleStyle.bg, color: roleStyle.color } }, emp.role));
-    if (emp.availableFrom > 0)  metaRow.appendChild(badge(`From ${emp.availableFrom}:00`, 'badge-amber'));
-    for (const tag of emp.tags) metaRow.appendChild(badge(tag, 'badge-blue'));
-    info.appendChild(metaRow);
-
-    // Positions
-    const kitchenCount = emp.positions.filter(p => KITCHEN_POSITIONS.includes(p)).length;
-    const posText = emp.positions.join(' · ') + (kitchenCount >= 3 ? ' · 🔄 Reserve' : '');
-    info.appendChild(el('p', { class: 'emp-pos mb-1' }, posText));
-
-    // Trainer badges
-    if (emp.canTrain.length > 0) {
-      const trainerRow = el('div', { class: 'flex-wrap', style: { marginBottom: '4px' } });
-      trainerRow.appendChild(icon('award'));
-      for (const pos of emp.canTrain) trainerRow.appendChild(badge('T: ' + pos, 'badge-blue'));
-      info.appendChild(trainerRow);
-    }
-
-    // Off day
-    if (emp.offDay) {
-      const offRow = el('div', { class: 'flex items-center gap-1 text-xs', style: { color: 'var(--text-sub)', marginBottom: emp.managerNote ? '4px' : '0' } });
-      offRow.appendChild(icon('calendar-off'));
-      offRow.appendChild(document.createTextNode(' ' + emp.offDay));
-      info.appendChild(offRow);
-    }
-
-    // Manager note — only shown to manager role
-    if (emp.managerNote && currentRole === 'manager') {
-      const noteBox = el('div', { class: 'manager-note' });
-      const noteTitle = el('div', { class: 'flex items-center gap-1', style: { fontWeight: '600', marginBottom: '2px', fontSize: '11px' } });
-      noteTitle.appendChild(icon('lock'));
-      noteTitle.appendChild(document.createTextNode(' Manager note'));
-      noteBox.appendChild(noteTitle);
-      noteBox.appendChild(document.createTextNode(emp.managerNote));
-      info.appendChild(noteBox);
-    }
-
-    row.appendChild(info);
-
-    // Action buttons
-    const actions = el('div', { class: 'emp-actions' });
-    if (isAbsent) {
-      const cancelBtn = el('button', { class: 'btn-sm btn-success', onClick: () => cancelLeave(emp.id) }, 'Cancel Leave');
-      actions.appendChild(cancelBtn);
-    } else {
-      for (const [type, info2] of Object.entries(LEAVE_TYPES)) {
-        const btn = el('button', { class: `btn-sm ${info2.badgeClass.replace('badge-', 'btn-')}`, onClick: () => markDailyLeave(emp.id, type) });
-        btn.textContent = info2.label;
-        actions.appendChild(btn);
-      }
-    }
-
-    row.appendChild(actions);
-    frag.appendChild(row);
-  }
-
-  return frag;
-}
 
 // =============================================================================
 // WEEK PREVIEW (Leave tab)
@@ -1896,7 +2363,13 @@ function render() {
 // =============================================================================
 
 async function initApp() {
-  await Promise.all([loadScheduleForDate(state.selectedDate), loadPlannedLeave(), loadDailyLeave()]);
+  await Promise.all([
+    loadScheduleForDate(state.selectedDate),
+    loadPlannedLeave(),
+    loadDailyLeave(),
+    loadEmployees(),
+    loadPositions(),
+  ]);
   subscribeToChanges();
   render();
 }
