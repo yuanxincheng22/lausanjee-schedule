@@ -1217,36 +1217,45 @@ function renderScheduleTab(computed) {
         const eligibleStudents = computed.availableStaff.filter(e => isStudentEligible(e, slot, computed));
 
         const slotWrap = el('div', {});
-        const hasDayOverride = !!state.assignments[slot.id]?.timeOverride;
-        const effSlot        = getEffectiveSlot(slot);
+        const ovr = state.assignments[slot.id]?.timeOverride;
+        const effSlot = getEffectiveSlot(slot);
+        // Only flag as overridden if times actually differ from the (permanent-overridden) base
+        const hasDayOverride = !!(ovr &&
+          (ovr.startHour !== undefined || ovr.endHour !== undefined) &&
+          (ovr.startHour !== effSlot.startHour || ovr.endHour !== effSlot.endHour));
         const slotBox  = el('div', { class: `slot-box${isFilled ? ' filled' : ''}${hasDayOverride ? ' day-override' : ''}` });
 
-        // Shift label — shows effective (overridden) time
-        slotBox.appendChild(el('div', { class: `slot-shift${isFilled ? ' filled' : ' unfilled'}` },
-          (hasDayOverride ? '⏰ ' : '') + effSlot.shift + (slot.note ? ` · ${slot.note}` : '')));
+        // Shift label row — time text + small clock icon button inline
+        const shiftRow = el('div', { class: `slot-shift${isFilled ? ' filled' : ' unfilled'}`,
+          style: { display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'4px' } });
+        shiftRow.appendChild(el('span', {}, (hasDayOverride ? '⏰ ' : '') + effSlot.shift + (slot.note ? ` · ${slot.note}` : '')));
 
-        // Per-day time override button (manager only)
+        // Clock icon button (manager only) — small, inline, does NOT take up full row
         if (currentRole === 'manager') {
-          const clockBtn = el('button', {
-            class: `btn-sm${hasDayOverride ? ' btn-info' : ''}`,
-            style: { marginTop: '4px', fontSize: '10px', width: '100%' },
+          const clockIcon = el('button', {
+            title: hasDayOverride ? '今日已调整 — 点击修改' : '今日调整班次时间',
+            style: {
+              background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px',
+              color: hasDayOverride ? 'var(--amber-600)' : 'var(--text-muted)',
+              fontSize: '13px', lineHeight: '1', flexShrink: '0',
+            },
             onClick: () => {
               if (slotTimeEditId === slot.id) {
                 slotTimeEditId = null;
               } else {
                 slotTimeEditId = slot.id;
                 slotTimeEdit = {
-                  startHour: state.assignments[slot.id]?.timeOverride?.startHour ?? effSlot.startHour,
-                  endHour:   state.assignments[slot.id]?.timeOverride?.endHour   ?? effSlot.endHour,
+                  startHour: ovr?.startHour ?? effSlot.startHour,
+                  endHour:   ovr?.endHour   ?? effSlot.endHour,
                 };
               }
               render();
             }
           });
-          clockBtn.appendChild(icon('clock-edit'));
-          clockBtn.appendChild(document.createTextNode(hasDayOverride ? ' 今日已调整' : ' 今日调整'));
-          slotBox.appendChild(clockBtn);
+          clockIcon.appendChild(icon(slotTimeEditId === slot.id ? 'x' : 'clock-edit'));
+          shiftRow.appendChild(clockIcon);
         }
+        slotBox.appendChild(shiftRow);
 
         // Main assignment select
         const mainSel = document.createElement('select');
@@ -1288,7 +1297,6 @@ function renderScheduleTab(computed) {
 
           const startSel = createSelect(timeOpts, formatHourNum(slotTimeEdit.startHour), v => { slotTimeEdit.startHour = parseHour(v); });
           const endSel   = createSelect(timeOpts, formatHourNum(slotTimeEdit.endHour),   v => { slotTimeEdit.endHour   = parseHour(v); });
-
           const startRow = el('div', { class: 'pop-row' });
           startRow.appendChild(el('span', { style: { minWidth: '30px' } }, '开始'));
           startRow.appendChild(startSel);
@@ -1302,8 +1310,16 @@ function renderScheduleTab(computed) {
           const btnRow = el('div', { style: { display:'flex', gap:'4px', marginTop:'2px' } });
 
           const confirmBtn = el('button', { class: 'btn-sm btn-success', onClick: () => {
-            if (!state.assignments[slot.id]) state.assignments[slot.id] = {};
-            state.assignments[slot.id].timeOverride = { startHour: slotTimeEdit.startHour, endHour: slotTimeEdit.endHour };
+            const sh = slotTimeEdit.startHour;
+            const eh = slotTimeEdit.endHour;
+            if (eh <= sh) return;  // invalid range
+            // If times match the base slot exactly, treat as "clear override"
+            if (sh === effSlot.startHour && eh === effSlot.endHour) {
+              if (state.assignments[slot.id]) delete state.assignments[slot.id].timeOverride;
+            } else {
+              if (!state.assignments[slot.id]) state.assignments[slot.id] = {};
+              state.assignments[slot.id].timeOverride = { startHour: sh, endHour: eh };
+            }
             slotTimeEditId = null;
             saveToStorage(); render();
           }});
@@ -2129,7 +2145,9 @@ function renderRosterTab() {
 
   // ── Determine employee's display area ──
   function getEmpArea(emp) {
-    // Only show in 管理 if assigned to a PIC slot today
+    // Management roles always go in 管理
+    if (['店长','副理','培训主管','培训员'].includes(emp.role)) return '管理';
+    // Use their assigned slot's area first
     const slot = mainMap[emp.id] || studentMap[emp.id]?.slot;
     if (slot) return slot.area;
     // Fallback: majority area from positions list
