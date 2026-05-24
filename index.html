@@ -6,6 +6,7 @@
   <title>老乡鸡 IOI City Mall · 排班系统</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     /* ── DESIGN TOKENS ── */
     :root {
@@ -170,6 +171,11 @@
     .roster-header { background: var(--gray-900); color: white; padding: 16px; }
     .roster-store { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
     .roster-date  { font-size: 14px; font-weight: 700; background: rgba(255,255,255,0.15); display: inline-block; padding: 4px 12px; border-radius: var(--radius-sm); letter-spacing: 0.3px; }
+
+    /* ── ROSTER EXPORT CARD ── */
+    #roster-export-card { width: 580px; max-width: 100%; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.13); font-family: 'SF Pro Display', system-ui, sans-serif; }
+    .roster-btn-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .roster-hint { font-size: 12px; color: var(--text-sub); margin-bottom: 12px; }
     table { width: 100%; border-collapse: collapse; }
     th { padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.4px; background: var(--gray-50); border-bottom: 1px solid var(--border); }
     td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 13px; }
@@ -944,6 +950,18 @@ function formatDate(dateStr) {
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function getChinaDay(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()];
+}
+
+// Format a fractional hour number → "HH:MM"  e.g. 8.5 → "08:30"
+function formatHourNum(h) {
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
 }
 
 function parseHour(timeStr) {
@@ -1931,89 +1949,276 @@ function renderRosterTab() {
   const frag    = document.createDocumentFragment();
   const absences = getTodayAbsences();
 
-  // Build quick lookup: empId → their slot
-  const mainMap   = {};  // empId → slot (main assignment)
-  const studentMap = {}; // empId → { slot, trainerId }
+  // ── Build assignment maps ──
+  const mainMap    = {};   // empId → slot
+  const studentMap = {};   // empId → { slot, trainerId }
   for (const slot of allSlots()) {
     const a = state.assignments[slot.id];
-    if (a?.empId)      mainMap[a.empId]    = slot;
-    if (a?.studentId)  studentMap[a.studentId] = { slot, trainerId: a.empId };
+    if (a?.empId)     mainMap[a.empId]     = slot;
+    if (a?.studentId) studentMap[a.studentId] = { slot, trainerId: a.empId };
   }
 
-  frag.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', marginBottom:'12px' } }, 'Staff in Excel order · Off Day shown for absent staff'));
+  // ── Determine employee's display area ──
+  function getEmpArea(emp) {
+    // Management roles always go in 管理
+    if (['店长','副理','培训主管','培训员'].includes(emp.role)) return '管理';
+    // Use their assigned slot's area first
+    const slot = mainMap[emp.id] || studentMap[emp.id]?.slot;
+    if (slot) return slot.area;
+    // Fallback: majority area from positions list
+    const counts = {};
+    for (const posName of emp.positions) {
+      const posObj = allPositions.find(p => p.name === posName);
+      if (posObj) counts[posObj.area] = (counts[posObj.area] || 0) + 1;
+    }
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return sorted[0]?.[0] || '后备';
+  }
 
-  const wrap = el('div', { class: 'roster-wrap' });
+  const AREA_ORDER  = ['后厨', '前厅', '管理', '后备'];
+  const AREA_CONFIG = {
+    '后厨': { label: '后厨 Kitchen',        dot: '#2563eb', posColor: '#1e40af', offDot: '#93c5fd', cn: '后厨' },
+    '前厅': { label: '前厅 Front of House', dot: '#16a34a', posColor: '#166534', offDot: '#86efac', cn: '前厅' },
+    '管理': { label: '管理 Management',      dot: '#d97706', posColor: '#92400e', offDot: '#fcd34d', cn: '管理' },
+    '后备': { label: '后备 Reserve',         dot: '#78716c', posColor: '#57534e', offDot: '#d1d5d8', cn: '后备' },
+  };
 
-  // Header with prominent date
-  const headerEl = el('div', { class: 'roster-header' });
-  headerEl.appendChild(el('div', { class: 'roster-store' }, 'Lao Xiang Ji IOI City Mall'));
-  headerEl.appendChild(el('div', { class: 'roster-date' }, formatDate(state.selectedDate)));
-  wrap.appendChild(headerEl);
+  // Partition employees
+  const onDuty = employees.filter(e => !absences[e.id]);
+  const offToday = employees.filter(e => !!absences[e.id]);
 
-  const table = el('table', {});
-  table.appendChild(el('thead', {}, el('tr', {}, ...['Staff', 'Position', 'Shift', 'Role'].map(t => el('th', {}, t)))));
+  const grouped    = {};  // area → emp[]  (on duty)
+  const offGrouped = {};  // area → emp[]  (off today)
+  for (const a of AREA_ORDER) { grouped[a] = []; offGrouped[a] = []; }
+  for (const emp of onDuty)   { const a = getEmpArea(emp); (grouped[a]    || grouped['后备']).push(emp); }
+  for (const emp of offToday) { const a = getEmpArea(emp); (offGrouped[a] || offGrouped['后备']).push(emp); }
 
-  const tbody = el('tbody', {});
+  // ── Build export card DOM (inline styles for html2canvas compatibility) ──
+  const card = document.createElement('div');
+  card.id = 'roster-export-card';
 
-  for (const emp of employees) {
-    const leaveType = absences[emp.id];
-    const isAbsent  = !!leaveType;
-    const tr = el('tr', { class: isAbsent ? 'row-off' : '' });
+  // Header
+  const d       = new Date(state.selectedDate + 'T00:00:00');
+  const months  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const engDays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dateTxt = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  const dayTxt  = `${engDays[d.getDay()]} · ${getChinaDay(state.selectedDate)}`;
 
-    if (isAbsent) {
-      tr.appendChild(el('td', {}, el('span', { style: { fontWeight: '600' } }, emp.shortName)));
-      tr.appendChild(el('td', {}, '—'));
-      tr.appendChild(el('td', {}, 'Off Day'));
-      tr.appendChild(el('td', {}));
-    } else if (mainMap[emp.id]) {
-      const slot   = mainMap[emp.id];
-      const isTrainer = KITCHEN_POSITIONS.includes(slot.pos) && isTrainerFor(emp, slot.pos);
-      tr.appendChild(el('td', {}, el('span', { style: { fontWeight: '600' } }, emp.shortName)));
-      tr.appendChild(el('td', {}, slot.pos));
-      tr.appendChild(el('td', {}, cleanShift(slot.shift)));
-      tr.appendChild(el('td', {}, isTrainer ? badge('T', 'badge-blue') : ''));
-    } else if (studentMap[emp.id]) {
-      const { slot, trainerId } = studentMap[emp.id];
-      const trainer = employees.find(e => e.id === trainerId);
-      tr.appendChild(el('td', {}, el('span', { style: { fontWeight: '600' } }, emp.shortName)));
-      tr.appendChild(el('td', {}, slot.pos));
-      tr.appendChild(el('td', {}, cleanShift(slot.shift)));
-      tr.appendChild(el('td', {}, el('span', { class: 'text-xs', style: { color: 'var(--text-sub)' } }, 'Student w/ ' + (trainer?.shortName || '?'))));
-    } else {
-      tr.appendChild(el('td', {}, el('span', { style: { fontWeight: '600', color: 'var(--text-muted)' } }, emp.shortName)));
-      tr.appendChild(el('td', {}, '—'));
-      tr.appendChild(el('td', {}, '—'));
-      tr.appendChild(el('td', {}));
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'background:#1c1917;color:white;padding:18px 22px 14px;display:flex;justify-content:space-between;align-items:flex-end;';
+  hdr.innerHTML = `
+    <div>
+      <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.45);letter-spacing:.3px;margin-bottom:4px;">老乡鸡 IOI City Mall</div>
+      <div style="font-size:20px;font-weight:800;letter-spacing:-.4px;line-height:1;">${dateTxt}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px;">${dayTxt}</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:28px;font-weight:800;line-height:1;">${onDuty.length}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:3px;">staff on duty</div>
+    </div>`;
+  card.appendChild(hdr);
+
+  // Area blocks
+  for (const area of AREA_ORDER) {
+    const emps = grouped[area];
+    if (!emps.length) continue;
+    const cfg = AREA_CONFIG[area];
+
+    const block = document.createElement('div');
+    block.style.cssText = 'border-bottom:1px solid #f0ede9;';
+
+    // Area header row
+    const aHdr = document.createElement('div');
+    aHdr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 22px 8px;background:#fafaf9;border-bottom:1px solid #f0ede9;';
+    aHdr.innerHTML = `
+      <div style="width:8px;height:8px;border-radius:50%;background:${cfg.dot};flex-shrink:0;"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#57534e;">${cfg.label}</div>
+      <div style="margin-left:auto;font-size:11px;color:#a8a29e;font-weight:500;">${emps.length} 人</div>`;
+    block.appendChild(aHdr);
+
+    // Two-column grid
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
+
+    emps.forEach((emp, idx) => {
+      const slot    = mainMap[emp.id];
+      const stuInfo = studentMap[emp.id];
+      const shiftSlot = slot || stuInfo?.slot;
+      const isTrainer = slot && KITCHEN_POSITIONS.includes(slot.pos) && isTrainerFor(emp, slot.pos);
+      const isStudent = !!stuInfo && !slot;
+
+      // Shift text + break detection
+      let shiftTxt = '—', isLong = false;
+      if (shiftSlot) {
+        shiftTxt = formatHourNum(shiftSlot.startHour) + '–' + formatHourNum(shiftSlot.endHour);
+        isLong   = (shiftSlot.endHour - shiftSlot.startHour) >= 9;
+      }
+
+      const isOdd = idx % 2 === 0;
+      const row = document.createElement('div');
+      row.style.cssText = `display:flex;align-items:center;padding:6px 14px 6px 22px;gap:7px;border-bottom:1px solid #f5f4f2;min-height:36px;${isOdd ? 'border-right:1px solid #f5f4f2;' : ''}`;
+
+      // Name
+      const nameEl = document.createElement('span');
+      nameEl.style.cssText = 'font-size:13px;font-weight:700;color:#1c1917;min-width:44px;flex-shrink:0;';
+      nameEl.textContent = emp.shortName;
+      row.appendChild(nameEl);
+
+      // Position
+      const posEl = document.createElement('span');
+      posEl.style.cssText = `font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${cfg.posColor};`;
+      posEl.textContent = shiftSlot ? shiftSlot.pos : '—';
+      row.appendChild(posEl);
+
+      // Shift + break tag
+      const shiftWrap = document.createElement('div');
+      shiftWrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:1px;';
+      const shiftEl = document.createElement('span');
+      shiftEl.style.cssText = 'font-size:11px;font-weight:600;color:#78716c;white-space:nowrap;';
+      shiftEl.textContent = shiftTxt;
+      shiftWrap.appendChild(shiftEl);
+      if (isLong) {
+        const brk = document.createElement('span');
+        brk.style.cssText = 'font-size:9px;font-weight:600;color:#d97706;background:#fef3c7;border-radius:3px;padding:1px 4px;white-space:nowrap;';
+        brk.textContent = 'break 1hr';
+        shiftWrap.appendChild(brk);
+      }
+      row.appendChild(shiftWrap);
+
+      // Trainer / Student badge
+      if (isTrainer) {
+        const tb = document.createElement('span');
+        tb.style.cssText = 'font-size:10px;font-weight:700;background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 5px;flex-shrink:0;';
+        tb.textContent = 'T';
+        row.appendChild(tb);
+      } else if (isStudent) {
+        const sb = document.createElement('span');
+        sb.style.cssText = 'font-size:10px;font-weight:700;background:#f0fdf4;color:#166534;border-radius:4px;padding:1px 5px;flex-shrink:0;';
+        sb.textContent = 'S';
+        row.appendChild(sb);
+      }
+
+      grid.appendChild(row);
+    });
+
+    // Spacer for odd-count areas (keep grid even)
+    if (emps.length % 2 !== 0) {
+      const spacer = document.createElement('div');
+      spacer.style.cssText = 'border-bottom:1px solid #f5f4f2;min-height:36px;';
+      grid.appendChild(spacer);
     }
 
-    tbody.appendChild(tr);
+    block.appendChild(grid);
+    card.appendChild(block);
   }
 
-  table.appendChild(tbody);
-  wrap.appendChild(table);
-  frag.appendChild(wrap);
+  // Off Today section
+  if (offToday.length > 0) {
+    const offBlock = document.createElement('div');
+    offBlock.style.cssText = 'background:#fafaf9;border-top:2px dashed #e7e5e4;';
 
-  // Copy button
+    const offTop = document.createElement('div');
+    offTop.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 22px 6px;border-bottom:1px solid #ece9e6;';
+    offTop.innerHTML = `
+      <div style="width:8px;height:8px;border-radius:50%;background:#a8a29e;flex-shrink:0;"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#78716c;">休息 Off Today</div>
+      <div style="margin-left:auto;font-size:11px;color:#a8a29e;font-weight:500;">${offToday.length} 人</div>`;
+    offBlock.appendChild(offTop);
+
+    for (const area of AREA_ORDER) {
+      const emps = offGrouped[area];
+      if (!emps.length) continue;
+      const cfg = AREA_CONFIG[area];
+
+      const sec = document.createElement('div');
+      sec.style.cssText = 'padding:7px 22px 4px;';
+
+      const secTitle = document.createElement('div');
+      secTitle.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#a8a29e;margin-bottom:5px;display:flex;align-items:center;gap:5px;';
+      secTitle.innerHTML = `<div style="width:6px;height:6px;border-radius:50%;background:${cfg.offDot};flex-shrink:0;"></div>${cfg.cn}`;
+      sec.appendChild(secTitle);
+
+      const chips = document.createElement('div');
+      chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;';
+      for (const emp of emps) {
+        const chip = document.createElement('span');
+        chip.style.cssText = 'font-size:11px;font-weight:600;background:#f5f4f2;color:#78716c;border-radius:100px;padding:3px 10px;border:1px solid #e7e5e4;';
+        chip.textContent = emp.shortName;
+        chips.appendChild(chip);
+      }
+      sec.appendChild(chips);
+      offBlock.appendChild(sec);
+    }
+
+    card.appendChild(offBlock);
+  }
+
+  // Footer with timestamp
+  const nowT  = new Date();
+  const tStr  = String(nowT.getHours()).padStart(2,'0') + ':' + String(nowT.getMinutes()).padStart(2,'0');
+  const footer = document.createElement('div');
+  footer.style.cssText = 'background:#1c1917;padding:9px 22px;display:flex;align-items:center;justify-content:space-between;';
+  footer.innerHTML = `
+    <div style="font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:.3px;">老乡鸡 IOI City Mall · 排班系统</div>
+    <div style="font-size:10px;color:rgba(255,255,255,0.22);">Generated ${tStr}</div>`;
+  card.appendChild(footer);
+
+  frag.appendChild(el('p', { class: 'roster-hint' }, '按区域分组 · T = Trainer · S = Student · 9h班自动标注 break'));
+  frag.appendChild(card);
+
+  // ── Action buttons ──
+  const btnRow = el('div', { class: 'roster-btn-row' });
+
+  // Export as Image
+  const exportBtn = el('button', { onClick: async () => {
+    const cardEl = document.getElementById('roster-export-card');
+    if (!cardEl) return;
+    const origText = exportBtn.innerHTML;
+    exportBtn.textContent = '⏳ Generating...';
+    exportBtn.disabled = true;
+    try {
+      const canvas = await html2canvas(cardEl, {
+        scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+      });
+      const link = document.createElement('a');
+      link.download = `roster-${state.selectedDate}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch(e) {
+      console.error('Export failed:', e);
+      alert('Export failed. Please try again.');
+    } finally {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '';
+      exportBtn.appendChild(icon('photo-down'));
+      exportBtn.appendChild(document.createTextNode(' Export as Image'));
+    }
+  }});
+  exportBtn.appendChild(icon('photo-down'));
+  exportBtn.appendChild(document.createTextNode(' Export as Image'));
+  btnRow.appendChild(exportBtn);
+
+  // Copy as text (kept from before)
   const copyBtn = el('button', { onClick: async () => {
-    const absences2 = getTodayAbsences();
+    const abs2 = getTodayAbsences();
     const mm = {}; const sm = {};
     for (const s of allSlots()) {
       const a = state.assignments[s.id];
-      if (a?.empId)      mm[a.empId]    = s;
-      if (a?.studentId)  sm[a.studentId] = { s, tid: a.empId };
+      if (a?.empId)     mm[a.empId]    = s;
+      if (a?.studentId) sm[a.studentId] = { s, tid: a.empId };
     }
     const lines = ['Lao Xiang Ji IOI City Mall', formatDate(state.selectedDate), ''];
     for (const emp of employees) {
-      if (absences2[emp.id]) {
+      if (abs2[emp.id]) {
         lines.push(`${emp.shortName}\tOff Day`);
       } else if (mm[emp.id]) {
         const s = mm[emp.id];
         const isT = KITCHEN_POSITIONS.includes(s.pos) && isTrainerFor(emp, s.pos);
-        lines.push(`${emp.shortName}\t${s.pos}\t${cleanShift(s.shift)}${isT ? ' (T)' : ''}`);
+        lines.push(`${emp.shortName}\t${s.pos}\t${formatHourNum(s.startHour)}–${formatHourNum(s.endHour)}${isT ? ' (T)' : ''}`);
       } else if (sm[emp.id]) {
         const { s, tid } = sm[emp.id];
         const t = employees.find(e => e.id === tid);
-        lines.push(`${emp.shortName}\t${s.pos}\t${cleanShift(s.shift)} (Student w/ ${t?.shortName || '?'})`);
+        lines.push(`${emp.shortName}\t${s.pos}\t${formatHourNum(s.startHour)}–${formatHourNum(s.endHour)} (Student w/ ${t?.shortName || '?'})`);
       } else {
         lines.push(`${emp.shortName}\t—`);
       }
@@ -2021,13 +2226,18 @@ function renderRosterTab() {
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
       copyBtn.textContent = '✓ Copied!';
-      setTimeout(() => { copyBtn.innerHTML = ''; copyBtn.appendChild(icon('copy')); copyBtn.appendChild(document.createTextNode(' Copy Roster')); }, 2000);
-    } catch (e) {}
+      setTimeout(() => {
+        copyBtn.innerHTML = '';
+        copyBtn.appendChild(icon('copy'));
+        copyBtn.appendChild(document.createTextNode(' Copy as Text'));
+      }, 2000);
+    } catch(e) { console.error(e); }
   }});
   copyBtn.appendChild(icon('copy'));
-  copyBtn.appendChild(document.createTextNode(' Copy Roster'));
-  frag.appendChild(copyBtn);
+  copyBtn.appendChild(document.createTextNode(' Copy as Text'));
+  btnRow.appendChild(copyBtn);
 
+  frag.appendChild(btnRow);
   return frag;
 }
 
