@@ -2160,9 +2160,7 @@ function renderRosterTab() {
 
   // ── Determine employee's display area ──
   function getEmpArea(emp) {
-    // Management roles always go in 管理
-    if (['店长','副理','培训主管','培训员'].includes(emp.role)) return '管理';
-    // Use their assigned slot's area first
+    // Only show in 管理 if assigned to a PIC slot today
     const slot = mainMap[emp.id] || studentMap[emp.id]?.slot;
     if (slot) return slot.area;
     // Fallback: majority area from positions list
