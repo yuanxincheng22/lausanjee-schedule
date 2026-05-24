@@ -272,6 +272,24 @@
     .inactive-header{display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--gray-50);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;user-select:none;}
     .emp-row-inactive{opacity:0.55;}
 
+    /* ── SLOT TIME OVERRIDE (per-day) ── */
+    .slot-box.day-override { border-color: var(--amber-100) !important; background: var(--amber-50) !important; }
+    .slot-box.day-override .slot-shift { color: var(--amber-600) !important; }
+    .time-edit-popover { background: var(--surface); border: 1px solid var(--border-mid); border-radius: var(--radius-md); padding: 10px 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+    .time-edit-popover .pop-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-sub); }
+    .time-edit-popover .pop-row select { font-size: 12px; padding: 4px 6px; flex: 1; }
+    .time-edit-popover .pop-title { font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: .4px; }
+    .time-edit-popover .pop-orig  { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+
+    /* ── SHIFTS TAB (permanent template editing) ── */
+    .shifts-table { width: 100%; border-collapse: collapse; }
+    .shifts-table th { padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: .4px; background: var(--gray-50); border-bottom: 1px solid var(--border); }
+    .shifts-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+    .shifts-table tr:last-child td { border-bottom: none; }
+    .modified-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--amber-600); margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
+    .shifts-sql-hint { font-size: 11px; color: var(--text-muted); margin-top: 10px; padding: 10px 12px; background: var(--gray-50); border-radius: var(--radius-sm); border: 1px solid var(--border); line-height: 1.7; }
+    .shifts-sql-hint code { background: var(--gray-200); border-radius: 3px; padding: 1px 4px; font-size: 10px; word-break: break-all; }
+
   </style>
 </head>
 <body>
@@ -425,6 +443,51 @@ async function loadPositions() {
     allPositions = data || [];
   } catch(e) { console.error('loadPositions', e?.message || e); }
 }
+
+// ── SLOT OVERRIDES (permanent template edits) ──
+// Requires Supabase table:
+// CREATE TABLE slot_overrides (
+//   store_id text NOT NULL, slot_id text NOT NULL,
+//   start_hour numeric NOT NULL, end_hour numeric NOT NULL,
+//   updated_at timestamptz DEFAULT now(),
+//   PRIMARY KEY (store_id, slot_id)
+// );
+async function loadSlotOverrides() {
+  try {
+    const { data, error } = await db.from('slot_overrides').select('*').eq('store_id', STORE_ID);
+    if (error) throw error;
+    state.slotOverrides = {};
+    for (const row of (data || [])) {
+      state.slotOverrides[row.slot_id] = { startHour: Number(row.start_hour), endHour: Number(row.end_hour) };
+    }
+  } catch(e) { console.warn('loadSlotOverrides (table may not exist yet):', e?.message || e); }
+}
+async function saveSlotOverride(slotId, startHour, endHour) {
+  const { error } = await db.from('slot_overrides').upsert({
+    store_id: STORE_ID, slot_id: slotId,
+    start_hour: startHour, end_hour: endHour,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'store_id,slot_id' });
+  if (error) throw error;
+  state.slotOverrides[slotId] = { startHour, endHour };
+}
+async function deleteSlotOverride(slotId) {
+  const { error } = await db.from('slot_overrides').delete()
+    .eq('store_id', STORE_ID).eq('slot_id', slotId);
+  if (error) throw error;
+  delete state.slotOverrides[slotId];
+}
+
+// ── TIME HELPERS ──
+// Generate half-hour time options from 06:00 to 23:30
+function generateTimeOptions() {
+  const opts = [];
+  for (let h = 6; h <= 23; h++) {
+    opts.push([`${h}:00`, `${String(h).padStart(2,'0')}:00`]);
+    if (h < 23) opts.push([`${h}:30`, `${String(h).padStart(2,'0')}:30`]);
+  }
+  return opts;
+}
 function getNextEmpId() {
   const all = [...employees, ...inactiveEmployees];
   const max = all.reduce((m, e) => { const n = parseInt(e.id.replace('e','')); return isNaN(n)?m:Math.max(m,n); }, 0);
@@ -482,6 +545,10 @@ function subscribeToChanges() {
       event: '*', schema: 'public', table: 'positions_master',
       filter: `store_id=eq.${STORE_ID}`,
     }, async () => { await loadPositions(); render(); })
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'slot_overrides',
+      filter: `store_id=eq.${STORE_ID}`,
+    }, async () => { await loadSlotOverrides(); render(); })
     .subscribe();
 }
 
@@ -489,8 +556,8 @@ function subscribeToChanges() {
 // CONSTANTS
 // =============================================================================
 
-const KITCHEN_POSITIONS = ['A1 炒菜', 'A2 蒸菜', 'B 鸡', 'C 剁鸡', 'Cutting', 'D 饮料'];
-const FRONT_POSITIONS   = ['前厅', '打菜'];
+const KITCHEN_POSITIONS = ['A1 Wok', 'A2 Steam', 'B Chicken', 'C Chop', 'Cutting'];
+const FRONT_POSITIONS   = ['Service', 'Dacai', 'D Drink'];
 const AREAS             = ['后厨', '前厅', '管理', '后备'];
 const CORE_SLOT_IDS     = ['s1', 's2', 's3', 's4', 's5', 's7', 's18', 's19'];
 
@@ -535,39 +602,39 @@ const ROLE_STYLE = {
 
 const BASE_SLOTS = [
   // 后厨 ── A1 炒菜
-  { id: 's1',  pos: 'A1 炒菜', area: '后厨', shift: '8:00-16:00',  startHour: 8,    endHour: 16   },
-  { id: 's2',  pos: 'A1 炒菜', area: '后厨', shift: '15:00-23:00', startHour: 15,   endHour: 23   },
+  { id: 's1',  pos: 'A1 Wok', area: '后厨', shift: '8:00-16:00',  startHour: 8,    endHour: 16   },
+  { id: 's2',  pos: 'A1 Wok', area: '后厨', shift: '15:00-23:00', startHour: 15,   endHour: 23   },
   // A2 蒸菜
-  { id: 's3',  pos: 'A2 蒸菜', area: '后厨', shift: '7:00-15:00',  startHour: 7,    endHour: 15   },
-  { id: 's4',  pos: 'A2 蒸菜', area: '后厨', shift: '15:00-23:00', startHour: 15,   endHour: 23   },
+  { id: 's3',  pos: 'A2 Steam', area: '后厨', shift: '7:00-15:00',  startHour: 7,    endHour: 15   },
+  { id: 's4',  pos: 'A2 Steam', area: '后厨', shift: '15:00-23:00', startHour: 15,   endHour: 23   },
   // B 鸡
-  { id: 's5',  pos: 'B 鸡',   area: '后厨', shift: '7:00-15:00',  startHour: 7,    endHour: 15   },
-  { id: 's6',  pos: 'B 鸡',   area: '后厨', shift: '10:00-19:00', startHour: 10,   endHour: 19   },
-  { id: 's7',  pos: 'B 鸡',   area: '后厨', shift: '15:00-23:00', startHour: 15,   endHour: 23   },
+  { id: 's5',  pos: 'B Chicken',   area: '后厨', shift: '7:00-15:00',  startHour: 7,    endHour: 15   },
+  { id: 's6',  pos: 'B Chicken',   area: '后厨', shift: '10:00-19:00', startHour: 10,   endHour: 19   },
+  { id: 's7',  pos: 'B Chicken',   area: '后厨', shift: '15:00-23:00', startHour: 15,   endHour: 23   },
   // C 剁鸡
-  { id: 's8',  pos: 'C 剁鸡', area: '后厨', shift: '9:30-18:30',  startHour: 9.5,  endHour: 18.5, note: '熟练1人' },
-  { id: 's9',  pos: 'C 剁鸡', area: '后厨', shift: '11:00-20:00', startHour: 11,   endHour: 20   },
+  { id: 's8',  pos: 'C Chop', area: '后厨', shift: '9:30-18:30',  startHour: 9.5,  endHour: 18.5, note: '熟练1人' },
+  { id: 's9',  pos: 'C Chop', area: '后厨', shift: '11:00-20:00', startHour: 11,   endHour: 20   },
   // Cutting 切配
   { id: 'sc1', pos: 'Cutting', area: '后厨', shift: '10:00-19:00', startHour: 10,   endHour: 19   },
   { id: 'sc2', pos: 'Cutting', area: '后厨', shift: '11:00-20:00', startHour: 11,   endHour: 20,   note: '按营业额', isFlex: true },
   // D 饮料
-  { id: 's10', pos: 'D 饮料', area: '后厨', shift: '7:00-15:00',  startHour: 7,    endHour: 15   },
-  { id: 's11', pos: 'D 饮料', area: '后厨', shift: '11:00-19:00', startHour: 11,   endHour: 19   },
-  { id: 's12', pos: 'D 饮料', area: '后厨', shift: '15:00-23:00', startHour: 15,   endHour: 23   },
+  { id: 's10', pos: 'D Drink', area: '前厅', shift: '7:00-15:00',  startHour: 7,    endHour: 15   },
+  { id: 's11', pos: 'D Drink', area: '前厅', shift: '11:00-20:00', startHour: 11,   endHour: 20   },
+  { id: 's12', pos: 'D Drink', area: '前厅', shift: '15:00-23:00', startHour: 15,   endHour: 23   },
 
   // 前厅 ── Service
-  { id: 's13',  pos: '前厅', area: '前厅', shift: '9:30-18:30',   startHour: 9.5,  endHour: 18.5, isFlex: true },
-  { id: 's14',  pos: '前厅', area: '前厅', shift: '11:00-20:00',  startHour: 11,   endHour: 20,   isFlex: true },
-  { id: 's15a', pos: '前厅', area: '前厅', shift: '12:00-21:00①', startHour: 12,   endHour: 21,   isFlex: true },
-  { id: 's15b', pos: '前厅', area: '前厅', shift: '12:00-21:00②', startHour: 12,   endHour: 21,   isFlex: true },
-  { id: 's16a', pos: '前厅', area: '前厅', shift: '14:00-23:00①', startHour: 14,   endHour: 23,   isFlex: true },
-  { id: 's16b', pos: '前厅', area: '前厅', shift: '14:00-23:00②', startHour: 14,   endHour: 23,   isFlex: true },
-  { id: 'seve', pos: '前厅', area: '前厅', shift: '18:00-23:00',  startHour: 18,   endHour: 23,   note: 'Part-time', isFlex: true },
+  { id: 's13',  pos: 'Service', area: '前厅', shift: '9:30-18:30',   startHour: 9.5,  endHour: 18.5, isFlex: true },
+  { id: 's14',  pos: 'Service', area: '前厅', shift: '11:00-20:00',  startHour: 11,   endHour: 20,   isFlex: true },
+  { id: 's15a', pos: 'Service', area: '前厅', shift: '12:00-21:00①', startHour: 12,   endHour: 21,   isFlex: true },
+  { id: 's15b', pos: 'Service', area: '前厅', shift: '12:00-21:00②', startHour: 12,   endHour: 21,   isFlex: true },
+  { id: 's16a', pos: 'Service', area: '前厅', shift: '14:00-23:00①', startHour: 14,   endHour: 23,   isFlex: true },
+  { id: 's16b', pos: 'Service', area: '前厅', shift: '14:00-23:00②', startHour: 14,   endHour: 23,   isFlex: true },
+  { id: 'seve', pos: 'Service', area: '前厅', shift: '18:00-23:00',  startHour: 18,   endHour: 23,   note: 'Part-time', isFlex: true },
   // Dishwash
   { id: 's17', pos: 'Dishwash', area: '前厅', shift: '15:00-23:00', startHour: 15, endHour: 23   },
   // 打菜
-  { id: 's20', pos: '打菜', area: '前厅', shift: '11:00-20:00', startHour: 11, endHour: 20, isFlex: true },
-  { id: 's21', pos: '打菜', area: '前厅', shift: '12:00-21:00', startHour: 12, endHour: 21, note: '按营业额', isFlex: true },
+  { id: 's20', pos: 'Dacai', area: '前厅', shift: '11:00-20:00', startHour: 11, endHour: 20, isFlex: true },
+  { id: 's21', pos: 'Dacai', area: '前厅', shift: '12:00-21:00', startHour: 12, endHour: 21, note: '按营业额', isFlex: true },
 
   // 管理 ── PIC
   { id: 's18', pos: 'PIC', area: '管理', shift: '7:00-16:00',  startHour: 7,  endHour: 16 },
@@ -584,54 +651,54 @@ const BASE_SLOTS = [
 // =============================================================================
 
 const DEFAULT_EMPLOYEES = [
-  { id:'e1',  fullName:'Yuan Xincheng',           shortName:'Yuan',         role:'店长',     positions:['A2 蒸菜','D 饮料'],                         canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e1',  fullName:'Yuan Xincheng',           shortName:'Yuan',         role:'店长',     positions:['A2 Steam','D Drink'],                         canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
   { id:'e2',  fullName:'Alen Wang',               shortName:'Alen',         role:'店长',     positions:['PIC','Cutting'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e3',  fullName:'Tom Buxton Wang',          shortName:'Tom Wang',     role:'店长',     positions:['PIC','A1 炒菜'],                             canTrain:['A1 炒菜'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e4',  fullName:'Yixing Yin',              shortName:'Yixing',       role:'店长',     positions:['B 鸡','D 饮料'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e3',  fullName:'Tom Buxton Wang',          shortName:'Tom Wang',     role:'店长',     positions:['PIC','A1 Wok'],                             canTrain:['A1 Wok'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e4',  fullName:'Yixing Yin',              shortName:'Yixing',       role:'店长',     positions:['B Chicken','D Drink'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
   { id:'e5',  fullName:'DuoDuo Wu',               shortName:'Duoduo',       role:'培训主管', positions:['PIC'],                                       canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e6',  fullName:'Dreamy Wang',              shortName:'Dreamy',       role:'培训员',   positions:['前厅','D 饮料'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e7',  fullName:'A Long Ma',               shortName:'A Long',       role:'培训员',   positions:['A1 炒菜','C 剁鸡'],                         canTrain:['A1 炒菜'],               tags:[],              managerNote:'希望多加班，愿意承担',  offDay:'', availableFrom:0  },
-  { id:'e8',  fullName:'Green Ice Chen',           shortName:'Ice',          role:'培训员',   positions:['C 剁鸡','PIC'],                             canTrain:['C 剁鸡'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e9',  fullName:'Milk Wang',               shortName:'Milk',         role:'培训员',   positions:['A1 炒菜','A2 蒸菜','B 鸡','C 剁鸡'],       canTrain:['A1 炒菜','C 剁鸡'],     tags:[],              managerNote:'与欧姚/续兵班次绑定', offDay:'', availableFrom:0 },
-  { id:'e10', fullName:'Ouyao Zhongxing',          shortName:'Ouyao',        role:'培训员',   positions:['PIC','A2 蒸菜'],                             canTrain:['A1 炒菜'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e11', fullName:'Adil Dai',                shortName:'Adil',         role:'培训员',   positions:['D 饮料','A2 蒸菜'],                         canTrain:['D 饮料'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e12', fullName:'Sandy Zhao',              shortName:'Sandy',        role:'培训员',   positions:['B 鸡'],                                     canTrain:['B 鸡'],                 tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e13', fullName:'Tao Ying',                shortName:'Tao',          role:'培训员',   positions:['A2 蒸菜','A1 炒菜'],                         canTrain:['A1 炒菜'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e14', fullName:'Luna Li',                 shortName:'Luna',         role:'培训员',   positions:['PIC','前厅'],                               canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e15', fullName:'Peace Ban',               shortName:'Ban',          role:'培训员',   positions:['A1 炒菜','A2 蒸菜','C 剁鸡','D 饮料'],     canTrain:['A2 蒸菜','C 剁鸡'],     tags:[],              managerNote:'与晓欢班次绑定',      offDay:'', availableFrom:0 },
-  { id:'e16', fullName:'Dany Chen',               shortName:'Dany',         role:'培训员',   positions:['Cutting','D 饮料'],                         canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e17', fullName:'Araf Ibne Alamgir',       shortName:'Araf',         role:'前厅员工', positions:['前厅'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'周一～周三',   availableFrom:0  },
-  { id:'e18', fullName:'Iza Siti Nurshariza',     shortName:'Iza Siti',     role:'后厨员工', positions:['D 饮料'],                                   canTrain:['D 饮料'],               tags:[],              managerNote:'饮料岗扛把子', offDay:'周一～周三', availableFrom:0 },
-  { id:'e19', fullName:'Prema Jannatul',          shortName:'Prema',        role:'前厅员工', positions:['前厅'],                                     canTrain:[],                        tags:['收银'],        managerNote:'', offDay:'周一～周三',   availableFrom:0  },
-  { id:'e20', fullName:'Yad M.Akhyar',            shortName:'Yad',          role:'兼职',     positions:['前厅'],                                     canTrain:[],                        tags:['引流'],        managerNote:'工作日18:00后和周末能来，活泼外向，研究生', offDay:'周中一天', availableFrom:18 },
-  { id:'e21', fullName:'Iza Nur Syuhada',         shortName:'Iza Nur',      role:'后厨员工', positions:['B 鸡','C 剁鸡','Cutting'],                 canTrain:[],                        tags:[],              managerNote:'希望多上班，加班', offDay:'', availableFrom:0 },
-  { id:'e22', fullName:'Finn Marsya Saafia',      shortName:'Finn',         role:'兼职',     positions:['前厅'],                                     canTrain:[],                        tags:[],              managerNote:'只有周五、六、日能来', offDay:'周一-周四不排班', availableFrom:0 },
-  { id:'e23', fullName:'Nurul Nadwal',            shortName:'Nadwa',        role:'前厅员工', positions:['前厅'],                                     canTrain:[],                        tags:['引流','收银'], managerNote:'前厅扛把子', offDay:'周一～周三', availableFrom:0 },
-  { id:'e24', fullName:'M.Faeez Bin Azmi',        shortName:'Faeez',        role:'后厨员工', positions:['B 鸡'],                                     canTrain:[],                        tags:[],              managerNote:'毛巾哥 动作慢', offDay:'周四', availableFrom:0 },
-  { id:'e25', fullName:'Putera Nur Afeef',        shortName:'Putera',       role:'后厨员工', positions:['B 鸡','Cutting','A2 蒸菜'],                 canTrain:[],                        tags:[],              managerNote:'阿飞，早晚班切换需休息一天', offDay:'周四/周五', availableFrom:0 },
-  { id:'e26', fullName:'Shaymin Bin Zaha',        shortName:'Shaymin',      role:'后厨员工', positions:['A1 炒菜','A2 蒸菜','Cutting'],             canTrain:[],                        tags:[],              managerNote:'虾米，做事麻利', offDay:'周四/周五', availableFrom:0 },
-  { id:'e27', fullName:'Micheal Lim',             shortName:'Micheal',      role:'前厅员工', positions:['前厅'],                                     canTrain:[],                        tags:[],              managerNote:'七月要去上学', offDay:'', availableFrom:0 },
-  { id:'e28', fullName:'Raziq Latiff',            shortName:'Raziq',        role:'店长',     positions:['A2 蒸菜','B 鸡','C 剁鸡','D 饮料'],       canTrain:[],                        tags:[],              managerNote:'当前过岗位中', offDay:'周四/周五', availableFrom:0 },
-  { id:'e29', fullName:'Erm Nuril Ilhami',        shortName:'Erm Ilhami',   role:'后厨员工', positions:['C 剁鸡','A2 蒸菜','B 鸡'],               canTrain:[],                        tags:[],              managerNote:'活泼', offDay:'自己会找你请假', availableFrom:0 },
-  { id:'e30', fullName:'Aiman Bin Khairon',       shortName:'Aiman Khairon',role:'员工',     positions:['前厅'],                                     canTrain:[],                        tags:['引流'],        managerNote:'有激情，善于引流', offDay:'周一/周五', availableFrom:0 },
-  { id:'e31', fullName:'Hani Athirah Pauzi',      shortName:'Hani',         role:'员工',     positions:['D 饮料'],                                   canTrain:[],                        tags:[],              managerNote:'每周六休息，经常休息后第二天不来上班', offDay:'自己会找你请假', availableFrom:0 },
-  { id:'e32', fullName:'Siti Haleeja Affendi',    shortName:'Siti',         role:'员工',     positions:['B 鸡','C 剁鸡'],                           canTrain:[],                        tags:[],              managerNote:'不太需要休息，想多上班', offDay:'自己会找你请假', availableFrom:0 },
-  { id:'e33', fullName:'Ariff Shah Rodzee',       shortName:'Ariff Shah',   role:'员工',     positions:['C 剁鸡','Cutting'],                         canTrain:[],                        tags:[],              managerNote:'剁鸡比较快', offDay:'周一/周二', availableFrom:0 },
-  { id:'e34', fullName:'Ahmad Aiman',             shortName:'Ahmad Aiman',  role:'员工',     positions:['A2 蒸菜'],                                   canTrain:[],                        tags:[],              managerNote:'干了一个月A2找到感觉了', offDay:'周二/周三', availableFrom:0 },
+  { id:'e6',  fullName:'Dreamy Wang',              shortName:'Dreamy',       role:'培训员',   positions:['Service','D Drink'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e7',  fullName:'A Long Ma',               shortName:'A Long',       role:'培训员',   positions:['A1 Wok','C Chop'],                         canTrain:['A1 Wok'],               tags:[],              managerNote:'希望多加班，愿意承担',  offDay:'', availableFrom:0  },
+  { id:'e8',  fullName:'Green Ice Chen',           shortName:'Ice',          role:'培训员',   positions:['C Chop','PIC'],                             canTrain:['C Chop'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e9',  fullName:'Milk Wang',               shortName:'Milk',         role:'培训员',   positions:['A1 Wok','A2 Steam','B Chicken','C Chop'],       canTrain:['A1 Wok','C Chop'],     tags:[],              managerNote:'与欧姚/续兵班次绑定', offDay:'', availableFrom:0 },
+  { id:'e10', fullName:'Ouyao Zhongxing',          shortName:'Ouyao',        role:'培训员',   positions:['PIC','A2 Steam'],                             canTrain:['A1 Wok'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e11', fullName:'Adil Dai',                shortName:'Adil',         role:'培训员',   positions:['D Drink','A2 Steam'],                         canTrain:['D Drink'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e12', fullName:'Sandy Zhao',              shortName:'Sandy',        role:'培训员',   positions:['B Chicken'],                                     canTrain:['B Chicken'],                 tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e13', fullName:'Tao Ying',                shortName:'Tao',          role:'培训员',   positions:['A2 Steam','A1 Wok'],                         canTrain:['A1 Wok'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e14', fullName:'Luna Li',                 shortName:'Luna',         role:'培训员',   positions:['PIC','Service'],                               canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e15', fullName:'Peace Ban',               shortName:'Ban',          role:'培训员',   positions:['A1 Wok','A2 Steam','C Chop','D Drink'],     canTrain:['A2 Steam','C Chop'],     tags:[],              managerNote:'与晓欢班次绑定',      offDay:'', availableFrom:0 },
+  { id:'e16', fullName:'Dany Chen',               shortName:'Dany',         role:'培训员',   positions:['Cutting','D Drink'],                         canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e17', fullName:'Araf Ibne Alamgir',       shortName:'Araf',         role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'周一～周三',   availableFrom:0  },
+  { id:'e18', fullName:'Iza Siti Nurshariza',     shortName:'Iza Siti',     role:'后厨员工', positions:['D Drink'],                                   canTrain:['D Drink'],               tags:[],              managerNote:'饮料岗扛把子', offDay:'周一～周三', availableFrom:0 },
+  { id:'e19', fullName:'Prema Jannatul',          shortName:'Prema',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['收银'],        managerNote:'', offDay:'周一～周三',   availableFrom:0  },
+  { id:'e20', fullName:'Yad M.Akhyar',            shortName:'Yad',          role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:['引流'],        managerNote:'工作日18:00后和周末能来，活泼外向，研究生', offDay:'周中一天', availableFrom:18 },
+  { id:'e21', fullName:'Iza Nur Syuhada',         shortName:'Iza Nur',      role:'后厨员工', positions:['B Chicken','C Chop','Cutting'],                 canTrain:[],                        tags:[],              managerNote:'希望多上班，加班', offDay:'', availableFrom:0 },
+  { id:'e22', fullName:'Finn Marsya Saafia',      shortName:'Finn',         role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'只有周五、六、日能来', offDay:'周一-周四不排班', availableFrom:0 },
+  { id:'e23', fullName:'Nurul Nadwal',            shortName:'Nadwa',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['引流','收银'], managerNote:'前厅扛把子', offDay:'周一～周三', availableFrom:0 },
+  { id:'e24', fullName:'M.Faeez Bin Azmi',        shortName:'Faeez',        role:'后厨员工', positions:['B Chicken'],                                     canTrain:[],                        tags:[],              managerNote:'毛巾哥 动作慢', offDay:'周四', availableFrom:0 },
+  { id:'e25', fullName:'Putera Nur Afeef',        shortName:'Putera',       role:'后厨员工', positions:['B Chicken','Cutting','A2 Steam'],                 canTrain:[],                        tags:[],              managerNote:'阿飞，早晚班切换需休息一天', offDay:'周四/周五', availableFrom:0 },
+  { id:'e26', fullName:'Shaymin Bin Zaha',        shortName:'Shaymin',      role:'后厨员工', positions:['A1 Wok','A2 Steam','Cutting'],             canTrain:[],                        tags:[],              managerNote:'虾米，做事麻利', offDay:'周四/周五', availableFrom:0 },
+  { id:'e27', fullName:'Micheal Lim',             shortName:'Micheal',      role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'七月要去上学', offDay:'', availableFrom:0 },
+  { id:'e28', fullName:'Raziq Latiff',            shortName:'Raziq',        role:'店长',     positions:['A2 Steam','B Chicken','C Chop','D Drink'],       canTrain:[],                        tags:[],              managerNote:'当前过岗位中', offDay:'周四/周五', availableFrom:0 },
+  { id:'e29', fullName:'Erm Nuril Ilhami',        shortName:'Erm Ilhami',   role:'后厨员工', positions:['C Chop','A2 Steam','B Chicken'],               canTrain:[],                        tags:[],              managerNote:'活泼', offDay:'自己会找你请假', availableFrom:0 },
+  { id:'e30', fullName:'Aiman Bin Khairon',       shortName:'Aiman Khairon',role:'员工',     positions:['Service'],                                     canTrain:[],                        tags:['引流'],        managerNote:'有激情，善于引流', offDay:'周一/周五', availableFrom:0 },
+  { id:'e31', fullName:'Hani Athirah Pauzi',      shortName:'Hani',         role:'员工',     positions:['D Drink'],                                   canTrain:[],                        tags:[],              managerNote:'每周六休息，经常休息后第二天不来上班', offDay:'自己会找你请假', availableFrom:0 },
+  { id:'e32', fullName:'Siti Haleeja Affendi',    shortName:'Siti',         role:'员工',     positions:['B Chicken','C Chop'],                           canTrain:[],                        tags:[],              managerNote:'不太需要休息，想多上班', offDay:'自己会找你请假', availableFrom:0 },
+  { id:'e33', fullName:'Ariff Shah Rodzee',       shortName:'Ariff Shah',   role:'员工',     positions:['C Chop','Cutting'],                         canTrain:[],                        tags:[],              managerNote:'剁鸡比较快', offDay:'周一/周二', availableFrom:0 },
+  { id:'e34', fullName:'Ahmad Aiman',             shortName:'Ahmad Aiman',  role:'员工',     positions:['A2 Steam'],                                   canTrain:[],                        tags:[],              managerNote:'干了一个月A2找到感觉了', offDay:'周二/周三', availableFrom:0 },
   { id:'e35', fullName:'Mohd Zafri Bin Zaihi',   shortName:'Zafri',        role:'员工',     positions:['Dishwash'],                                 canTrain:[],                        tags:[],              managerNote:'每天都迟到，除洗碗外难安排', offDay:'周二有事排休', availableFrom:0 },
-  { id:'e36', fullName:'Syazwan Bin Shaharuddin', shortName:'Syazwan',      role:'副理',     positions:['B 鸡','前厅','D 饮料'],                     canTrain:[],                        tags:[],              managerNote:'干活比较慢，出勤正常', offDay:'周四/周二', availableFrom:0 },
+  { id:'e36', fullName:'Syazwan Bin Shaharuddin', shortName:'Syazwan',      role:'副理',     positions:['B Chicken','Service','D Drink'],                     canTrain:[],                        tags:[],              managerNote:'干活比较慢，出勤正常', offDay:'周四/周二', availableFrom:0 },
   { id:'e37', fullName:'Ariff Tuah Daniel',       shortName:'Tuah',         role:'员工',     positions:['Dishwash'],                                 canTrain:[],                        tags:[],              managerNote:'⚠ 问题员工，沟通离职', offDay:'', availableFrom:0 },
-  { id:'e38', fullName:'Mahfuz Bin Md Nizar',     shortName:'Mahfuz',       role:'员工',     positions:['A1 炒菜','Cutting'],                         canTrain:[],                        tags:[],              managerNote:'干活上手快、同事评价高', offDay:'周二/周三', availableFrom:0 },
-  { id:'e39', fullName:'Nur Qamarina nabila',     shortName:'Qamarina',     role:'员工',     positions:['D 饮料','B 鸡','Cutting'],                 canTrain:[],                        tags:[],              managerNote:'入职后厨，其他后厨可能可以干', offDay:'周末/周一', availableFrom:0 },
-  { id:'e40', fullName:'Jassica Chan',            shortName:'Jassica',      role:'员工',     positions:['A1 炒菜','B 鸡'],                           canTrain:[],                        tags:[],              managerNote:'同事评价高；工作日学驾照，排晚班', offDay:'', availableFrom:0 },
-  { id:'e41', fullName:'Seha Fasihan',            shortName:'Seha',         role:'前厅员工', positions:['前厅'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'周六/周三',   availableFrom:0  },
-  { id:'e42', fullName:'M.Aiman Bin Khairul Annuar', shortName:'Aiman Bobo', role:'后厨员工', positions:['Cutting','A1 炒菜','B 鸡'],              canTrain:[],                        tags:[],              managerNote:'胖胖的，洗碗快', offDay:'', availableFrom:0 },
-  { id:'e43', fullName:'Norsidah Bt Amran',       shortName:'Sidah',        role:'员工',     positions:['前厅'],                                     canTrain:[],                        tags:['引流','收银'], managerNote:'同事评价高、漂亮', offDay:'周一/周二', availableFrom:0 },
-  { id:'e44', fullName:'Nur Aida Binti Amran',    shortName:'Aida',         role:'兼职',     positions:['前厅'],                                     canTrain:[],                        tags:[],              managerNote:'只有晚上能来帮忙', offDay:'', availableFrom:18 },
-  { id:'e45', fullName:'Putri Salbiah',           shortName:'Putri',        role:'员工',     positions:['前厅','D 饮料'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e38', fullName:'Mahfuz Bin Md Nizar',     shortName:'Mahfuz',       role:'员工',     positions:['A1 Wok','Cutting'],                         canTrain:[],                        tags:[],              managerNote:'干活上手快、同事评价高', offDay:'周二/周三', availableFrom:0 },
+  { id:'e39', fullName:'Nur Qamarina nabila',     shortName:'Qamarina',     role:'员工',     positions:['D Drink','B Chicken','Cutting'],                 canTrain:[],                        tags:[],              managerNote:'入职后厨，其他后厨可能可以干', offDay:'周末/周一', availableFrom:0 },
+  { id:'e40', fullName:'Jassica Chan',            shortName:'Jassica',      role:'员工',     positions:['A1 Wok','B Chicken'],                           canTrain:[],                        tags:[],              managerNote:'同事评价高；工作日学驾照，排晚班', offDay:'', availableFrom:0 },
+  { id:'e41', fullName:'Seha Fasihan',            shortName:'Seha',         role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'周六/周三',   availableFrom:0  },
+  { id:'e42', fullName:'M.Aiman Bin Khairul Annuar', shortName:'Aiman Bobo', role:'后厨员工', positions:['Cutting','A1 Wok','B Chicken'],              canTrain:[],                        tags:[],              managerNote:'胖胖的，洗碗快', offDay:'', availableFrom:0 },
+  { id:'e43', fullName:'Norsidah Bt Amran',       shortName:'Sidah',        role:'员工',     positions:['Service'],                                     canTrain:[],                        tags:['引流','收银'], managerNote:'同事评价高、漂亮', offDay:'周一/周二', availableFrom:0 },
+  { id:'e44', fullName:'Nur Aida Binti Amran',    shortName:'Aida',         role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'只有晚上能来帮忙', offDay:'', availableFrom:18 },
+  { id:'e45', fullName:'Putri Salbiah',           shortName:'Putri',        role:'员工',     positions:['Service','D Drink'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
   { id:'e46', fullName:'Siti Nurfatimahfatin',    shortName:'Fatin',        role:'员工',     positions:['Cutting'],                                   canTrain:[],                        tags:[],              managerNote:'戴牙套', offDay:'', availableFrom:0 },
-  { id:'e47', fullName:'Adrus Aqasya',            shortName:'Adrus',        role:'前厅员工', positions:['前厅'],                                     canTrain:[],                        tags:['引流'],        managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e48', fullName:'Natasha Nabilah',         shortName:'Natasha',      role:'副理',     positions:['前厅'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e47', fullName:'Adrus Aqasya',            shortName:'Adrus',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['引流'],        managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e48', fullName:'Natasha Nabilah',         shortName:'Natasha',      role:'副理',     positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
 ];
 
 // =============================================================================
@@ -656,14 +723,22 @@ let inactiveExpanded = false;
 let state = {
   currentTab:      'schedule',
   selectedDate:    new Date().toISOString().split('T')[0],
-  assignments:     {},     // { slotId: { empId, studentId } }
+  assignments:     {},     // { slotId: { empId, studentId, timeOverride? } }
   extraSlots:      [],     // dynamically added slots
   plannedLeave:    {},     // { empId: [{ from, to, type }] }
   dailyLeave:      {},     // { 'YYYY-MM-DD': { empId: leaveType } }
+  slotOverrides:   {},     // { slotId: { startHour, endHour } } — permanent, from Supabase
   searchQuery:     '',
   showUnassigned:  false,
   ganttView:       'full',
 };
+
+// Per-day time override popover state
+let slotTimeEditId = null;                              // slot.id with open popover, or null
+let slotTimeEdit   = { startHour: 0, endHour: 0 };    // working values inside popover
+
+// Permanent shift template edit state (班次 tab)
+let shiftTabEdit   = { slotId: null, startHour: 0, endHour: 0 };
 
 let addShiftForm = { openPosition: null, startTime: '11:00', endTime: '20:00', employeeId: '' };
 let leaveForm      = { employeeId: '', type: 'planned', fromDate: '', toDate: '' };
@@ -800,7 +875,24 @@ function computeState() {
 }
 
 function allSlots() {
-  return [...BASE_SLOTS, ...state.extraSlots];
+  // Apply permanent slot_overrides on top of BASE_SLOTS
+  const base = BASE_SLOTS.map(s => {
+    const ov = state.slotOverrides[s.id];
+    if (!ov) return s;
+    return { ...s, startHour: ov.startHour, endHour: ov.endHour,
+             shift: formatHourNum(ov.startHour) + '–' + formatHourNum(ov.endHour) };
+  });
+  return [...base, ...state.extraSlots];
+}
+
+// Returns a slot with any per-day time override applied (from assignments.timeOverride)
+function getEffectiveSlot(slot) {
+  const daily = state.assignments[slot.id]?.timeOverride;
+  if (!daily) return slot;
+  const sh = daily.startHour ?? slot.startHour;
+  const eh = daily.endHour   ?? slot.endHour;
+  return { ...slot, startHour: sh, endHour: eh,
+           shift: formatHourNum(sh) + '–' + formatHourNum(eh) };
 }
 
 // Is this employee eligible to be the main person for a slot?
@@ -815,7 +907,7 @@ function isEligible(employee, slot, computed) {
   if (alreadyAssigned && !isMainHere && !isStudentHere) return false;
   if (employee.availableFrom && employee.availableFrom > slot.startHour) return false;
 
-  if (slot.pos === '打菜')   return true;  // anyone can do 打菜
+  if (slot.pos === 'Dacai')   return true;  // anyone can do 打菜
   if (slot.pos === 'Reserve') return KITCHEN_POSITIONS.filter(p => employee.positions.includes(p)).length >= 3;
 
   return employee.positions.includes(slot.pos);
@@ -1065,7 +1157,7 @@ function renderScheduleTab(computed) {
       const posTitle  = el('p', { style: { fontSize:'13px', fontWeight:'700', margin:'0' } }, pos);
 
       if (pos === 'Reserve') posTitle.appendChild(el('span', { style: { fontSize:'11px', color:'var(--text-sub)', marginLeft:'6px' } }, '(3+ kitchen positions)'));
-      if (pos === '打菜')    posTitle.appendChild(el('span', { style: { fontSize:'11px', color:'var(--text-sub)', marginLeft:'6px' } }, '(all staff eligible)'));
+      if (pos === 'Dacai')    posTitle.appendChild(el('span', { style: { fontSize:'11px', color:'var(--text-sub)', marginLeft:'6px' } }, '(all staff eligible)'));
 
       posHeader.appendChild(posTitle);
 
@@ -1082,7 +1174,7 @@ function renderScheduleTab(computed) {
         const form = el('div', { class: 'add-shift-form' });
 
         const eligibleForPos = computed.availableStaff.filter(e => {
-          if (pos === '打菜')    return true;
+          if (pos === 'Dacai')    return true;
           if (pos === 'Reserve') return KITCHEN_POSITIONS.filter(p => e.positions.includes(p)).length >= 3;
           return e.positions.includes(pos);
         });
@@ -1125,11 +1217,36 @@ function renderScheduleTab(computed) {
         const eligibleStudents = computed.availableStaff.filter(e => isStudentEligible(e, slot, computed));
 
         const slotWrap = el('div', {});
-        const slotBox  = el('div', { class: `slot-box${isFilled ? ' filled' : ''}` });
+        const hasDayOverride = !!state.assignments[slot.id]?.timeOverride;
+        const effSlot        = getEffectiveSlot(slot);
+        const slotBox  = el('div', { class: `slot-box${isFilled ? ' filled' : ''}${hasDayOverride ? ' day-override' : ''}` });
 
-        // Shift label
+        // Shift label — shows effective (overridden) time
         slotBox.appendChild(el('div', { class: `slot-shift${isFilled ? ' filled' : ' unfilled'}` },
-          slot.shift + (slot.note ? ` · ${slot.note}` : '')));
+          (hasDayOverride ? '⏰ ' : '') + effSlot.shift + (slot.note ? ` · ${slot.note}` : '')));
+
+        // Per-day time override button (manager only)
+        if (currentRole === 'manager') {
+          const clockBtn = el('button', {
+            class: `btn-sm${hasDayOverride ? ' btn-info' : ''}`,
+            style: { marginTop: '4px', fontSize: '10px', width: '100%' },
+            onClick: () => {
+              if (slotTimeEditId === slot.id) {
+                slotTimeEditId = null;
+              } else {
+                slotTimeEditId = slot.id;
+                slotTimeEdit = {
+                  startHour: state.assignments[slot.id]?.timeOverride?.startHour ?? effSlot.startHour,
+                  endHour:   state.assignments[slot.id]?.timeOverride?.endHour   ?? effSlot.endHour,
+                };
+              }
+              render();
+            }
+          });
+          clockBtn.appendChild(icon('clock-edit'));
+          clockBtn.appendChild(document.createTextNode(hasDayOverride ? ' 今日已调整' : ' 今日调整'));
+          slotBox.appendChild(clockBtn);
+        }
 
         // Main assignment select
         const mainSel = document.createElement('select');
@@ -1161,6 +1278,57 @@ function renderScheduleTab(computed) {
         }
 
         slotWrap.appendChild(slotBox);
+
+        // Per-day time popover
+        if (currentRole === 'manager' && slotTimeEditId === slot.id) {
+          const timeOpts = generateTimeOptions();
+          const popover  = el('div', { class: 'time-edit-popover' });
+          popover.appendChild(el('div', { class: 'pop-title' }, '今日调整班次时间'));
+          popover.appendChild(el('div', { class: 'pop-orig' }, `模板时间：${formatHourNum(slot.startHour)} – ${formatHourNum(slot.endHour)}`));
+
+          const startSel = createSelect(timeOpts, formatHourNum(slotTimeEdit.startHour), v => { slotTimeEdit.startHour = parseHour(v); });
+          const endSel   = createSelect(timeOpts, formatHourNum(slotTimeEdit.endHour),   v => { slotTimeEdit.endHour   = parseHour(v); });
+
+          const startRow = el('div', { class: 'pop-row' });
+          startRow.appendChild(el('span', { style: { minWidth: '30px' } }, '开始'));
+          startRow.appendChild(startSel);
+          popover.appendChild(startRow);
+
+          const endRow = el('div', { class: 'pop-row' });
+          endRow.appendChild(el('span', { style: { minWidth: '30px' } }, '结束'));
+          endRow.appendChild(endSel);
+          popover.appendChild(endRow);
+
+          const btnRow = el('div', { style: { display:'flex', gap:'4px', marginTop:'2px' } });
+
+          const confirmBtn = el('button', { class: 'btn-sm btn-success', onClick: () => {
+            if (!state.assignments[slot.id]) state.assignments[slot.id] = {};
+            state.assignments[slot.id].timeOverride = { startHour: slotTimeEdit.startHour, endHour: slotTimeEdit.endHour };
+            slotTimeEditId = null;
+            saveToStorage(); render();
+          }});
+          confirmBtn.appendChild(icon('check'));
+          confirmBtn.appendChild(document.createTextNode(' 确认'));
+          btnRow.appendChild(confirmBtn);
+
+          if (hasDayOverride) {
+            const clearBtn = el('button', { class: 'btn-sm btn-danger', onClick: () => {
+              if (state.assignments[slot.id]) delete state.assignments[slot.id].timeOverride;
+              slotTimeEditId = null;
+              saveToStorage(); render();
+            }});
+            clearBtn.appendChild(icon('rotate-ccw'));
+            clearBtn.appendChild(document.createTextNode(' 还原'));
+            btnRow.appendChild(clearBtn);
+          }
+
+          const cancelBtn = el('button', { class: 'btn-sm', onClick: () => { slotTimeEditId = null; render(); } });
+          cancelBtn.appendChild(icon('x'));
+          btnRow.appendChild(cancelBtn);
+
+          popover.appendChild(btnRow);
+          slotWrap.appendChild(popover);
+        }
 
         // Student slot (only for kitchen fixed positions)
         if (isKitchenFixed) {
@@ -1954,15 +2122,14 @@ function renderRosterTab() {
   const studentMap = {};   // empId → { slot, trainerId }
   for (const slot of allSlots()) {
     const a = state.assignments[slot.id];
-    if (a?.empId)     mainMap[a.empId]     = slot;
-    if (a?.studentId) studentMap[a.studentId] = { slot, trainerId: a.empId };
+    const eff = getEffectiveSlot(slot);
+    if (a?.empId)     mainMap[a.empId]         = eff;
+    if (a?.studentId) studentMap[a.studentId]  = { slot: eff, trainerId: a.empId };
   }
 
   // ── Determine employee's display area ──
   function getEmpArea(emp) {
-    // Management roles always go in 管理
-    if (['店长','副理','培训主管','培训员'].includes(emp.role)) return '管理';
-    // Use their assigned slot's area first
+    // Only show in 管理 if assigned to a PIC slot today
     const slot = mainMap[emp.id] || studentMap[emp.id]?.slot;
     if (slot) return slot.area;
     // Fallback: majority area from positions list
@@ -2301,13 +2468,14 @@ function renderGanttTab() {
       const isTrainer   = KITCHEN_POSITIONS.includes(slot.pos) && mainEmp && isTrainerFor(mainEmp, slot.pos);
 
       // Clamp bar to view window
-      const barStart  = Math.max(slot.startHour, view.startHour);
-      const barEnd    = Math.min(slot.endHour,   view.endHour);
+      const eff = getEffectiveSlot(slot);
+      const barStart  = Math.max(eff.startHour, view.startHour);
+      const barEnd    = Math.min(eff.endHour,   view.endHour);
       const leftPct   = ((barStart - view.startHour) / span) * 100;
       const widthPct  = ((barEnd - barStart)          / span) * 100;
 
-      const barLabel  = `${slot.pos} ${cleanShift(slot.shift)}`;
-      const isFront   = FRONT_POSITIONS.includes(slot.pos);
+      const barLabel  = `${eff.pos} ${cleanShift(eff.shift)}`;
+      const isFront   = FRONT_POSITIONS.includes(eff.pos);
 
       // Main row
       const mainRow = el('div', { class: 'gantt-row' });
@@ -2354,8 +2522,9 @@ function renderGanttTab() {
     if (!FRONT_POSITIONS.includes(slot.pos)) continue;
     const a = state.assignments[slot.id];
     if (!a?.empId || absences[a.empId]) continue;
+    const eff = getEffectiveSlot(slot);
     for (let h = view.startHour; h < view.endHour; h++) {
-      if (h >= slot.startHour && h < slot.endHour) coverage[h]++;
+      if (h >= eff.startHour && h < eff.endHour) coverage[h]++;
     }
   }
 
@@ -2395,14 +2564,14 @@ function renderAttendanceTab() {
     const mainEmp    = employees.find(e => e.id === assignment.empId);
     const studentEmp = assignment.studentId ? employees.find(e => e.id === assignment.studentId) : null;
 
-    const hours          = slot.endHour - slot.startHour;
-    const isFrontOfHouse = FRONT_POSITIONS.includes(slot.pos);
-    const isShortShift   = slot.startHour >= 18;   // part-time evening shifts — no deduction
+    const eff            = getEffectiveSlot(slot);
+    const hours          = eff.endHour - eff.startHour;
+    const isFrontOfHouse = FRONT_POSITIONS.includes(eff.pos);
+    const isShortShift   = eff.startHour >= 18;   // part-time evening shifts — no deduction
     const paidHours      = (isFrontOfHouse && !isShortShift && hours >= 8.5) ? hours - 1 : hours;
 
-    const shiftLabel  = cleanShift(slot.shift);
-    const schedIn     = shiftLabel.split('-')[0]?.trim() || '';
-    const schedOut    = shiftLabel.split('-')[1]?.trim().split(' ')[0] || '';
+    const schedIn  = formatHourNum(eff.startHour);
+    const schedOut = formatHourNum(eff.endHour);
 
     rows.push({ name: mainEmp?.shortName || '?', fullName: mainEmp?.fullName || '', position: slot.pos, schedIn, schedOut, paidHours: paidHours.toFixed(1).replace('.0', '') });
     if (studentEmp) {
@@ -2494,6 +2663,167 @@ function renderAttendanceTab() {
 }
 
 // =============================================================================
+// SHIFTS TAB (permanent slot template editing)
+// =============================================================================
+
+function renderShiftsTab() {
+  const frag     = document.createDocumentFragment();
+  const timeOpts = generateTimeOptions();
+
+  const intro = el('p', { style: { fontSize:'12px', color:'var(--text-sub)', marginBottom:'14px' } },
+    '修改后永久生效，影响所有日期的排班模板。Amber 点 = 已从默认值修改。');
+  frag.appendChild(intro);
+
+  for (const area of AREAS) {
+    const areaSlots = BASE_SLOTS.filter(s => s.area === area);
+    if (!areaSlots.length) continue;
+
+    const card = el('div', { class: 'card', style: { marginBottom: '12px', padding: '0', overflow: 'hidden' } });
+    const areaHdr = el('div', { class: `area-label ${AREA_LABEL_CLASS[area] || 'area-reserve'}`,
+      style: { borderRadius: '0', margin: '0', padding: '8px 14px', display: 'block' } }, area);
+    card.appendChild(areaHdr);
+
+    const table = document.createElement('table');
+    table.className = 'shifts-table';
+    const thead = el('thead', {}, el('tr', {},
+      el('th', {}, 'Position'),
+      el('th', {}, 'Start'),
+      el('th', {}, 'End'),
+      el('th', {}, 'Hours'),
+      el('th', { style: { width: '1%' } }, '')
+    ));
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+
+    for (const baseSlot of areaSlots) {
+      const ov        = state.slotOverrides[baseSlot.id];
+      const isModified = !!ov;
+      const effStart  = ov ? ov.startHour : baseSlot.startHour;
+      const effEnd    = ov ? ov.endHour   : baseSlot.endHour;
+      const hours     = effEnd - effStart;
+      const isEditing = shiftTabEdit.slotId === baseSlot.id;
+      const tr        = document.createElement('tr');
+
+      // Position cell
+      const posCell = document.createElement('td');
+      posCell.style.fontWeight = '600';
+      if (isModified) {
+        const dot = document.createElement('span');
+        dot.className = 'modified-dot';
+        posCell.appendChild(dot);
+      }
+      posCell.appendChild(document.createTextNode(
+        baseSlot.pos + (baseSlot.note ? ` · ${baseSlot.note}` : '')
+      ));
+      tr.appendChild(posCell);
+
+      if (isEditing) {
+        // Start time select
+        const startCell = document.createElement('td');
+        const startSel  = createSelect(timeOpts, formatHourNum(shiftTabEdit.startHour),
+          v => { shiftTabEdit.startHour = parseHour(v); render(); });
+        startCell.appendChild(startSel);
+        tr.appendChild(startCell);
+
+        // End time select
+        const endCell = document.createElement('td');
+        const endSel  = createSelect(timeOpts, formatHourNum(shiftTabEdit.endHour),
+          v => { shiftTabEdit.endHour = parseHour(v); render(); });
+        endCell.appendChild(endSel);
+        tr.appendChild(endCell);
+
+        // Live hours preview
+        const newHours  = shiftTabEdit.endHour - shiftTabEdit.startHour;
+        const hCell     = document.createElement('td');
+        hCell.textContent = newHours > 0 ? newHours + 'h' : '—';
+        hCell.style.color = newHours > 0 ? 'var(--amber-700)' : 'var(--red-600)';
+        tr.appendChild(hCell);
+
+        // Save / Cancel buttons
+        const actCell = document.createElement('td');
+        actCell.style.cssText = 'white-space:nowrap;';
+        const actWrap = el('div', { style: { display:'flex', gap:'4px' } });
+
+        const saveBtn = el('button', { class: 'btn-sm btn-success', onClick: async () => {
+          if (shiftTabEdit.endHour <= shiftTabEdit.startHour) return;
+          try {
+            await saveSlotOverride(baseSlot.id, shiftTabEdit.startHour, shiftTabEdit.endHour);
+            shiftTabEdit.slotId = null;
+            render();
+          } catch(e) { alert('保存失败: ' + (e?.message || e)); }
+        }});
+        saveBtn.appendChild(icon('check'));
+        saveBtn.appendChild(document.createTextNode(' 保存'));
+        actWrap.appendChild(saveBtn);
+
+        const cancelBtn = el('button', { class: 'btn-sm', onClick: () => { shiftTabEdit.slotId = null; render(); } });
+        cancelBtn.appendChild(icon('x'));
+        actWrap.appendChild(cancelBtn);
+
+        actCell.appendChild(actWrap);
+        tr.appendChild(actCell);
+
+      } else {
+        // Start / End / Hours — static display
+        const startCell = document.createElement('td');
+        startCell.textContent = formatHourNum(effStart);
+        if (isModified) startCell.style.color = 'var(--amber-700)';
+        tr.appendChild(startCell);
+
+        const endCell = document.createElement('td');
+        endCell.textContent = formatHourNum(effEnd);
+        if (isModified) endCell.style.color = 'var(--amber-700)';
+        tr.appendChild(endCell);
+
+        const hCell = document.createElement('td');
+        hCell.textContent = hours + 'h';
+        tr.appendChild(hCell);
+
+        // Edit / Restore buttons
+        const actCell = document.createElement('td');
+        actCell.style.cssText = 'white-space:nowrap;';
+        const actWrap = el('div', { style: { display:'flex', gap:'4px' } });
+
+        const editBtn = el('button', { class: 'btn-sm', onClick: () => {
+          shiftTabEdit = { slotId: baseSlot.id, startHour: effStart, endHour: effEnd };
+          render();
+        }});
+        editBtn.appendChild(icon('pencil'));
+        actWrap.appendChild(editBtn);
+
+        if (isModified) {
+          const restoreBtn = el('button', { class: 'btn-sm btn-danger', onClick: async () => {
+            try {
+              await deleteSlotOverride(baseSlot.id);
+              render();
+            } catch(e) { alert('还原失败: ' + (e?.message || e)); }
+          }});
+          restoreBtn.appendChild(icon('rotate-ccw'));
+          restoreBtn.appendChild(document.createTextNode(' 还原'));
+          actWrap.appendChild(restoreBtn);
+        }
+
+        actCell.appendChild(actWrap);
+        tr.appendChild(actCell);
+      }
+
+      tbody.appendChild(tr);
+    }
+
+    table.appendChild(tbody);
+    card.appendChild(table);
+    frag.appendChild(card);
+  }
+
+  // Supabase SQL hint
+  const hint = el('div', { class: 'shifts-sql-hint' });
+  hint.innerHTML = '⚠️ 需要在 Supabase 先创建此表（一次性）：<br><code>CREATE TABLE slot_overrides (store_id text NOT NULL, slot_id text NOT NULL, start_hour numeric NOT NULL, end_hour numeric NOT NULL, updated_at timestamptz DEFAULT now(), PRIMARY KEY (store_id, slot_id));</code>';
+  frag.appendChild(hint);
+
+  return frag;
+}
+
+// =============================================================================
 // MAIN RENDER
 // =============================================================================
 
@@ -2544,6 +2874,7 @@ function render() {
   const tabDefs = [
     { id: 'schedule',   label: '排班',        iconName: 'calendar'    },
     { id: 'employees',  label: '员工',        iconName: 'users'       },
+    { id: 'shifts',     label: '班次',        iconName: 'clock-edit'  },
     { id: 'leave',      label: `Leave${leaveCount > 0 ? ` (${leaveCount})` : ''}`, iconName: 'calendar-off' },
     { id: 'roster',     label: 'Roster',      iconName: 'table'       },
     { id: 'gantt',      label: 'Gantt',       iconName: 'chart-gantt' },
@@ -2561,6 +2892,7 @@ function render() {
   switch (state.currentTab) {
     case 'schedule':   appEl.appendChild(renderScheduleTab(computed));  break;
     case 'employees':  appEl.appendChild(renderEmployeesTab());          break;
+    case 'shifts':     appEl.appendChild(renderShiftsTab());             break;
     case 'leave':      appEl.appendChild(renderLeaveTab(computed));      break;
     case 'roster':     appEl.appendChild(renderRosterTab());             break;
     case 'gantt':      appEl.appendChild(renderGanttTab());              break;
@@ -2579,6 +2911,7 @@ async function initApp() {
     loadDailyLeave(),
     loadEmployees(),
     loadPositions(),
+    loadSlotOverrides(),
   ]);
   subscribeToChanges();
   render();
