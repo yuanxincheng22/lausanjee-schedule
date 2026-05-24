@@ -432,9 +432,19 @@ async function loadEmployees() {
   try {
     const { data, error } = await db.from('employees').select('*').eq('store_id', STORE_ID).order('id');
     if (error) throw error;
-    employees         = (data || []).filter(e =>  e.is_active).map(rowToEmp);
-    inactiveEmployees = (data || []).filter(e => !e.is_active).map(rowToEmp);
-  } catch(e) { console.error('loadEmployees', e?.message || e); }
+    if (data && data.length > 0) {
+      employees         = data.filter(e =>  e.is_active).map(rowToEmp);
+      inactiveEmployees = data.filter(e => !e.is_active).map(rowToEmp);
+    } else {
+      // Supabase employees table is empty — use hardcoded defaults
+      employees         = DEFAULT_EMPLOYEES;
+      inactiveEmployees = [];
+    }
+  } catch(e) {
+    console.error('loadEmployees', e?.message || e);
+    employees         = DEFAULT_EMPLOYEES;
+    inactiveEmployees = [];
+  }
 }
 async function loadPositions() {
   try {
@@ -849,10 +859,15 @@ function computeState() {
   const todayAbsences = getTodayAbsences();
   const absentSet     = new Set(Object.keys(todayAbsences));
 
+  // Only count employees as "assigned" if their slot still exists in the current layout.
+  // Orphaned entries in state.assignments (from deleted extra slots or old slot IDs)
+  // would otherwise silently block employees from appearing in dropdowns.
+  const validSlotIds    = new Set(allSlots().map(s => s.id));
   const mainAssigned    = new Set();
   const studentAssigned = new Set();
 
-  for (const a of Object.values(state.assignments)) {
+  for (const [slotId, a] of Object.entries(state.assignments)) {
+    if (!validSlotIds.has(slotId)) continue;   // skip ghost assignments
     if (a?.empId)      mainAssigned.add(a.empId);
     if (a?.studentId)  studentAssigned.add(a.studentId);
   }
