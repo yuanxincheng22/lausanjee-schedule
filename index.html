@@ -290,6 +290,17 @@
     .shifts-sql-hint { font-size: 11px; color: var(--text-muted); margin-top: 10px; padding: 10px 12px; background: var(--gray-50); border-radius: var(--radius-sm); border: 1px solid var(--border); line-height: 1.7; }
     .shifts-sql-hint code { background: var(--gray-200); border-radius: 3px; padding: 1px 4px; font-size: 10px; word-break: break-all; }
 
+    /* ── EMPLOYEE SEARCH AUTOCOMPLETE ── */
+    .emp-search-wrap { position: relative; flex: 2; min-width: 160px; }
+    .emp-search-input { width: 100%; padding: 6px 10px; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font); outline: none; background: var(--surface); color: var(--text); }
+    .emp-search-input:focus { border-color: var(--blue-600); }
+    .emp-search-dropdown { position: absolute; top: calc(100% + 3px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border-mid); border-radius: var(--radius-md); box-shadow: 0 6px 20px rgba(0,0,0,0.10); z-index: 999; max-height: 220px; overflow-y: auto; }
+    .emp-search-item { padding: 7px 12px; font-size: 13px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+    .emp-search-item:hover, .emp-search-item.highlighted { background: var(--blue-50); }
+    .emp-search-item .emp-si-short { font-weight: 600; color: var(--text); }
+    .emp-search-item .emp-si-full  { font-size: 11px; color: var(--text-sub); }
+    .emp-search-empty { padding: 10px 12px; font-size: 12px; color: var(--text-muted); }
+
   </style>
 </head>
 <body>
@@ -507,6 +518,8 @@ async function saveEmployee(emp) {
   const { error } = await db.from('employees').upsert(empToRow(emp), { onConflict: 'id' });
   if (error) throw error;
   await loadEmployees(); render();
+  // Secondary reload after a short delay to catch any Supabase replication lag
+  setTimeout(async () => { await loadEmployees(); render(); }, 900);
 }
 async function markEmployeeInactive(empId) {
   await db.from('employees').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', empId);
@@ -550,11 +563,21 @@ function subscribeToChanges() {
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'employees',
       filter: `store_id=eq.${STORE_ID}`,
-    }, async () => { await loadEmployees(); render(); })
+    }, async () => {
+      // Small delay to let Supabase finish replicating the write before we read
+      // This prevents reading stale data when the write and read happen in rapid succession
+      await new Promise(r => setTimeout(r, 400));
+      await loadEmployees();
+      render();
+    })
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'positions_master',
       filter: `store_id=eq.${STORE_ID}`,
-    }, async () => { await loadPositions(); render(); })
+    }, async () => {
+      await new Promise(r => setTimeout(r, 400));
+      await loadPositions();
+      render();
+    })
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'slot_overrides',
       filter: `store_id=eq.${STORE_ID}`,
@@ -730,9 +753,17 @@ let empModal = {
 let posModal = { open: false, newName: '', newArea: '后厨', newTrainable: false, saving: false, error: '' };
 let inactiveExpanded = false;
 
+function todayLocalStr() {
+  const d = new Date();
+  const y  = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${dy}`;
+}
+
 let state = {
   currentTab:      'schedule',
-  selectedDate:    new Date().toISOString().split('T')[0],
+  selectedDate:    todayLocalStr(),
   assignments:     {},     // { slotId: { empId, studentId, timeOverride? } }
   extraSlots:      [],     // dynamically added slots
   plannedLeave:    {},     // { empId: [{ from, to, type }] }
@@ -922,8 +953,9 @@ function isEligible(employee, slot, computed) {
   if (alreadyAssigned && !isMainHere && !isStudentHere) return false;
   if (employee.availableFrom && employee.availableFrom > slot.startHour) return false;
 
-  if (slot.pos === 'Dacai')   return true;  // anyone can do 打菜
-  if (slot.pos === 'Reserve') return KITCHEN_POSITIONS.filter(p => employee.positions.includes(p)).length >= 3;
+  if (slot.pos === 'Dacai')    return true;  // anyone can do 打菜
+  if (slot.pos === 'Dishwash') return true;  // anyone can wash dishes
+  if (slot.pos === 'Reserve')  return true;  // anyone can be reserve
 
   return employee.positions.includes(slot.pos);
 }
@@ -1163,7 +1195,10 @@ function renderScheduleTab(computed) {
     areaWrap.appendChild(el('div', { class: `area-label ${AREA_LABEL_CLASS[area] || 'area-reserve'}` }, area));
 
     for (const { pos, slots } of positions) {
-      const isKitchenFixed = KITCHEN_POSITIONS.includes(pos);
+      const isKitchenFixed  = KITCHEN_POSITIONS.includes(pos);
+      const isTrainablePos  = isKitchenFixed
+        || (allPositions.find(p => p.name === pos)?.trainable === true)
+        || employees.some(e => e.canTrain.includes(pos));  // fallback: any trainer exists for this pos
       const hasFlex        = slots.some(s => s.isFlex);
       const card           = el('div', { class: 'card' });
 
@@ -1171,8 +1206,9 @@ function renderScheduleTab(computed) {
       const posHeader = el('div', { class: 'flex items-center justify-between', style: { marginBottom: '10px' } });
       const posTitle  = el('p', { style: { fontSize:'13px', fontWeight:'700', margin:'0' } }, pos);
 
-      if (pos === 'Reserve') posTitle.appendChild(el('span', { style: { fontSize:'11px', color:'var(--text-sub)', marginLeft:'6px' } }, '(3+ kitchen positions)'));
+      if (pos === 'Reserve')  posTitle.appendChild(el('span', { style: { fontSize:'11px', color:'var(--text-sub)', marginLeft:'6px' } }, '(all staff eligible)'));
       if (pos === 'Dacai')    posTitle.appendChild(el('span', { style: { fontSize:'11px', color:'var(--text-sub)', marginLeft:'6px' } }, '(all staff eligible)'));
+      if (pos === 'Dishwash') posTitle.appendChild(el('span', { style: { fontSize:'11px', color:'var(--text-sub)', marginLeft:'6px' } }, '(all staff eligible)'));
 
       posHeader.appendChild(posTitle);
 
@@ -1190,7 +1226,8 @@ function renderScheduleTab(computed) {
 
         const eligibleForPos = computed.availableStaff.filter(e => {
           if (pos === 'Dacai')    return true;
-          if (pos === 'Reserve') return KITCHEN_POSITIONS.filter(p => e.positions.includes(p)).length >= 3;
+          if (pos === 'Reserve')  return true;
+          if (pos === 'Dishwash') return true;
           return e.positions.includes(pos);
         });
 
@@ -1226,7 +1263,7 @@ function renderScheduleTab(computed) {
         const isFilled     = !!currentEmpId;
 
         const mainEmployee   = employees.find(e => e.id === currentEmpId);
-        const canAddStudent  = isFilled && isKitchenFixed && mainEmployee && isTrainerFor(mainEmployee, slot.pos);
+        const canAddStudent  = isFilled && isTrainablePos && mainEmployee && isTrainerFor(mainEmployee, slot.pos);
 
         const eligibleStaff  = computed.availableStaff.filter(e => isEligible(e, slot, computed));
         const eligibleStudents = computed.availableStaff.filter(e => isStudentEligible(e, slot, computed));
@@ -1284,7 +1321,7 @@ function renderScheduleTab(computed) {
           const opt = document.createElement('option');
           opt.value = emp.id;
           let label = emp.shortName;
-          if (isKitchenFixed && isTrainerFor(emp, slot.pos)) label += ' (T)';
+          if (isTrainablePos && isTrainerFor(emp, slot.pos)) label += ' (T)';
           if (emp.tags.length) label += ` [${emp.tags.join('/')}]`;
           opt.textContent = label;
           if (emp.id === currentEmpId) opt.selected = true;
@@ -1361,8 +1398,8 @@ function renderScheduleTab(computed) {
           slotWrap.appendChild(popover);
         }
 
-        // Student slot (only for kitchen fixed positions)
-        if (isKitchenFixed) {
+        // Student slot (for kitchen positions and any trainable front positions like D Drink)
+        if (isTrainablePos) {
           const studentBox = el('div', { class: 'student-box', style: { opacity: canAddStudent ? '1' : '0.4' } });
           const studentLabel = el('div', { class: 'student-label' });
           studentLabel.appendChild(icon('school'));
@@ -1521,7 +1558,7 @@ function buildEmpRow(emp, absences, isMgr, isInactive) {
   info.appendChild(metaRow);
 
   const kitchenCount = emp.positions.filter(p => KITCHEN_POSITIONS.includes(p)).length;
-  info.appendChild(el('p', { class: 'emp-pos mb-1' }, emp.positions.join(' · ') + (kitchenCount >= 3 ? ' · 🔄 Reserve' : '')));
+  info.appendChild(el('p', { class: 'emp-pos mb-1' }, emp.positions.join(' · ')));
 
   if (emp.canTrain.length > 0) {
     const trainerRow = el('div', { class: 'flex-wrap', style: { marginBottom: '4px' } });
@@ -2059,20 +2096,103 @@ function renderLeaveTab(computed) {
 
   const formCard = el('div', { class: 'card' });
 
-  const empOpts  = [['', '-- Select employee --'], ...employees.map(e => [e.id, `${e.shortName} (${e.fullName})`])];
+  const empOpts  = employees.map(e => ({ id: e.id, short: e.shortName, full: e.fullName }));
   const typeOpts = Object.entries(LEAVE_TYPES).map(([k, v]) => [k, v.label]);
 
-  const empSel   = createSelect(empOpts,  leaveForm.employeeId, v => { leaveForm.employeeId = v; });
-  const typeSel  = createSelect(typeOpts, leaveForm.type,       v => { leaveForm.type = v; });
+  const typeSel  = createSelect(typeOpts, leaveForm.type, v => { leaveForm.type = v; });
 
-  const fromInput = el('input', { type: 'date', value: leaveForm.fromDate || state.selectedDate });
+  // ── Searchable employee picker ──
+  const currentEmp = leaveForm.employeeId ? employees.find(e => e.id === leaveForm.employeeId) : null;
+  const empSearchWrap = el('div', { class: 'emp-search-wrap' });
+  const empSearchInput = el('input', {
+    type: 'text',
+    class: 'emp-search-input',
+    placeholder: '搜索员工名字...',
+    value: currentEmp ? `${currentEmp.shortName} (${currentEmp.fullName})` : '',
+    autocomplete: 'off',
+  });
+
+  let empDropdown = null;
+  let empHlIdx = -1;
+
+  function closeEmpDropdown() {
+    if (empDropdown) { empDropdown.remove(); empDropdown = null; empHlIdx = -1; }
+  }
+
+  function buildEmpDropdown(query) {
+    closeEmpDropdown();
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? empOpts.filter(e => e.short.toLowerCase().includes(q) || e.full.toLowerCase().includes(q))
+      : empOpts;
+    if (filtered.length === 0) {
+      empDropdown = el('div', { class: 'emp-search-dropdown' },
+        el('div', { class: 'emp-search-empty' }, '没有找到员工'));
+    } else {
+      empDropdown = el('div', { class: 'emp-search-dropdown' });
+      filtered.forEach((e, idx) => {
+        const item = el('div', { class: 'emp-search-item' },
+          el('span', { class: 'emp-si-short' }, e.short),
+          el('span', { class: 'emp-si-full' },  e.full)
+        );
+        item.dataset.empId = e.id;
+        item.dataset.idx = idx;
+        item.addEventListener('mousedown', ev => {
+          ev.preventDefault();
+          leaveForm.employeeId = e.id;
+          empSearchInput.value = `${e.short} (${e.full})`;
+          closeEmpDropdown();
+        });
+        empDropdown.appendChild(item);
+      });
+    }
+    empSearchWrap.appendChild(empDropdown);
+  }
+
+  empSearchInput.addEventListener('focus', () => buildEmpDropdown(empSearchInput.value));
+  empSearchInput.addEventListener('input', e => {
+    leaveForm.employeeId = '';  // clear selection on type
+    buildEmpDropdown(e.target.value);
+  });
+  empSearchInput.addEventListener('keydown', e => {
+    if (!empDropdown) return;
+    const items = empDropdown.querySelectorAll('.emp-search-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      empHlIdx = Math.min(empHlIdx + 1, items.length - 1);
+      items.forEach((it, i) => it.classList.toggle('highlighted', i === empHlIdx));
+      if (items[empHlIdx]) items[empHlIdx].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      empHlIdx = Math.max(empHlIdx - 1, 0);
+      items.forEach((it, i) => it.classList.toggle('highlighted', i === empHlIdx));
+      if (items[empHlIdx]) items[empHlIdx].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (empHlIdx >= 0 && items[empHlIdx]) items[empHlIdx].dispatchEvent(new MouseEvent('mousedown'));
+    } else if (e.key === 'Escape') {
+      closeEmpDropdown();
+    }
+  });
+  empSearchInput.addEventListener('blur', () => { setTimeout(closeEmpDropdown, 150); });
+
+  empSearchWrap.appendChild(empSearchInput);
+
+  // Default to selectedDate if not yet set — ensures submitting without touching dates still works
+  if (!leaveForm.fromDate) leaveForm.fromDate = state.selectedDate;
+  if (!leaveForm.toDate)   leaveForm.toDate   = state.selectedDate;
+
+  const fromInput = el('input', { type: 'date', value: leaveForm.fromDate });
   fromInput.addEventListener('change', e => { leaveForm.fromDate = e.target.value; });
 
-  const toInput = el('input', { type: 'date', value: leaveForm.toDate || state.selectedDate });
+  const toInput = el('input', { type: 'date', value: leaveForm.toDate });
   toInput.addEventListener('change', e => { leaveForm.toDate = e.target.value; });
 
   const row1 = el('div', { class: 'flex gap-2', style: { flexWrap: 'wrap', marginBottom: '8px' } });
-  row1.appendChild(el('div', { class: 'form-group', style: { flex: '2', minWidth: '160px' } }, el('label', { class: 'form-label' }, 'Employee'), empSel));
+  const empFormGroup = el('div', { class: 'form-group', style: { flex: '2', minWidth: '160px' } });
+  empFormGroup.appendChild(el('label', { class: 'form-label' }, 'Employee'));
+  empFormGroup.appendChild(empSearchWrap);
+  row1.appendChild(empFormGroup);
   row1.appendChild(el('div', { class: 'form-group' }, el('label', { class: 'form-label' }, 'Leave Type'), typeSel));
 
   const row2 = el('div', { class: 'flex gap-2', style: { flexWrap: 'wrap', alignItems: 'flex-end' } });
@@ -2080,11 +2200,17 @@ function renderLeaveTab(computed) {
   row2.appendChild(el('div', { class: 'form-group' }, el('label', { class: 'form-label' }, 'To'), toInput));
 
   const scheduleBtn = el('button', { style: { alignSelf: 'flex-end' }, onClick: () => {
-    if (!leaveForm.employeeId || !leaveForm.fromDate || !leaveForm.toDate) return;
+    if (!leaveForm.employeeId) {
+      empSearchInput.style.borderColor = 'var(--red-600)';
+      empSearchInput.focus();
+      setTimeout(() => { empSearchInput.style.borderColor = ''; }, 1800);
+      return;
+    }
+    if (!leaveForm.fromDate || !leaveForm.toDate) return;
     const toastEmp = employees.find(e => e.id === leaveForm.employeeId);
     const { employeeId, fromDate, toDate, type } = leaveForm;
     leaveFormToast = { empName: toastEmp?.shortName || '', from: fromDate, to: toDate };
-    leaveForm.employeeId = ''; // keep dates + type for quick next entry
+    leaveForm.employeeId = ''; leaveForm.fromDate = ''; leaveForm.toDate = ''; // reset all for next entry
     addPlannedLeave(employeeId, fromDate, toDate, type); // async, re-renders when done
     setTimeout(() => { leaveFormToast = null; render(); }, 2500);
   }});
