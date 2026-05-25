@@ -94,7 +94,7 @@
     .btn-sm { font-size: 11px; padding: 3px 9px; }
 
     /* ── FORM ELEMENTS ── */
-    select, input[type="text"], input[type="date"], input[type="time"] {
+    select, input[type="text"], input[type="date"], input[type="time"], input[type="number"] {
       font-family: var(--font); font-size: 13px;
       border: 1px solid var(--border-mid); border-radius: var(--radius-sm);
       padding: 6px 10px; color: var(--text); background: var(--surface); outline: none;
@@ -102,6 +102,39 @@
     select:focus, input:focus { border-color: var(--blue-600); }
     .form-group { display: flex; flex-direction: column; gap: 4px; }
     .form-label { font-size: 11px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.4px; }
+
+    /* ── DAY-INFO PANEL (营业额 / 当天标记 / 备注) ── */
+    .daymeta-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 10px; }
+    .daymeta-head { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+    .daymeta-head .ti { color: var(--blue-600); }
+    .daymeta-grid { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    .daymeta-grid .form-group { flex: 0 0 auto; }
+    .daymeta-rev { width: 130px; }
+    .daymeta-note input { width: 100%; }
+    .daymeta-note { flex: 1 1 200px; min-width: 160px; }
+    .daymeta-rev-wrap { position: relative; display: inline-flex; align-items: center; }
+    .daymeta-rev-wrap .cur { position: absolute; left: 10px; font-size: 12px; color: var(--text-muted); pointer-events: none; }
+    .daymeta-rev-wrap input { padding-left: 30px; }
+    .daymeta-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+    .daymeta-tag { font-size: 12px; font-weight: 600; border-radius: 100px; padding: 3px 11px; cursor: pointer; border: 1px solid var(--border-mid); background: var(--surface); color: var(--text-sub); user-select: none; }
+    .daymeta-tag.on { background: var(--amber-50); border-color: var(--amber-100); color: var(--amber-700); }
+    .daymeta-hint { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+    .daymeta-gap { font-size: 11px; font-weight: 600; margin-left: 6px; }
+    .daymeta-grouplbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 9px; display: flex; align-items: center; gap: 6px; }
+    .daymeta-grouplbl::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .daymeta-hc { font-size: 12px; color: var(--text-sub); margin-top: 5px; }
+    .daymeta-hc b { color: var(--text); font-weight: 700; }
+    .daymeta-hc .short { color: var(--red-600); font-weight: 700; }
+    .daymeta-hc .absent { color: var(--text-muted); }
+    .wl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+    .wl-tag { font-size: 12px; font-weight: 700; color: var(--text-sub); width: 78px; flex-shrink: 0; }
+    .wl-seg { display: inline-flex; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); overflow: hidden; }
+    .wl-btn { font-size: 12px; padding: 5px 11px; cursor: pointer; background: var(--surface); color: var(--text-sub); border-right: 1px solid var(--border); user-select: none; white-space: nowrap; }
+    .wl-btn:last-child { border-right: none; }
+    .wl-btn:hover { background: var(--gray-50); }
+    .wl-btn.on { font-weight: 700; }
+    .absent-chip { font-size: 12px; font-weight: 600; border-radius: 100px; padding: 3px 6px 3px 11px; display: inline-flex; align-items: center; background: var(--red-50); color: var(--red-700); border: 1px solid var(--red-100); }
+    .absent-chip .ti { font-size: 14px; }
 
     /* ── BADGES ── */
     .badge { font-size: 11px; font-weight: 600; border-radius: 100px; padding: 2px 9px; display: inline-block; white-space: nowrap; }
@@ -243,7 +276,7 @@
     #save-indicator{position:fixed;bottom:20px;right:20px;background:#1c1917;color:white;padding:8px 14px;border-radius:100px;font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:50;}
     #save-indicator.show{opacity:1;}
     .role-badge{font-size:11px;font-weight:700;border-radius:100px;padding:4px 10px;background:#1c1917;color:white;}
-    .header-right{display:flex;align-items:center;gap:8px;}
+    .header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
 
     /* ── EMPLOYEE MODAL ── */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
@@ -387,14 +420,27 @@ async function loadScheduleForDate(date) {
     if (error) throw error;
     state.assignments = data?.assignments  || {};
     state.extraSlots  = data?.extra_slots  || [];
+    state.dayMeta = {
+      estRevenue:      data?.est_revenue     ?? '',
+      actualRevenue:   data?.actual_revenue  ?? '',
+      dayTags:         data?.day_tags        || [],
+      dayNote:         data?.day_note        || '',
+      workload:        data?.workload        || {},
+      unplannedAbsent: data?.unplanned_absent || [],
+    };
   } catch (e) { console.error('loadScheduleForDate', e?.message || e?.code || e); }
 }
 async function saveSchedule() {
   showSaving();
   try {
+    const m = state.dayMeta || {};
+    const toNum = v => (v === '' || v == null ? null : Number(v));
     const { error } = await db.from('daily_schedule').upsert({
       store_id: STORE_ID, schedule_date: state.selectedDate,
       assignments: state.assignments, extra_slots: state.extraSlots,
+      est_revenue: toNum(m.estRevenue), actual_revenue: toNum(m.actualRevenue),
+      day_tags: m.dayTags || [], day_note: m.dayNote || '',
+      workload: m.workload || {}, unplanned_absent: m.unplannedAbsent || [],
       updated_at: new Date().toISOString(),
     }, { onConflict: 'store_id,schedule_date' });
     if (error) throw error;
@@ -546,9 +592,18 @@ function subscribeToChanges() {
       if (p.eventType === 'DELETE') {
         state.assignments = {};
         state.extraSlots  = [];
+        state.dayMeta = { estRevenue: '', actualRevenue: '', dayTags: [], dayNote: '', workload: {}, unplannedAbsent: [] };
       } else {
         state.assignments = p.new.assignments || {};
         state.extraSlots  = p.new.extra_slots  || [];
+        state.dayMeta = {
+          estRevenue:      p.new.est_revenue     ?? '',
+          actualRevenue:   p.new.actual_revenue  ?? '',
+          dayTags:         p.new.day_tags        || [],
+          dayNote:         p.new.day_note        || '',
+          workload:        p.new.workload        || {},
+          unplannedAbsent: p.new.unplanned_absent || [],
+        };
       }
       render();
     })
@@ -769,6 +824,7 @@ let state = {
   plannedLeave:    {},     // { empId: [{ from, to, type }] }
   dailyLeave:      {},     // { 'YYYY-MM-DD': { empId: leaveType } }
   slotOverrides:   {},     // { slotId: { startHour, endHour } } — permanent, from Supabase
+  dayMeta:         { estRevenue: '', actualRevenue: '', dayTags: [], dayNote: '', workload: {}, unplannedAbsent: [] },  // per-day planning inputs + review
   searchQuery:     '',
   showUnassigned:  false,
   ganttView:       'full',
@@ -1130,6 +1186,168 @@ function createSelect(options, currentValue, onChange, extraStyle) {
 // STATUS PANEL
 // =============================================================================
 
+// =============================================================================
+// DAY-INFO PANEL  (per-day planning inputs + review — the training data)
+// =============================================================================
+const DAY_TAG_OPTIONS = ['公共假期', '学校假期', '活动促销', '节庆/斋月'];
+
+// Workload: stored as 1–5 ints (1=很闲 … 5=很忙) so it correlates cleanly with revenue later
+const WORKLOAD_LEVELS = [
+  { v: 1, label: '很闲', color: 'var(--gray-600)',  bg: 'var(--gray-100)' },
+  { v: 2, label: '偏闲', color: 'var(--blue-700)',  bg: 'var(--blue-50)'  },
+  { v: 3, label: '中等', color: 'var(--green-700)', bg: 'var(--green-50)' },
+  { v: 4, label: '偏忙', color: 'var(--amber-700)', bg: 'var(--amber-50)' },
+  { v: 5, label: '很忙', color: 'var(--red-700)',   bg: 'var(--red-50)'   },
+];
+const WORKLOAD_ROWS = [
+  { key: 'lunchFront',  label: '午市 · 前厅' },
+  { key: 'lunchBack',   label: '午市 · 后厨' },
+  { key: 'dinnerFront', label: '晚市 · 前厅' },
+  { key: 'dinnerBack',  label: '晚市 · 后厨' },
+];
+
+function revInput(getVal, setVal) {
+  const input = el('input', {
+    type: 'number', class: 'daymeta-rev', inputmode: 'decimal',
+    min: '0', step: '1', placeholder: '0',
+    value: (getVal() === '' || getVal() == null) ? '' : String(getVal()),
+    oninput:  e => { setVal(e.target.value); scheduleSave(); },
+    onchange: () => render(),
+  });
+  return el('div', { class: 'daymeta-rev-wrap' }, el('span', { class:'cur' }, 'RM'), input);
+}
+
+function renderDayMetaPanel() {
+  const m = state.dayMeta || (state.dayMeta = { estRevenue:'', actualRevenue:'', dayTags:[], dayNote:'', workload:{}, unplannedAbsent:[] });
+  if (!m.workload) m.workload = {};
+  const card = el('div', { class: 'daymeta-card' });
+
+  card.appendChild(el('div', { class: 'daymeta-head' },
+    icon('cash'), document.createTextNode(' 当天信息 · Day Info'),
+    el('span', { style: { fontSize:'11px', fontWeight:'500', color:'var(--text-muted)', marginLeft:'4px' } }, getChinaDay(state.selectedDate))
+  ));
+
+  // ── 排班前(输入)──
+  card.appendChild(el('div', { class: 'daymeta-grouplbl' }, '排班前 · 输入'));
+
+  const inGrid = el('div', { class: 'daymeta-grid' });
+  inGrid.appendChild(el('div', { class: 'form-group' },
+    el('label', { class:'form-label' }, '预估营业额'),
+    revInput(() => m.estRevenue, v => m.estRevenue = v)));
+
+  // 当天标记 (可多选)
+  const tagsRow = el('div', { class: 'daymeta-tags' });
+  for (const tag of DAY_TAG_OPTIONS) {
+    const on = (m.dayTags || []).includes(tag);
+    tagsRow.appendChild(el('span', {
+      class: `daymeta-tag${on ? ' on' : ''}`,
+      onClick: () => {
+        if (!Array.isArray(m.dayTags)) m.dayTags = [];
+        m.dayTags = on ? m.dayTags.filter(t => t !== tag) : [...m.dayTags, tag];
+        scheduleSave(); render();
+      },
+    }, tag));
+  }
+  inGrid.appendChild(el('div', { class:'form-group', style:{ flex:'1 1 240px' } },
+    el('label', { class:'form-label' }, '当天标记'), tagsRow));
+  card.appendChild(inGrid);
+
+  // ── 打烊后(复盘)──
+  card.appendChild(el('div', { class: 'daymeta-grouplbl' }, '打烊后 · 复盘'));
+
+  const outGrid = el('div', { class: 'daymeta-grid' });
+
+  // 实际营业额 (+ 偏差)
+  const actLabel = el('label', { class:'form-label' }, '实际营业额');
+  const est = Number(m.estRevenue), act = Number(m.actualRevenue);
+  if (m.estRevenue !== '' && m.estRevenue != null && m.actualRevenue !== '' && m.actualRevenue != null && est > 0) {
+    const diffPct = Math.round((act - est) / est * 100);
+    const color   = Math.abs(diffPct) <= 5 ? 'var(--green-600)' : (Math.abs(diffPct) <= 15 ? 'var(--amber-600)' : 'var(--red-600)');
+    actLabel.appendChild(el('span', { class:'daymeta-gap', style:{ color } }, `偏差 ${diffPct > 0 ? '+' : ''}${diffPct}%`));
+  }
+  outGrid.appendChild(el('div', { class: 'form-group' }, actLabel,
+    revInput(() => m.actualRevenue, v => m.actualRevenue = v)));
+
+  // 今日临时未出勤 → 系统自动算出实际出勤
+  const absentMap   = getAbsencesForDate(state.selectedDate);
+  const onLeaveIds  = Object.keys(absentMap);
+  const planned     = employees.length - onLeaveIds.length;
+  if (!Array.isArray(m.unplannedAbsent)) m.unplannedAbsent = [];
+  const noShow      = m.unplannedAbsent.filter(id => employees.some(e => e.id === id));
+  const actualOnDuty = planned - noShow.length;
+
+  const hcGroup = el('div', { class: 'form-group', style:{ flex:'1 1 280px' } });
+  hcGroup.appendChild(el('label', { class:'form-label' }, '今日临时未出勤'));
+
+  const candidateIds = employees.filter(e => !onLeaveIds.includes(e.id) && !m.unplannedAbsent.includes(e.id));
+  const addOpts = [['', '+ 添加未出勤员工'], ...candidateIds.map(e => [e.id, e.shortName])];
+  hcGroup.appendChild(createSelect(addOpts, '', v => {
+    if (!v) return;
+    m.unplannedAbsent = [...m.unplannedAbsent, v];
+    scheduleSave(); render();
+  }));
+
+  if (noShow.length) {
+    const chips = el('div', { class:'daymeta-tags', style:{ marginTop:'6px' } });
+    for (const id of noShow) {
+      const emp  = employees.find(e => e.id === id);
+      const chip = el('span', { class:'absent-chip' }, emp ? emp.shortName : id);
+      chip.appendChild(el('i', { class:'ti ti-x', style:{ marginLeft:'4px', cursor:'pointer' },
+        onClick: () => { m.unplannedAbsent = m.unplannedAbsent.filter(x => x !== id); scheduleSave(); render(); } }));
+      chips.appendChild(chip);
+    }
+    hcGroup.appendChild(chips);
+  }
+
+  const hcInfo = el('div', { class:'daymeta-hc' },
+    '计划可用 ', el('b', {}, String(planned)), ' 人 · 实际出勤 ', el('b', {}, String(actualOnDuty)), ' 人');
+  if (noShow.length) hcInfo.appendChild(el('span', { class:'short' }, ` (临时缺 ${noShow.length})`));
+  if (onLeaveIds.length) {
+    const onLeaveNames = onLeaveIds.map(id => (employees.find(e => e.id === id) || {}).shortName || id);
+    hcInfo.appendChild(el('div', { class:'absent' }, `已请假：${onLeaveNames.join('、')}`));
+  }
+  hcGroup.appendChild(hcInfo);
+  outGrid.appendChild(hcGroup);
+
+  // 复盘备注
+  const noteInput = el('input', {
+    type: 'text', placeholder: '例如：A迟到1h / 午市偏忙 / 下次少排1人…',
+    value: m.dayNote || '',
+    oninput: e => { m.dayNote = e.target.value; scheduleSave(); },
+  });
+  outGrid.appendChild(el('div', { class: 'form-group daymeta-note' },
+    el('label', { class:'form-label' }, '复盘备注'), noteInput));
+  card.appendChild(outGrid);
+
+  // 高峰忙闲度 (午市/晚市 × 前厅/后厨, 五档)
+  const wlLabel = el('div', { class:'form-label', style:{ marginTop:'12px', marginBottom:'8px' } }, '高峰忙闲度');
+  card.appendChild(wlLabel);
+  for (const rowDef of WORKLOAD_ROWS) {
+    const wlRow = el('div', { class: 'wl-row' }, el('span', { class:'wl-tag' }, rowDef.label));
+    const seg   = el('div', { class: 'wl-seg' });
+    const cur   = m.workload[rowDef.key];
+    for (const lv of WORKLOAD_LEVELS) {
+      const on = cur === lv.v;
+      seg.appendChild(el('span', {
+        class: `wl-btn${on ? ' on' : ''}`,
+        style: on ? { background: lv.bg, color: lv.color } : {},
+        onClick: () => {
+          if (m.workload[rowDef.key] === lv.v) delete m.workload[rowDef.key];  // tap again to clear
+          else m.workload[rowDef.key] = lv.v;
+          scheduleSave(); render();
+        },
+      }, lv.label));
+    }
+    wlRow.appendChild(seg);
+    card.appendChild(wlRow);
+  }
+
+  card.appendChild(el('p', { class:'daymeta-hint' },
+    '提示：预估营业额＝排班前的判断；其余「打烊后」字段当天结束再回填。这些就是将来自动排班的训练数据，越完整越准。'));
+
+  return card;
+}
+
 function renderStatusPanel(computed) {
   const frag = document.createDocumentFragment();
 
@@ -1181,6 +1399,7 @@ function renderStatusPanel(computed) {
 
 function renderScheduleTab(computed) {
   const frag = document.createDocumentFragment();
+  frag.appendChild(renderDayMetaPanel());
   frag.appendChild(renderStatusPanel(computed));
 
   // Group slots by area → position
@@ -2984,6 +3203,138 @@ function renderShiftsTab() {
 // MAIN RENDER
 // =============================================================================
 
+// =============================================================================
+// DATA EXPORT  (one row per day: manual fields + auto-derived features → CSV)
+// =============================================================================
+// Mirrors the Attendance tab's paid-hours logic, applied to an arbitrary stored row.
+function computeRowLabor(row) {
+  const baseSlots = BASE_SLOTS.map(s => {
+    const ov = state.slotOverrides[s.id];
+    return ov ? { ...s, startHour: ov.startHour, endHour: ov.endHour } : s;
+  });
+  const slots   = [...baseSlots, ...(row.extra_slots || [])];
+  const assigns = row.assignments || {};
+  let hours = 0; const people = new Set();
+  for (const slot of slots) {
+    const a = assigns[slot.id];
+    if (!a?.empId) continue;
+    const sh = a.timeOverride?.startHour ?? slot.startHour;
+    const eh = a.timeOverride?.endHour   ?? slot.endHour;
+    const h  = eh - sh;
+    const foh   = FRONT_POSITIONS.includes(slot.pos);
+    const short = sh >= 18;
+    const paid  = (foh && !short && h >= 8.5) ? h - 1 : h;
+    hours += paid; people.add(a.empId);
+    if (a.studentId) { hours += paid; people.add(a.studentId); }
+  }
+  return { staff: people.size, hours: Math.round(hours * 10) / 10 };
+}
+
+function csvEscape(v) {
+  const s = (v == null ? '' : String(v));
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function downloadCSV(filename, csv) {
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });  // BOM → Excel reads 中文 correctly
+  const url  = URL.createObjectURL(blob);
+  const a    = el('a', { href: url, download: filename });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const WD_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+async function fetchAllScheduleRows() {
+  const { data, error } = await db.from('daily_schedule').select('*')
+    .eq('store_id', STORE_ID).order('schedule_date');
+  if (error) throw error;
+  return data || [];
+}
+
+// Returns the effective slot list + per-slot effective times for a stored row
+function rowSlots(row) {
+  const base = BASE_SLOTS.map(s => {
+    const ov = state.slotOverrides[s.id];
+    return ov ? { ...s, startHour: ov.startHour, endHour: ov.endHour } : s;
+  });
+  return [...base, ...(row.extra_slots || [])];
+}
+
+// One row per day: manual fields + auto-derived features
+async function exportSummaryCSV() {
+  let rows = [];
+  try { rows = await fetchAllScheduleRows(); }
+  catch (e) { alert('导出失败：' + (e?.message || e)); return; }
+  if (rows.length === 0) { alert('还没有可导出的排班数据'); return; }
+
+  const headers = ['date','weekday','day_tags','est_revenue','actual_revenue','revenue_gap_pct',
+    'planned_available','no_show_count','actual_attendance','no_show_names','on_leave_names',
+    'scheduled_staff','scheduled_hours','payday_window',
+    'wl_lunch_front','wl_lunch_back','wl_dinner_front','wl_dinner_back','note'];
+  const lines = [headers.join(',')];
+
+  for (const row of rows) {
+    const date = row.schedule_date;
+    const d    = new Date(date + 'T00:00:00');
+    const wd   = WD_SHORT[d.getDay()];
+    const onLeaveIds   = Object.keys(getAbsencesForDate(date));
+    const planned      = employees.length - onLeaveIds.length;
+    const onLeaveNames = onLeaveIds.map(id => (employees.find(e => e.id === id) || {}).shortName || id);
+    const noShow       = (row.unplanned_absent || []);
+    const noShowNames  = noShow.map(id => (employees.find(e => e.id === id) || {}).shortName || id);
+    const actualAtt    = planned - noShow.length;
+    const labor = computeRowLabor(row);
+    const est = row.est_revenue, act = row.actual_revenue;
+    const gap = (est != null && act != null && est > 0) ? Math.round((act - est) / est * 100) : '';
+    const dim    = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const payday = (d.getDate() <= 3 || d.getDate() >= dim - 2) ? 1 : 0;
+    const wl     = row.workload || {};
+    const rec = [date, wd, (row.day_tags || []).join('|'), est ?? '', act ?? '', gap,
+      planned, noShow.length, actualAtt, noShowNames.join('|'), onLeaveNames.join('|'),
+      labor.staff, labor.hours, payday,
+      wl.lunchFront ?? '', wl.lunchBack ?? '', wl.dinnerFront ?? '', wl.dinnerBack ?? '', row.day_note || ''];
+    lines.push(rec.map(csvEscape).join(','));
+  }
+  downloadCSV(`roster_summary_${todayLocalStr()}.csv`, lines.join('\n'));
+}
+
+// One row per assigned shift per day — the actual scheduling decisions (training labels)
+async function exportDetailCSV() {
+  let rows = [];
+  try { rows = await fetchAllScheduleRows(); }
+  catch (e) { alert('导出失败：' + (e?.message || e)); return; }
+  if (rows.length === 0) { alert('还没有可导出的排班数据'); return; }
+
+  const headers = ['date','weekday','area','position','slot_id','start','end','paid_hours','seat','staff_short','staff_full'];
+  const lines = [headers.join(',')];
+
+  for (const row of rows) {
+    const date = row.schedule_date;
+    const wd   = WD_SHORT[new Date(date + 'T00:00:00').getDay()];
+    const assigns = row.assignments || {};
+    for (const slot of rowSlots(row)) {
+      const a = assigns[slot.id];
+      if (!a?.empId) continue;
+      const sh = a.timeOverride?.startHour ?? slot.startHour;
+      const eh = a.timeOverride?.endHour   ?? slot.endHour;
+      const h  = eh - sh;
+      const foh   = FRONT_POSITIONS.includes(slot.pos);
+      const paid  = (foh && !(sh >= 18) && h >= 8.5) ? h - 1 : h;
+      const paidStr = (Math.round(paid * 10) / 10);
+      const emit = (seat, empId) => {
+        const emp = employees.find(e => e.id === empId);
+        lines.push([date, wd, slot.area, slot.pos, slot.id,
+          formatHourNum(sh), formatHourNum(eh), paidStr, seat,
+          emp?.shortName || empId, emp?.fullName || ''].map(csvEscape).join(','));
+      };
+      emit('main', a.empId);
+      if (a.studentId) emit('student', a.studentId);
+    }
+  }
+  downloadCSV(`roster_detail_${todayLocalStr()}.csv`, lines.join('\n'));
+}
+
 function render() {
   const computed = computeState();
   const appEl    = document.getElementById('app');
@@ -3003,6 +3354,8 @@ function render() {
   dateInput.addEventListener('change', async e => { state.selectedDate = e.target.value; await loadScheduleForDate(state.selectedDate); render(); });
   headerRight.appendChild(dateInput);
   headerRight.appendChild(el('span', { class: 'role-badge' }, currentRole === 'manager' ? 'Manager' : 'PIC'));
+  headerRight.appendChild(el('button', { class: 'btn-sm', onClick: exportSummaryCSV }, icon('download'), ' 导出汇总'));
+  headerRight.appendChild(el('button', { class: 'btn-sm', onClick: exportDetailCSV }, icon('list-details'), ' 导出明细'));
   headerRight.appendChild(el('button', { class: 'btn-sm', onClick: logout }, icon('logout'), ' Logout'));
   header.appendChild(headerRight);
   appEl.appendChild(header);
