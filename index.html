@@ -2530,11 +2530,12 @@ function renderRosterTab() {
   const onDuty = employees.filter(e => !absences[e.id]);
   const offToday = employees.filter(e => !!absences[e.id]);
 
-  const grouped    = {};  // area → emp[]  (on duty)
-  const offGrouped = {};  // area → emp[]  (off today)
-  for (const a of AREA_ORDER) { grouped[a] = []; offGrouped[a] = []; }
-  for (const emp of onDuty)   { const a = getEmpArea(emp); (grouped[a]    || grouped['后备']).push(emp); }
-  for (const emp of offToday) { const a = getEmpArea(emp); (offGrouped[a] || offGrouped['后备']).push(emp); }
+  const grouped = {};  // area → emp[]  (on duty)
+  for (const a of AREA_ORDER) { grouped[a] = []; }
+  for (const emp of onDuty) { const a = getEmpArea(emp); (grouped[a] || grouped['后备']).push(emp); }
+
+  // Off today: flat list sorted A→Z by shortName
+  const offSorted = [...offToday].sort((a, b) => a.shortName.localeCompare(b.shortName));
 
   // ── Build export card DOM (inline styles for html2canvas compatibility) ──
   const card = document.createElement('div');
@@ -2655,44 +2656,28 @@ function renderRosterTab() {
     card.appendChild(block);
   }
 
-  // Off Today section
-  if (offToday.length > 0) {
+  // Off Today section — flat list, A→Z
+  if (offSorted.length > 0) {
     const offBlock = document.createElement('div');
     offBlock.style.cssText = 'background:#fafaf9;border-top:2px dashed #e7e5e4;';
 
     const offTop = document.createElement('div');
-    offTop.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 22px 6px;border-bottom:1px solid #ece9e6;';
+    offTop.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 22px 8px;border-bottom:1px solid #ece9e6;';
     offTop.innerHTML = `
       <div style="width:8px;height:8px;border-radius:50%;background:#a8a29e;flex-shrink:0;"></div>
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#78716c;">休息 Off Today</div>
-      <div style="margin-left:auto;font-size:11px;color:#a8a29e;font-weight:500;">${offToday.length} 人</div>`;
+      <div style="margin-left:auto;font-size:11px;color:#a8a29e;font-weight:500;">${offSorted.length} 人</div>`;
     offBlock.appendChild(offTop);
 
-    for (const area of AREA_ORDER) {
-      const emps = offGrouped[area];
-      if (!emps.length) continue;
-      const cfg = AREA_CONFIG[area];
-
-      const sec = document.createElement('div');
-      sec.style.cssText = 'padding:7px 22px 4px;';
-
-      const secTitle = document.createElement('div');
-      secTitle.style.cssText = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#a8a29e;margin-bottom:5px;display:flex;align-items:center;gap:5px;';
-      secTitle.innerHTML = `<div style="width:6px;height:6px;border-radius:50%;background:${cfg.offDot};flex-shrink:0;"></div>${cfg.cn}`;
-      sec.appendChild(secTitle);
-
-      const chips = document.createElement('div');
-      chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;';
-      for (const emp of emps) {
-        const chip = document.createElement('span');
-        chip.style.cssText = 'font-size:11px;font-weight:600;background:#f5f4f2;color:#78716c;border-radius:100px;padding:3px 10px;border:1px solid #e7e5e4;';
-        chip.textContent = emp.shortName;
-        chips.appendChild(chip);
-      }
-      sec.appendChild(chips);
-      offBlock.appendChild(sec);
+    const chips = document.createElement('div');
+    chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;padding:12px 22px 14px;';
+    for (const emp of offSorted) {
+      const chip = document.createElement('span');
+      chip.style.cssText = 'font-size:12px;font-weight:600;background:#f5f4f2;color:#57534e;border-radius:100px;padding:4px 12px;border:1px solid #e7e5e4;';
+      chip.textContent = emp.shortName;
+      chips.appendChild(chip);
     }
-
+    offBlock.appendChild(chips);
     card.appendChild(offBlock);
   }
 
