@@ -278,6 +278,32 @@
     .role-badge{font-size:11px;font-weight:700;border-radius:100px;padding:4px 10px;background:#1c1917;color:white;}
     .header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
 
+    /* ── COPY SCHEDULE ── */
+    .copy-btn-wrap { position: relative; }
+    .copy-dropdown {
+      position: absolute; top: calc(100% + 6px); right: 0; z-index: 100;
+      background: var(--surface); border: 1px solid var(--border-mid);
+      border-radius: var(--radius-lg); padding: 6px; min-width: 215px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.10);
+    }
+    .copy-dropdown-title { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px 7px; }
+    .copy-opt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); cursor: pointer; }
+    .copy-opt:hover { background: var(--gray-50); }
+    .copy-opt-icon { width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--gray-100); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; color: var(--text-sub); }
+    .copy-opt-label { font-size: 13px; font-weight: 600; color: var(--text); }
+    .copy-opt-sub   { font-size: 11px; color: var(--text-sub); margin-top: 1px; }
+    .copy-dropdown-note { font-size: 11px; color: var(--text-muted); padding: 7px 8px 3px; border-top: 1px solid var(--border); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+    .copy-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.38); z-index: 150; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .copy-modal { background: var(--surface); border-radius: var(--radius-lg); padding: 20px 22px; width: 380px; max-width: 100%; border: 1px solid var(--border); }
+    .copy-modal-head { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .copy-modal-body { font-size: 13px; color: var(--text-sub); line-height: 1.6; margin-bottom: 12px; }
+    .copy-modal-warn { background: var(--amber-50); border: 1px solid var(--amber-100); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 14px; font-size: 12px; color: var(--amber-700); display: flex; gap: 8px; }
+    .copy-modal-warn .ti { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+    .copy-absent-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .copy-absent-chip { font-size: 11px; font-weight: 600; border-radius: 100px; padding: 2px 9px; background: var(--red-50); color: var(--red-700); border: 1px solid var(--red-100); }
+    .copy-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+    .copy-toast { position: fixed; bottom: 56px; right: 20px; background: var(--green-50); border: 1px solid var(--green-100); color: var(--green-700); padding: 10px 16px; border-radius: var(--radius-lg); font-size: 13px; font-weight: 600; z-index: 60; display: flex; align-items: flex-start; gap: 7px; max-width: 360px; line-height: 1.5; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
     /* ── EMPLOYEE MODAL ── */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
     .modal-box{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.25);}
@@ -841,6 +867,14 @@ let addShiftForm = { openPosition: null, startTime: '11:00', endTime: '20:00', e
 let leaveForm      = { employeeId: '', type: 'planned', fromDate: '', toDate: '' };
 let leaveFormToast      = null; // { empName, from, to } — shown briefly after submit
 let weekPreviewExpanded = false; // toggle for "no leave" employees section
+
+// Copy-schedule feature state
+let copyScheduleState = {
+  dropdownOpen: false,
+  modal:  null,   // null | { sourceDate, absentNames[], assignments{}, hasExisting }
+  toast:  null,   // null | { msg }
+};
+let _copyDropdownCloseHandler = null;
 
 // Persistence: Supabase (see DB FUNCTIONS above)
 function saveToStorage() { scheduleSave(); }
@@ -3320,6 +3354,175 @@ async function exportDetailCSV() {
   downloadCSV(`roster_detail_${todayLocalStr()}.csv`, lines.join('\n'));
 }
 
+// =============================================================================
+// COPY SCHEDULE FEATURE
+// =============================================================================
+
+function getCopySourceDates() {
+  const WD_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const fmtLocal = dd => {
+    const y = dd.getFullYear(), mo = String(dd.getMonth()+1).padStart(2,'0'), dy = String(dd.getDate()).padStart(2,'0');
+    return `${y}-${mo}-${dy}`;
+  };
+  const base = new Date(state.selectedDate + 'T00:00:00');
+  const yesterday = new Date(base); yesterday.setDate(base.getDate() - 1);
+  const lastWeek  = new Date(base); lastWeek.setDate(base.getDate() - 7);
+  return [
+    { dateStr: fmtLocal(yesterday), label: '复制昨天',       sub: `${WD_LABELS[yesterday.getDay()]} · ${fmtLocal(yesterday)}`, icon: 'calendar-minus' },
+    { dateStr: fmtLocal(lastWeek),  label: '复制上周同一天', sub: `${WD_LABELS[lastWeek.getDay()]} · ${fmtLocal(lastWeek)}`,  icon: 'calendar-week'  },
+  ];
+}
+
+function openCopyDropdown(e) {
+  e.stopPropagation();
+  if (copyScheduleState.dropdownOpen) { copyScheduleState.dropdownOpen = false; render(); return; }
+  copyScheduleState.dropdownOpen = true;
+  render();
+  if (_copyDropdownCloseHandler) document.removeEventListener('click', _copyDropdownCloseHandler);
+  _copyDropdownCloseHandler = () => {
+    copyScheduleState.dropdownOpen = false;
+    _copyDropdownCloseHandler = null;
+    render();
+  };
+  setTimeout(() => document.addEventListener('click', _copyDropdownCloseHandler, { once: true }), 0);
+}
+
+async function initiateCopySchedule(sourceDate) {
+  // Remove outside-click listener and close dropdown
+  if (_copyDropdownCloseHandler) { document.removeEventListener('click', _copyDropdownCloseHandler); _copyDropdownCloseHandler = null; }
+  copyScheduleState.dropdownOpen = false;
+  render();
+
+  const { data, error } = await db.from('daily_schedule').select('*')
+    .eq('store_id', STORE_ID).eq('schedule_date', sourceDate).maybeSingle();
+
+  if (error) { alert('加载失败：' + (error.message || error)); return; }
+
+  const sourceAssignments = data?.assignments || {};
+  const filledCount = Object.values(sourceAssignments).filter(a => a?.empId).length;
+  if (filledCount === 0) { alert(`${sourceDate} 暂无排班数据，无法复制`); return; }
+
+  // Which employees from the source are on leave TODAY
+  const todayAbsences = getTodayAbsences();
+  const absentIds = new Set(Object.keys(todayAbsences));
+  const absentNamesSet = new Set();
+  for (const a of Object.values(sourceAssignments)) {
+    if (a?.empId && absentIds.has(a.empId)) {
+      const emp = employees.find(e => e.id === a.empId);
+      if (emp) absentNamesSet.add(emp.shortName);
+    }
+  }
+  const absentNames = [...absentNamesSet];
+  const hasExisting = Object.values(state.assignments).some(a => a?.empId);
+
+  // Show confirmation modal when there's existing data or absent collisions
+  if (hasExisting || absentNames.length > 0) {
+    copyScheduleState.modal = { sourceDate, absentNames, assignments: sourceAssignments, hasExisting };
+    render();
+  } else {
+    await executeCopySchedule(sourceAssignments, sourceDate);
+  }
+}
+
+async function executeCopySchedule(sourceAssignments, sourceDate) {
+  const todayAbsences = getTodayAbsences();
+  const absentIds = new Set(Object.keys(todayAbsences));
+  let blankedCount = 0;
+
+  const newAssignments = {};
+  for (const [slotId, a] of Object.entries(sourceAssignments)) {
+    if (!a) continue;
+    const entry = { ...a };
+    if (entry.empId && absentIds.has(entry.empId))     { entry.empId = null; entry.studentId = null; blankedCount++; }
+    if (entry.studentId && absentIds.has(entry.studentId)) { entry.studentId = null; }
+    newAssignments[slotId] = entry;
+  }
+
+  state.assignments = newAssignments;
+  // extraSlots intentionally NOT copied (per design decision)
+  copyScheduleState.modal = null;
+
+  await saveSchedule();
+
+  const srcLabel = formatDate(sourceDate);
+  copyScheduleState.toast = { msg: `已从「${srcLabel}」复制班表${blankedCount > 0 ? `，${blankedCount} 个班次因请假已留空` : ''}` };
+  render();
+  setTimeout(() => { copyScheduleState.toast = null; render(); }, 4500);
+}
+
+function renderCopyDropdown() {
+  if (!copyScheduleState.dropdownOpen) return null;
+  const wrap = el('div', { class: 'copy-dropdown', onClick: e => e.stopPropagation() });
+  wrap.appendChild(el('div', { class: 'copy-dropdown-title' }, '选择复制来源'));
+  for (const src of getCopySourceDates()) {
+    const opt = el('div', { class: 'copy-opt', onClick: () => initiateCopySchedule(src.dateStr) });
+    const iconBox = el('div', { class: 'copy-opt-icon' }); iconBox.appendChild(icon(src.icon));
+    opt.appendChild(iconBox);
+    const textWrap = el('div', {});
+    textWrap.appendChild(el('div', { class: 'copy-opt-label' }, src.label));
+    textWrap.appendChild(el('div', { class: 'copy-opt-sub'   }, src.sub));
+    opt.appendChild(textWrap);
+    wrap.appendChild(opt);
+  }
+  const note = el('div', { class: 'copy-dropdown-note' });
+  note.appendChild(icon('info-circle')); note.appendChild(document.createTextNode(' 仅复制人员分配，不含临时班次'));
+  wrap.appendChild(note);
+  return wrap;
+}
+
+function renderCopyModal() {
+  if (!copyScheduleState.modal) return null;
+  const { sourceDate, absentNames, assignments, hasExisting } = copyScheduleState.modal;
+
+  const overlay = el('div', { class: 'copy-modal-overlay' });
+  overlay.addEventListener('click', e => { if (e.target === overlay) { copyScheduleState.modal = null; render(); } });
+
+  const modal = el('div', { class: 'copy-modal' });
+
+  const head = el('div', { class: 'copy-modal-head' });
+  head.appendChild(icon('copy'));
+  head.appendChild(document.createTextNode(hasExisting ? '确认覆盖班表' : '确认复制班表'));
+  modal.appendChild(head);
+
+  if (hasExisting) {
+    modal.appendChild(el('div', { class: 'copy-modal-body' },
+      `当前日期（${formatDate(state.selectedDate)}）已有排班记录，复制将覆盖当前内容。`));
+  }
+
+  if (absentNames.length > 0) {
+    const warn = el('div', { class: 'copy-modal-warn' });
+    warn.appendChild(icon('user-off'));
+    const warnBody = el('div', {});
+    warnBody.appendChild(document.createTextNode(`以下 ${absentNames.length} 位员工今天请假，对应班次将留空：`));
+    const chips = el('div', { class: 'copy-absent-chips' });
+    for (const name of absentNames) chips.appendChild(el('span', { class: 'copy-absent-chip' }, name));
+    warnBody.appendChild(chips);
+    warn.appendChild(warnBody);
+    modal.appendChild(warn);
+  }
+
+  if (!hasExisting && absentNames.length > 0) {
+    modal.appendChild(el('div', { class: 'copy-modal-body' }, '其余班次将正常复制，是否继续？'));
+  }
+
+  const actions = el('div', { class: 'copy-modal-actions' });
+  actions.appendChild(el('button', { onClick: () => { copyScheduleState.modal = null; render(); } }, '取消'));
+  const confirmBtn = el('button', { class: 'btn-info', onClick: () => executeCopySchedule(assignments, sourceDate) });
+  confirmBtn.appendChild(icon('copy')); confirmBtn.appendChild(document.createTextNode(' 确认复制'));
+  actions.appendChild(confirmBtn);
+  modal.appendChild(actions);
+
+  overlay.appendChild(modal);
+  return overlay;
+}
+
+function renderCopyToast() {
+  if (!copyScheduleState.toast) return null;
+  const toast = el('div', { class: 'copy-toast' });
+  toast.appendChild(icon('check')); toast.appendChild(document.createTextNode(copyScheduleState.toast.msg));
+  return toast;
+}
+
 function render() {
   const computed = computeState();
   const appEl    = document.getElementById('app');
@@ -3339,6 +3542,16 @@ function render() {
   dateInput.addEventListener('change', async e => { state.selectedDate = e.target.value; await loadScheduleForDate(state.selectedDate); render(); });
   headerRight.appendChild(dateInput);
   headerRight.appendChild(el('span', { class: 'role-badge' }, currentRole === 'manager' ? 'Manager' : 'PIC'));
+
+  // ── Copy Schedule button (manager only) ──
+  const copyBtnWrap = el('div', { class: 'copy-btn-wrap' });
+  const copyBtn = el('button', { class: 'btn-sm btn-info', onClick: openCopyDropdown });
+  copyBtn.appendChild(icon('copy')); copyBtn.appendChild(document.createTextNode(' 复制班表'));
+  copyBtnWrap.appendChild(copyBtn);
+  const dropdown = renderCopyDropdown();
+  if (dropdown) copyBtnWrap.appendChild(dropdown);
+  headerRight.appendChild(copyBtnWrap);
+
   headerRight.appendChild(el('button', { class: 'btn-sm', onClick: exportSummaryCSV }, icon('download'), ' 导出汇总'));
   headerRight.appendChild(el('button', { class: 'btn-sm', onClick: exportDetailCSV }, icon('list-details'), ' 导出明细'));
   headerRight.appendChild(el('button', { class: 'btn-sm', onClick: logout }, icon('logout'), ' Logout'));
@@ -3393,6 +3606,12 @@ function render() {
     case 'gantt':      appEl.appendChild(renderGanttTab());              break;
     case 'attendance': appEl.appendChild(renderAttendanceTab());         break;
   }
+
+  // ── Copy-schedule overlays (modal + toast) ──
+  const copyModal = renderCopyModal();
+  if (copyModal) appEl.appendChild(copyModal);
+  const copyToast = renderCopyToast();
+  if (copyToast) appEl.appendChild(copyToast);
 }
 
 // =============================================================================
