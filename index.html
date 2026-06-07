@@ -589,9 +589,20 @@ function getNextEmpId() {
 async function saveEmployee(emp) {
   const { error } = await db.from('employees').upsert(empToRow(emp), { onConflict: 'id' });
   if (error) throw error;
-  await loadEmployees(); render();
-  // Secondary reload after a short delay to catch any Supabase replication lag
-  setTimeout(async () => { await loadEmployees(); render(); }, 900);
+
+  // Optimistic update: reflect the change in memory immediately,
+  // without waiting for the DB read-after-write round-trip.
+  // This eliminates the "skill added but not visible" race condition.
+  const idx = employees.findIndex(e => e.id === emp.id);
+  if (idx >= 0) employees[idx] = { ...emp };
+  else           employees.push({ ...emp });
+  render();
+
+  // Background sync: confirm the DB write came back correctly.
+  // The Supabase realtime subscription will also trigger loadEmployees,
+  // so this is just a belt-and-suspenders safety net.
+  await loadEmployees();
+  render();
 }
 async function markEmployeeInactive(empId) {
   await db.from('employees').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', empId);
@@ -709,6 +720,29 @@ const ROLE_STYLE = {
   '后厨员工': { bg: '#f5f5f4', color: '#57534e' },
   '员工':     { bg: '#f5f5f4', color: '#57534e' },
 };
+
+// ── POSITION NAME NORMALISER ──
+// positions_master stores Chinese display names; BASE_SLOTS uses English pos keys.
+// Any entry here maps a Chinese (or legacy) name → the canonical BASE_SLOTS pos value.
+// Add a new line here whenever a positions_master name doesn't match a BASE_SLOTS pos.
+const POSITION_SLOT_MAP = {
+  'A1炒菜': 'A1 Wok',
+  'A2蒸菜': 'A2 Steam',
+  // 'B鸡工':  'B Chicken',   // uncomment and adjust if B ever breaks
+  // 'C剁鸡':  'C Chop',
+  // '切配':   'Cutting',
+  // 'D饮料':  'D Drink',
+  // '服务':   'Service',
+  // '打菜':   'Dacai',
+  // '洗碗':   'Dishwash',
+  // '后备':   'Reserve',
+};
+
+// Returns the canonical BASE_SLOTS pos name for any position name variant.
+// Falls back to the original name so English names (legacy records) still work.
+function toCanonicalPos(name) {
+  return POSITION_SLOT_MAP[name] ?? name;
+}
 
 // =============================================================================
 // BASE SLOTS (the default daily template)
@@ -1047,7 +1081,8 @@ function isEligible(employee, slot, computed) {
   if (slot.pos === 'Dishwash') return true;  // anyone can wash dishes
   if (slot.pos === 'Reserve')  return true;  // anyone can be reserve
 
-  return employee.positions.includes(slot.pos);
+  // Use toCanonicalPos so Chinese names from positions_master match English BASE_SLOTS keys
+  return employee.positions.some(p => toCanonicalPos(p) === slot.pos);
 }
 
 // Is this employee eligible to be a student for a slot?
@@ -1061,7 +1096,7 @@ function isStudentEligible(employee, slot, computed) {
 }
 
 function isTrainerFor(employee, position) {
-  return employee.canTrain.includes(position);
+  return employee.canTrain.some(p => toCanonicalPos(p) === position);
 }
 
 // =============================================================================
@@ -1450,9 +1485,10 @@ function renderScheduleTab(computed) {
     for (const { pos, slots } of positions) {
       const isKitchenFixed  = KITCHEN_POSITIONS.includes(pos);
       const isTrainablePos  = isKitchenFixed
-        || (allPositions.find(p => p.name === pos)?.trainable === true)
-        || employees.some(e => e.canTrain.includes(pos));  // fallback: any trainer exists for this pos
-      const hasFlex        = slots.some(s => s.isFlex);
+        || (allPositions.find(p => toCanonicalPos(p.name) === pos)?.trainable === true)
+        || employees.some(e => e.canTrain.some(ct => toCanonicalPos(ct) === pos));
+      // C Chop固定班不带isFlex，但业务上需要能临时加班——单独开放Add Shift
+      const hasFlex        = slots.some(s => s.isFlex) || pos === 'C Chop';
       const card           = el('div', { class: 'card' });
 
       // Position header
@@ -1481,7 +1517,7 @@ function renderScheduleTab(computed) {
           if (pos === 'Dacai')    return true;
           if (pos === 'Reserve')  return true;
           if (pos === 'Dishwash') return true;
-          return e.positions.includes(pos);
+          return e.positions.some(p => toCanonicalPos(p) === pos);
         });
 
         const startOpts = [['', '-- Start --'], ...FH_START_TIMES.map(t => [t, t])];
