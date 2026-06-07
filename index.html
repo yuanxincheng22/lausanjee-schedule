@@ -571,6 +571,33 @@ async function deleteSlotOverride(slotId) {
   delete state.slotOverrides[slotId];
 }
 
+// ── COVERAGE THRESHOLD SETTINGS (store-level, one row per store) ──
+async function loadCoverageSettings() {
+  try {
+    const { data, error } = await db.from('coverage_settings')
+      .select('*').eq('store_id', STORE_ID).maybeSingle();
+    if (error) throw error;
+    if (data) {
+      state.coverageThresholds = {
+        onDuty: Number(data.on_duty_min),
+        front:  Number(data.front_min),
+      };
+    }
+  } catch(e) { console.warn('loadCoverageSettings (table may not exist yet):', e?.message || e); }
+}
+async function saveCoverageSettings(onDutyMin, frontMin) {
+  state.coverageThresholds = { onDuty: onDutyMin, front: frontMin };  // optimistic local update
+  try {
+    const { error } = await db.from('coverage_settings').upsert({
+      store_id: STORE_ID,
+      on_duty_min: onDutyMin,
+      front_min:   frontMin,
+      updated_at:  new Date().toISOString(),
+    }, { onConflict: 'store_id' });
+    if (error) throw error;
+  } catch(e) { console.warn('saveCoverageSettings failed:', e?.message || e); }
+}
+
 // ── TIME HELPERS ──
 // Generate half-hour time options from 06:00 to 23:30
 function generateTimeOptions() {
@@ -674,6 +701,10 @@ function subscribeToChanges() {
       event: '*', schema: 'public', table: 'slot_overrides',
       filter: `store_id=eq.${STORE_ID}`,
     }, async () => { await loadSlotOverrides(); render(); })
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'coverage_settings',
+      filter: `store_id=eq.${STORE_ID}`,
+    }, async () => { await loadCoverageSettings(); render(); })
     .subscribe();
 }
 
@@ -884,6 +915,7 @@ let state = {
   plannedLeave:    {},     // { empId: [{ from, to, type }] }
   dailyLeave:      {},     // { 'YYYY-MM-DD': { empId: leaveType } }
   slotOverrides:   {},     // { slotId: { startHour, endHour } } — permanent, from Supabase
+  coverageThresholds: { onDuty: 30, front: 7 },  // staffing warning thresholds — from Supabase, editable by manager
   dayMeta:         { estRevenue: '', actualRevenue: '', dayTags: [], dayNote: '', workload: {}, unplannedAbsent: [] },  // per-day planning inputs + review
   searchQuery:     '',
   showUnassigned:  false,
@@ -2206,6 +2238,31 @@ function renderWeekPreview() {
   const weekDates  = getWeekDates(state.selectedDate);
   const weekAbs    = weekDates.map(d => getAbsencesForDate(d));
 
+  // ── Coverage thresholds (manager-set, from DB) ──
+  const TH_ONDUTY = state.coverageThresholds?.onDuty ?? 30;
+  const TH_FRONT  = state.coverageThresholds?.front  ?? 7;
+
+  // Determine each employee's "home" area from their own position list (independent
+  // of any given day's roster) so per-day counting stays stable across the week.
+  function empHomeArea(emp) {
+    const counts = {};
+    for (const posName of (emp.positions || [])) {
+      const posObj = allPositions.find(p => p.name === posName);
+      if (posObj) counts[posObj.area] = (counts[posObj.area] || 0) + 1;
+    }
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return sorted[0]?.[0] || '后备';
+  }
+  const totalStaff = employees.length;
+  const frontStaff = employees.filter(e => empHomeArea(e) === '前厅');
+  const frontTotal = frontStaff.length;
+
+  // Per-day on-duty counts = total staff minus those absent that day
+  const onDutyByDay = weekDates.map((d, i) => totalStaff - Object.keys(weekAbs[i]).length);
+  const frontOnDutyByDay = weekDates.map((d, i) =>
+    frontStaff.filter(e => !(e.id in weekAbs[i])).length
+  );
+
   // Split employees: has any absence this week vs. none
   const withLeave    = employees.filter(emp => weekAbs.some(dayAbs => emp.id in dayAbs));
   const withoutLeave = employees.filter(emp => !weekAbs.some(dayAbs => emp.id in dayAbs));
@@ -2230,6 +2287,80 @@ function renderWeekPreview() {
         return th;
       })
     ]));
+  }
+
+  // ── Coverage summary: per-day "on duty" counts + manager-set warning thresholds ──
+  {
+    const covWrap = el('div', { style: 'overflow-x:auto; margin-bottom:14px; border:1px solid var(--border); border-radius:var(--radius-md);' });
+    const covTable = el('table', { style: 'width:100%; border-collapse:collapse; font-size:12px;' });
+    covTable.appendChild(buildHeader());
+    const covBody = el('tbody', {});
+
+    // Row builder: label + 7 day counts, red when below threshold
+    function coverageRow(label, counts, threshold, totalLabel) {
+      const tr = el('tr', {});
+      const labelCell = el('td', { style: tdBase + 'text-align:left; font-weight:700;' });
+      labelCell.appendChild(document.createTextNode(label));
+      if (totalLabel != null) {
+        labelCell.appendChild(el('span', { style: 'font-weight:400; color:var(--text-muted); font-size:11px; margin-left:4px;' }, `(${totalLabel} total)`));
+      }
+      tr.appendChild(labelCell);
+      for (let i = 0; i < 7; i++) {
+        const isSel = weekDates[i] === state.selectedDate;
+        const low   = counts[i] < threshold;
+        let cell = tdBase + 'font-weight:700;';
+        if (low)        cell += 'background:var(--red-50); color:var(--red-700);';
+        else if (isSel) cell += 'background:var(--blue-50);';
+        const td = el('td', { style: cell });
+        td.appendChild(document.createTextNode(String(counts[i])));
+        if (low) {
+          const w = icon('alert-triangle');
+          w.style.fontSize = '12px'; w.style.marginLeft = '3px'; w.style.verticalAlign = '-1px';
+          td.appendChild(w);
+        }
+        tr.appendChild(td);
+      }
+      return tr;
+    }
+
+    covBody.appendChild(coverageRow('On Duty', onDutyByDay, TH_ONDUTY, totalStaff));
+    covBody.appendChild(coverageRow('前厅 FOH', frontOnDutyByDay, TH_FRONT, frontTotal));
+    covTable.appendChild(covBody);
+    covWrap.appendChild(covTable);
+    frag.appendChild(covWrap);
+
+    // ── Threshold settings (manager-editable, persisted to DB) ──
+    const setRow = el('div', { style: 'display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; margin-bottom:18px; padding:10px 12px; background:var(--gray-50); border:1px solid var(--border); border-radius:var(--radius-sm);' });
+    const warnIcon = icon('alert-triangle'); warnIcon.style.color = 'var(--red-600)';
+    setRow.appendChild(el('div', { style: 'display:flex; align-items:center; gap:5px; font-size:12px; font-weight:600; color:var(--text-sub);' },
+      warnIcon,
+      document.createTextNode('低于警戒线变红')
+    ));
+
+    function thresholdField(labelText, value, onCommit) {
+      const grp = el('div', { class: 'form-group' });
+      grp.appendChild(el('label', { class: 'form-label' }, labelText));
+      const inp = el('input', { type: 'number', value: String(value), style: 'width:80px;' });
+      inp.min = '0';
+      const commit = () => {
+        let v = parseInt(inp.value, 10);
+        if (isNaN(v) || v < 0) v = 0;
+        inp.value = String(v);
+        onCommit(v);
+      };
+      inp.addEventListener('change', commit);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+      grp.appendChild(inp);
+      return grp;
+    }
+
+    setRow.appendChild(thresholdField('On Duty 最低', TH_ONDUTY, v => {
+      saveCoverageSettings(v, TH_FRONT).then(render);
+    }));
+    setRow.appendChild(thresholdField('前厅 FOH 最低', TH_FRONT, v => {
+      saveCoverageSettings(TH_ONDUTY, v).then(render);
+    }));
+    frag.appendChild(setRow);
   }
 
   // ── Section 1: employees WITH leave ──
@@ -3662,6 +3793,7 @@ async function initApp() {
     loadEmployees(),
     loadPositions(),
     loadSlotOverrides(),
+    loadCoverageSettings(),
   ]);
   subscribeToChanges();
   render();
