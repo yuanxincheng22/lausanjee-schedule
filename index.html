@@ -778,16 +778,22 @@ const ROLE_STYLE = {
 // Any entry here maps a Chinese (or legacy) name → the canonical BASE_SLOTS pos value.
 // Add a new line here whenever a positions_master name doesn't match a BASE_SLOTS pos.
 const POSITION_SLOT_MAP = {
-  'A1炒菜': 'A1 Wok',
-  'A2蒸菜': 'A2 Steam',
-  // 'B鸡工':  'B Chicken',   // uncomment and adjust if B ever breaks
-  // 'C剁鸡':  'C Chop',
-  // '切配':   'Cutting',
-  // 'D饮料':  'D Drink',
-  // '服务':   'Service',
-  // '打菜':   'Dacai',
-  // '洗碗':   'Dishwash',
-  // '后备':   'Reserve',
+  // ── 前厅 ──────────────────────────────────────
+  '前厅':    'Service',
+  '打菜':    'Dacai',
+  'D 饮料':  'D Drink',
+  // ── 后厨 ──────────────────────────────────────
+  'A1 炒菜': 'A1 Wok',
+  'A2 蒸菜': 'A2 Steam',
+  'B 鸡':    'B Chicken',
+  'C 剁鸡':  'C Chop',
+  // ── 兼容旧记录（无空格写法）──────────────────
+  'A1炒菜':  'A1 Wok',
+  'A2蒸菜':  'A2 Steam',
+  'B鸡':     'B Chicken',
+  'C剁鸡':   'C Chop',
+  'D饮料':   'D Drink',
+  // Cutting / Dishwash / Reserve / PIC 本身已是英文，无需映射
 };
 
 // Returns the canonical BASE_SLOTS pos name for any position name variant.
