@@ -2519,6 +2519,13 @@ function renderWeekPreview() {
 // REST TRACKER — weekly rest-day summary panel
 // =============================================================================
 
+// Types that count as a "rest/off day" for the weekly rest tracker.
+// Planned Leave = the manager's current way of marking off-days;
+// Rest Day = the new dedicated type. MC, unplanned, noshow are NOT counted.
+function isRestType(type) {
+  return type === 'planned' || type === 'rest';
+}
+
 function computeRestData() {
   const weekDates = getWeekDates(state.selectedDate);
   const weekStart = weekDates[0];
@@ -2529,7 +2536,7 @@ function computeRestData() {
   for (const d of weekDates) {
     const abs = getAbsencesForDate(d);
     for (const [empId, type] of Object.entries(abs)) {
-      if (type === 'rest') {
+      if (isRestType(type)) {
         if (!restThisWeek[empId]) restThisWeek[empId] = [];
         restThisWeek[empId].push(d);
       }
@@ -2543,17 +2550,17 @@ function computeRestData() {
   for (const [date, dayMap] of Object.entries(state.dailyLeave)) {
     if (date >= weekStart) continue;
     for (const [empId, type] of Object.entries(dayMap)) {
-      if (type === 'rest' && (!lastRest[empId] || date > lastRest[empId])) {
+      if (isRestType(type) && (!lastRest[empId] || date > lastRest[empId])) {
         lastRest[empId] = date;
       }
     }
   }
 
-  // 2b. from plannedLeave ranges with type=rest that end before this week
+  // 2b. from plannedLeave ranges with type=planned|rest that end before this week
   for (const [empId, leaves] of Object.entries(state.plannedLeave)) {
     if (!Array.isArray(leaves)) continue;
     for (const lv of leaves) {
-      if (lv.type !== 'rest') continue;
+      if (!isRestType(lv.type)) continue;
       if (lv.from >= weekStart) continue;            // starts this week or later → skip
       // The latest relevant date in this range before weekStart
       let effectiveTo = lv.to < weekStart ? lv.to : (() => {
