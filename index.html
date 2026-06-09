@@ -199,6 +199,34 @@
     .upcoming-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 5px; background: var(--surface); flex-wrap: wrap; gap: 6px; }
     .section-title { font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin: 14px 0 8px; }
 
+    /* ── REST TRACKER ── */
+    .rt-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 10px; }
+    .rt-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .rt-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+    .rt-title .ti { color: var(--blue-600); }
+    .rt-progress { height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+    .rt-progress-fill { height: 100%; background: var(--green-600); border-radius: 3px; transition: width 0.3s; }
+    .rt-stats { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .rt-stat { flex: 1; min-width: 70px; background: var(--gray-50); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; text-align: center; }
+    .rt-stat-num { font-size: 18px; font-weight: 700; line-height: 1.2; }
+    .rt-stat-lbl { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+    .rt-divider { height: 1px; background: var(--border); margin: 0 0 10px; }
+    .rt-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+    .rt-chip { display: inline-flex; flex-direction: column; align-items: center; padding: 4px 10px; border-radius: var(--radius-md); border: 1px solid var(--border-mid); background: var(--surface); }
+    .rt-chip.rested       { background: var(--green-50);  border-color: var(--green-100); }
+    .rt-chip.rested-multi { background: var(--amber-50);  border-color: var(--amber-100); }
+    .rt-chip.clickable    { cursor: pointer; }
+    .rt-chip.clickable:hover { filter: brightness(0.96); }
+    .rt-chip-name { font-size: 12px; font-weight: 700; }
+    .rt-chip-hint { font-size: 10px; margin-top: 1px; }
+    .rt-chip.rested        .rt-chip-name { color: var(--green-700); }
+    .rt-chip.rested        .rt-chip-hint { color: var(--green-600); }
+    .rt-chip.rested-multi  .rt-chip-name { color: var(--amber-700); }
+    .rt-chip.rested-multi  .rt-chip-hint { color: var(--amber-600); }
+    .rt-hint-warn  { color: var(--amber-600) !important; }
+    .rt-hint-alert { color: var(--red-600)   !important; }
+    .rt-hint-none  { color: var(--text-muted) !important; }
+
     /* ── ROSTER ── */
     .roster-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px; }
     .roster-header { background: var(--gray-900); color: white; padding: 16px; }
@@ -746,6 +774,7 @@ const LEAVE_TYPES = {
   mc:        { label: 'MC',              badgeClass: 'badge-amber', },
   unplanned: { label: 'Unplanned Leave', badgeClass: 'badge-red',   },
   noshow:    { label: 'No-Show ⚠',       badgeClass: 'badge-red',   },
+  rest:      { label: 'Rest Day',        badgeClass: 'badge-gray',  },
 };
 
 const GANTT_VIEWS = {
@@ -2486,6 +2515,183 @@ function renderWeekPreview() {
   return frag;
 }
 
+// =============================================================================
+// REST TRACKER — weekly rest-day summary panel
+// =============================================================================
+
+function computeRestData() {
+  const weekDates = getWeekDates(state.selectedDate);
+  const weekStart = weekDates[0];
+
+  // ── Step 1: rest days THIS week per employee (use getAbsencesForDate so
+  //   dailyLeave overrides on top of plannedLeave are handled correctly) ──
+  const restThisWeek = {};   // empId → [dateStr …]
+  for (const d of weekDates) {
+    const abs = getAbsencesForDate(d);
+    for (const [empId, type] of Object.entries(abs)) {
+      if (type === 'rest') {
+        if (!restThisWeek[empId]) restThisWeek[empId] = [];
+        restThisWeek[empId].push(d);
+      }
+    }
+  }
+
+  // ── Step 2: last rest day BEFORE this week per employee ──
+  const lastRest = {};   // empId → dateStr
+
+  // 2a. from dailyLeave direct entries
+  for (const [date, dayMap] of Object.entries(state.dailyLeave)) {
+    if (date >= weekStart) continue;
+    for (const [empId, type] of Object.entries(dayMap)) {
+      if (type === 'rest' && (!lastRest[empId] || date > lastRest[empId])) {
+        lastRest[empId] = date;
+      }
+    }
+  }
+
+  // 2b. from plannedLeave ranges with type=rest that end before this week
+  for (const [empId, leaves] of Object.entries(state.plannedLeave)) {
+    if (!Array.isArray(leaves)) continue;
+    for (const lv of leaves) {
+      if (lv.type !== 'rest') continue;
+      if (lv.from >= weekStart) continue;            // starts this week or later → skip
+      // The latest relevant date in this range before weekStart
+      let effectiveTo = lv.to < weekStart ? lv.to : (() => {
+        const d = new Date(weekStart + 'T00:00:00');
+        d.setDate(d.getDate() - 1);
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      })();
+      if (!lastRest[empId] || effectiveTo > lastRest[empId]) lastRest[empId] = effectiveTo;
+    }
+  }
+
+  return { restThisWeek, lastRest, weekDates, weekStart };
+}
+
+function renderRestTracker() {
+  const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const { restThisWeek, lastRest, weekDates, weekStart } = computeRestData();
+
+  const rested    = employees.filter(e => restThisWeek[e.id]);
+  const notRested = employees.filter(e => !restThisWeek[e.id]);
+  const multiRest = rested.filter(e => restThisWeek[e.id].length >= 2);
+  const pct       = employees.length > 0 ? Math.round(rested.length / employees.length * 100) : 0;
+
+  const frag = document.createDocumentFragment();
+  const card = el('div', { class: 'rt-card' });
+
+  // ── Header ──
+  const hdr = el('div', { class: 'rt-header' });
+  const titleEl = el('div', { class: 'rt-title' });
+  titleEl.appendChild(icon('beach'));
+  titleEl.appendChild(document.createTextNode(' 本周休息安排'));
+  titleEl.appendChild(el('span', { style: 'font-size:11px; color:var(--text-sub); font-weight:400; margin-left:4px;' },
+    `${weekDates[0].slice(5).replace('-','/')} – ${weekDates[6].slice(5).replace('-','/')}`));
+  hdr.appendChild(titleEl);
+  hdr.appendChild(el('span', { style: 'font-size:12px; color:var(--text-sub);' },
+    `${rested.length} / ${employees.length} 人已安排`));
+  card.appendChild(hdr);
+
+  // ── Progress bar ──
+  const prog = el('div', { class: 'rt-progress' });
+  prog.appendChild(el('div', { class: 'rt-progress-fill', style: { width: pct + '%' } }));
+  card.appendChild(prog);
+
+  // ── Stat boxes ──
+  const statsRow = el('div', { class: 'rt-stats' });
+  const statData = [
+    { num: rested.length,    lbl: '✓ 已排休',   color: 'var(--green-600)' },
+    { num: notRested.length, lbl: '✗ 未排休',   color: 'var(--red-600)'   },
+    { num: multiRest.length, lbl: '≥2天 注意',  color: 'var(--amber-600)' },
+  ];
+  for (const s of statData) {
+    const box = el('div', { class: 'rt-stat' });
+    box.appendChild(el('div', { class: 'rt-stat-num', style: { color: s.color } }, String(s.num)));
+    box.appendChild(el('div', { class: 'rt-stat-lbl' }, s.lbl));
+    statsRow.appendChild(box);
+  }
+  card.appendChild(statsRow);
+  card.appendChild(el('div', { class: 'rt-divider' }));
+
+  // ── 已排休 chips ──
+  if (rested.length > 0) {
+    card.appendChild(el('p', { class: 'section-title', style: 'margin-top:0;' }, '✓ 已安排休息'));
+    const row = el('div', { class: 'rt-chips' });
+    for (const emp of rested) {
+      const days  = restThisWeek[emp.id];
+      const isMulti = days.length >= 2;
+      const label = days.map(d => DAY_SHORT[weekDates.indexOf(d)]).join(' + ');
+      const chip  = el('div', { class: `rt-chip ${isMulti ? 'rested-multi' : 'rested'}` });
+      chip.appendChild(el('span', { class: 'rt-chip-name' }, emp.shortName));
+      chip.appendChild(el('span', { class: 'rt-chip-hint' }, `${label}${isMulti ? ' ⚠' : ''}`));
+      row.appendChild(chip);
+    }
+    card.appendChild(row);
+  }
+
+  // ── 未排休 chips (clickable → quick-fill) ──
+  const notRestedTitle = el('p', { class: 'section-title', style: 'margin-top:0;' });
+  notRestedTitle.textContent = notRested.length === 0
+    ? '✓ 全员本周已安排休息 🎉'
+    : `✗ 尚未安排 (${notRested.length}人) — 点击员工名快速填入表单`;
+  card.appendChild(notRestedTitle);
+
+  if (notRested.length > 0) {
+    const row2 = el('div', { class: 'rt-chips' });
+    for (const emp of notRested) {
+      const lastD = lastRest[emp.id];
+      let hintText  = '无记录';
+      let hintClass = 'rt-chip-hint rt-hint-none';
+      let chipBorderColor = '';
+      let chipBg = '';
+
+      if (lastD) {
+        const daysSince = Math.floor(
+          (new Date(weekStart + 'T00:00:00') - new Date(lastD + 'T00:00:00')) / 86400000
+        );
+        const mmdd = lastD.slice(5).replace('-', '/');
+        hintText = `上次 ${mmdd} · ${daysSince}天前`;
+        if (daysSince >= 10) {
+          hintClass = 'rt-chip-hint rt-hint-alert';
+          chipBorderColor = 'var(--red-100)';
+          chipBg = 'var(--red-50)';
+        } else if (daysSince >= 6) {
+          hintClass = 'rt-chip-hint rt-hint-warn';
+          chipBorderColor = 'var(--amber-100)';
+          chipBg = 'var(--amber-50)';
+        }
+      }
+
+      const chipStyle = [
+        chipBg          ? `background:${chipBg};`          : '',
+        chipBorderColor ? `border-color:${chipBorderColor};` : '',
+      ].join('');
+
+      const chip = el('div', {
+        class:  'rt-chip clickable',
+        style:  chipStyle,
+        title:  `点击快速填入 ${emp.shortName}，并自动选择 Rest Day`,
+        onClick: () => {
+          leaveForm.employeeId = emp.id;
+          leaveForm.type       = 'rest';
+          render();
+          // Scroll to the schedule form after re-render
+          setTimeout(() => {
+            const target = document.getElementById('leave-schedule-form');
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 60);
+        },
+      });
+      chip.appendChild(el('span', { class: 'rt-chip-name', style: 'color:var(--text);' }, emp.shortName));
+      chip.appendChild(el('span', { class: hintClass }, hintText));
+      row2.appendChild(chip);
+    }
+    card.appendChild(row2);
+  }
+
+  frag.appendChild(card);
+  return frag;
+}
 
 
 function renderLeaveTab(computed) {
@@ -2544,10 +2750,13 @@ function renderLeaveTab(computed) {
     }
   }
 
+  // ── Rest tracker ──
+  frag.appendChild(renderRestTracker());
+
   // ── Schedule leave ahead ──
   frag.appendChild(el('p', { class: 'section-title' }, 'Schedule Leave Ahead'));
 
-  const formCard = el('div', { class: 'card' });
+  const formCard = el('div', { class: 'card', id: 'leave-schedule-form' });
 
   const empOpts  = employees.map(e => ({ id: e.id, short: e.shortName, full: e.fullName }));
   const typeOpts = Object.entries(LEAVE_TYPES).map(([k, v]) => [k, v.label]);
