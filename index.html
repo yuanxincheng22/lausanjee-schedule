@@ -988,7 +988,8 @@ let shiftTabEdit   = { slotId: null, startHour: 0, endHour: 0 };
 let addShiftForm = { openPosition: null, startTime: '11:00', endTime: '20:00', employeeId: '' };
 let leaveForm      = { employeeId: '', type: 'planned', fromDate: '', toDate: '', pickStep: 'from', pickerYear: null, pickerMonth: null };
 let leaveFormToast      = null; // { empName, from, to } — shown briefly after submit
-let weekPreviewExpanded = false; // toggle for "no leave" employees section
+let weekPreviewExpanded  = false; // toggle for "no leave" employees section
+let restRestedExpanded   = false; // toggle for "已排休" chips in rest tracker
 
 // Copy-schedule feature state
 let copyScheduleState = {
@@ -2423,6 +2424,9 @@ function renderWeekPreview() {
       saveCoverageSettings(TH_ONDUTY, v).then(render);
     }));
     frag.appendChild(setRow);
+
+    // ── Rest tracker — sits directly below coverage numbers for at-a-glance comparison ──
+    frag.appendChild(renderRestTracker());
   }
 
   // ── Section 1: employees WITH leave ──
@@ -2620,15 +2624,26 @@ function renderRestTracker() {
   card.appendChild(statsRow);
   card.appendChild(el('div', { class: 'rt-divider' }));
 
-  // ── 已排休 chips ──
-  if (rested.length > 0) {
-    card.appendChild(el('p', { class: 'section-title', style: 'margin-top:0;' }, '✓ 已安排休息'));
-    const row = el('div', { class: 'rt-chips' });
+  // ── 已排休 collapsible section ──
+  const restedHdr = el('div', {
+    style: `display:flex; align-items:center; gap:6px; cursor:pointer; padding:6px 10px;
+            background:var(--gray-50); border:1px solid var(--border);
+            border-radius:var(--radius-sm); margin-bottom:${restRestedExpanded ? '0' : '10px'};
+            user-select:none;`,
+    onClick: () => { restRestedExpanded = !restRestedExpanded; render(); },
+  });
+  restedHdr.appendChild(icon(restRestedExpanded ? 'chevron-down' : 'chevron-right'));
+  restedHdr.appendChild(el('span', { style: 'font-size:12px; font-weight:600; color:var(--text-sub);' },
+    `✓ 已安排休息 (${rested.length} 人)`));
+  card.appendChild(restedHdr);
+
+  if (restRestedExpanded && rested.length > 0) {
+    const row = el('div', { class: 'rt-chips', style: 'margin-top:8px; margin-bottom:10px; padding:0 2px;' });
     for (const emp of rested) {
-      const days  = restThisWeek[emp.id];
+      const days    = restThisWeek[emp.id];
       const isMulti = days.length >= 2;
-      const label = days.map(d => DAY_SHORT[weekDates.indexOf(d)]).join(' + ');
-      const chip  = el('div', { class: `rt-chip ${isMulti ? 'rested-multi' : 'rested'}` });
+      const label   = days.map(d => DAY_SHORT[weekDates.indexOf(d)]).join(' + ');
+      const chip    = el('div', { class: `rt-chip ${isMulti ? 'rested-multi' : 'rested'}` });
       chip.appendChild(el('span', { class: 'rt-chip-name' }, emp.shortName));
       chip.appendChild(el('span', { class: 'rt-chip-hint' }, `${label}${isMulti ? ' ⚠' : ''}`));
       row.appendChild(chip);
@@ -2756,9 +2771,6 @@ function renderLeaveTab(computed) {
       frag.appendChild(card);
     }
   }
-
-  // ── Rest tracker ──
-  frag.appendChild(renderRestTracker());
 
   // ── Schedule leave ahead ──
   frag.appendChild(el('p', { class: 'section-title' }, 'Schedule Leave Ahead'));
