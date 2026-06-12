@@ -203,6 +203,8 @@
     .tb-matrix { border-collapse: collapse; font-size: 12px; min-width: 100%; }
     .tb-matrix th, .tb-matrix td { padding: 5px 4px; text-align: center; white-space: nowrap; }
     .tb-matrix thead th { position: sticky; top: 0; background: var(--gray-50); font-weight: 600; color: var(--text-sub); border-bottom: 1px solid var(--border); font-size: 11px; }
+    .tb-matrix thead .tb-cover-row th { top: 27px; border-bottom: 2px solid var(--border-mid); font-weight: 700; font-size: 12px; }
+    .tb-matrix thead .tb-cover-row .tb-name { background: var(--gray-50); }
     .tb-matrix .tb-name { position: sticky; left: 0; background: var(--surface); text-align: left; font-weight: 600; padding-left: 10px; z-index: 1; min-width: 84px; }
     .tb-matrix thead .tb-name { z-index: 2; }
     .tb-matrix tbody tr { border-top: 1px solid var(--gray-100); }
@@ -731,6 +733,10 @@ async function loadCoverageSettings() {
         onDuty: Number(data.on_duty_min),
         front:  Number(data.front_min),
       };
+      // Per-position risk thresholds (talent board). Graceful if column absent.
+      if (data.pos_thresholds && typeof data.pos_thresholds === 'object') {
+        state.posThresholds = data.pos_thresholds;
+      }
     }
   } catch(e) { console.warn('loadCoverageSettings (table may not exist yet):', e?.message || e); }
 }
@@ -745,6 +751,23 @@ async function saveCoverageSettings(onDutyMin, frontMin) {
     }, { onConflict: 'store_id' });
     if (error) throw error;
   } catch(e) { console.warn('saveCoverageSettings failed:', e?.message || e); }
+}
+// Save per-position risk thresholds. { posName: { red, yellow } }
+async function savePosThresholds(map) {
+  state.posThresholds = map;  // optimistic
+  render();
+  try {
+    let { error } = await db.from('coverage_settings').upsert({
+      store_id: STORE_ID,
+      pos_thresholds: map,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'store_id' });
+    if (error && /pos_thresholds|column/i.test(error.message || '')) {
+      posThresholdColMissing = true;  // column not added yet — local-only
+    } else if (error) {
+      throw error;
+    }
+  } catch(e) { console.warn('savePosThresholds failed:', e?.message || e); }
 }
 
 // ── TIME HELPERS ──
@@ -1055,6 +1078,7 @@ let employees         = [];   // active, loaded from Supabase
 let inactiveEmployees = [];   // is_active=false
 let allPositions      = [];   // positions_master table
 let talentColumnsMissing = false;  // set true if Supabase lacks training/dev_goals/coaching_log cols
+let posThresholdColMissing = false;  // set true if coverage_settings lacks pos_thresholds col
 
 // Employee edit modal state
 let empModal = {
@@ -1084,6 +1108,7 @@ let state = {
   dailyLeave:      {},     // { 'YYYY-MM-DD': { empId: leaveType } }
   slotOverrides:   {},     // { slotId: { startHour, endHour } } — permanent, from Supabase
   coverageThresholds: { onDuty: 30, front: 7 },  // staffing warning thresholds — from Supabase, editable by manager
+  posThresholds:   {},     // { posName: { red, yellow } } — per-position risk thresholds (talent board)
   dayMeta:         { estRevenue: '', actualRevenue: '', dayTags: [], dayNote: '', workload: {}, unplannedAbsent: [] },  // per-day planning inputs + review
   searchQuery:     '',
   showUnassigned:  false,
@@ -1952,7 +1977,7 @@ const TB_LEVELS = {
 };
 
 // Talent board view state
-let talentState = { view: 'matrix' };  // 'matrix' | 'cards'
+let talentState = { view: 'matrix', editThresholds: false };  // 'matrix' | 'cards'
 
 // Returns the skill level (0-3) of an employee for a given position name.
 function tbLevel(emp, posName) {
@@ -2008,9 +2033,23 @@ function tbCoverage(posName) {
 }
 
 // Risk tier from independent count: ≤1 risk, =2 warn, ≥3 ok.
-function tbRiskTier(independent) {
-  if (independent <= 1) return 'risk';
-  if (independent === 2) return 'warn';
+// Default thresholds: red line = 2 (below = risk), yellow line = 3 (at/above = ok).
+// i.e. independent < red → risk; red ≤ independent < yellow → warn; ≥ yellow → ok.
+// This matches the original ≤1 risk / =2 warn / ≥3 ok behaviour.
+const TB_DEFAULT_RED = 2, TB_DEFAULT_YELLOW = 3;
+
+function tbThreshold(posName) {
+  const t = (state.posThresholds || {})[posName];
+  let red    = (t && Number.isFinite(t.red))    ? t.red    : TB_DEFAULT_RED;
+  let yellow = (t && Number.isFinite(t.yellow)) ? t.yellow : TB_DEFAULT_YELLOW;
+  if (yellow <= red) yellow = red + 1;  // guard against inverted/equal lines
+  return { red, yellow };
+}
+
+function tbRiskTier(posName, independent) {
+  const { red, yellow } = tbThreshold(posName);
+  if (independent < red)    return 'risk';
+  if (independent < yellow) return 'warn';
   return 'ok';
 }
 
@@ -2035,7 +2074,7 @@ function renderTalentTab() {
   const onDuty = employees.length;
   const learningCount = employees.filter(e => (e.training||[]).length > 0).length;
   const multiCount = employees.filter(tbIsMultiSkilled).length;
-  const riskCount = positions.filter(p => tbRiskTier(tbCoverage(p).independent) === 'risk').length;
+  const riskCount = positions.filter(p => tbRiskTier(p, tbCoverage(p).independent) === 'risk').length;
 
   const stats = el('div', { class: 'tb-stats' });
   const mkStat = (label, val, danger) => {
@@ -2080,12 +2119,78 @@ function renderTalentTab() {
   frag.appendChild(legend);
 
   // ── Risk section ──
-  frag.appendChild(el('div', { class: 'tb-section-title' }, icon('alert-triangle'), '岗位风险预警'));
+  const riskTitle = el('div', { class: 'tb-section-title', style: { justifyContent:'space-between' } });
+  riskTitle.appendChild(el('span', { style: { display:'flex', alignItems:'center', gap:'6px' } }, icon('alert-triangle'), '岗位风险预警'));
+  if (isManager) {
+    const thBtn = el('button', { class: 'btn-sm', style: { padding:'2px 8px' },
+      onClick: () => { talentState.editThresholds = !talentState.editThresholds; render(); } });
+    thBtn.appendChild(icon('adjustments'));
+    thBtn.appendChild(document.createTextNode(talentState.editThresholds ? ' 完成' : ' 设置阈值'));
+    riskTitle.appendChild(thBtn);
+  }
+  frag.appendChild(riskTitle);
   frag.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', margin:'0 0 10px' } },
     '按"能独立顶岗 (L2 及以上) 的人数"评估每个岗位的抗风险能力。'));
+  if (isManager && talentState.editThresholds) {
+    frag.appendChild(tbRenderThresholdEditor(positions));
+  }
   frag.appendChild(tbRenderRisk(positions));
 
   return frag;
+}
+
+// ── Per-position threshold editor ──
+function tbRenderThresholdEditor(positions) {
+  const wrap = el('div', { style: { background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'11px 13px', marginBottom:'12px' } });
+  wrap.appendChild(el('div', { style: { fontSize:'12px', color:'var(--text-sub)', marginBottom:'8px', lineHeight:'1.5' } },
+    '为每个岗位设置：独立顶岗人数低于「红线」标红（单点风险），低于「黄线」标黄（脆弱），达到黄线及以上标绿（健康）。留空用默认（红线 2、黄线 3）。'));
+
+  if (posThresholdColMissing) {
+    wrap.appendChild(el('div', { class: 'tb-banner', style: { marginBottom:'8px' } },
+      '提示：Supabase 的 coverage_settings 尚未添加 pos_thresholds 列，阈值修改当前仅本会话可见。'));
+  }
+
+  // header row
+  const head = el('div', { style: { display:'flex', alignItems:'center', gap:'8px', fontSize:'11px', color:'var(--text-muted)', paddingBottom:'4px', borderBottom:'1px solid var(--border)' } });
+  head.appendChild(el('div', { style: { flex:'1' } }, '岗位'));
+  head.appendChild(el('div', { style: { width:'68px', textAlign:'center' } }, '红线 <'));
+  head.appendChild(el('div', { style: { width:'68px', textAlign:'center' } }, '黄线 <'));
+  head.appendChild(el('div', { style: { width:'46px', textAlign:'center' } }, '当前'));
+  wrap.appendChild(head);
+
+  const draft = { ...(state.posThresholds || {}) };
+  for (const p of positions) {
+    const cur = tbThreshold(p);
+    const set = (state.posThresholds || {})[p] || {};
+    const c = tbCoverage(p);
+    const row = el('div', { style: { display:'flex', alignItems:'center', gap:'8px', padding:'5px 0', borderTop:'1px solid var(--gray-100)' } });
+    row.appendChild(el('div', { class: 'tb-skedit-name', style: { flex:'1' } }, tbPosShort(p)));
+
+    const redIn = el('input', { type:'number', min:'0', placeholder:String(TB_DEFAULT_RED),
+      value: Number.isFinite(set.red) ? String(set.red) : '', style:{ width:'68px', textAlign:'center' } });
+    const yelIn = el('input', { type:'number', min:'1', placeholder:String(TB_DEFAULT_YELLOW),
+      value: Number.isFinite(set.yellow) ? String(set.yellow) : '', style:{ width:'68px', textAlign:'center' } });
+
+    const commit = () => {
+      const map = { ...(state.posThresholds || {}) };
+      const r = parseInt(redIn.value); const y = parseInt(yelIn.value);
+      const entry = {};
+      if (Number.isFinite(r)) entry.red = r;
+      if (Number.isFinite(y)) entry.yellow = y;
+      if (Object.keys(entry).length) map[p] = entry; else delete map[p];
+      savePosThresholds(map);
+    };
+    redIn.addEventListener('change', commit);
+    yelIn.addEventListener('change', commit);
+    row.appendChild(redIn);
+    row.appendChild(yelIn);
+
+    const tier = tbRiskTier(p, c.independent);
+    const tierCol = tier === 'risk' ? 'var(--red-600)' : tier === 'warn' ? 'var(--amber-600)' : 'var(--green-600)';
+    row.appendChild(el('div', { style: { width:'46px', textAlign:'center', fontWeight:'700', color: tierCol } }, String(c.independent)));
+    wrap.appendChild(row);
+  }
+  return wrap;
 }
 
 // ── Matrix (table) view ──
@@ -2093,15 +2198,29 @@ function tbRenderMatrix(positions, isManager) {
   const wrap = el('div', { class: 'tb-matrix-wrap' });
   const table = el('table', { class: 'tb-matrix' });
 
-  // Header
+  // Header: position names, then a coverage row directly beneath them.
+  // Both rows are sticky to the top so coverage stays visible while scrolling.
   const thead = el('thead');
   const htr = el('tr');
   htr.appendChild(el('th', { class: 'tb-name' }, '员工'));
   for (const p of positions) htr.appendChild(el('th', { title: p }, tbPosShort(p)));
   thead.appendChild(htr);
+
+  // Coverage row — right under the position names.
+  const cov = el('tr', { class: 'tb-cover-row' });
+  cov.appendChild(el('th', { class: 'tb-name' }, '岗位覆盖'));
+  for (const p of positions) {
+    const c = tbCoverage(p);
+    const tier = tbRiskTier(p, c.independent);
+    const cls = tier === 'risk' ? 'tb-cover-risk' : tier === 'warn' ? 'tb-cover-warn' : 'tb-cover-ok';
+    const th = tbThreshold(p);
+    cov.appendChild(el('th', { class: cls, title: `独立 ${c.independent} · 师傅 ${c.trainers} · 在训 ${c.learning}（红线<${th.red}，黄线<${th.yellow}）` },
+      c.independent + (tier === 'risk' ? '!' : '')));
+  }
+  thead.appendChild(cov);
   table.appendChild(thead);
 
-  // Body
+  // Body: one row per employee.
   const tbody = el('tbody');
   const sorted = [...employees].sort((a, b) => a.shortName.localeCompare(b.shortName, 'zh'));
   for (const emp of sorted) {
@@ -2121,18 +2240,6 @@ function tbRenderMatrix(positions, isManager) {
     }
     tbody.appendChild(tr);
   }
-
-  // Coverage footer row
-  const cov = el('tr', { class: 'tb-cover-row' });
-  cov.appendChild(el('td', { class: 'tb-name' }, '岗位覆盖'));
-  for (const p of positions) {
-    const c = tbCoverage(p);
-    const tier = tbRiskTier(c.independent);
-    const cls = tier === 'risk' ? 'tb-cover-risk' : tier === 'warn' ? 'tb-cover-warn' : 'tb-cover-ok';
-    cov.appendChild(el('td', { class: cls, title: `独立 ${c.independent} · 师傅 ${c.trainers} · 在训 ${c.learning}` },
-      c.independent + (tier === 'risk' ? '!' : '')));
-  }
-  tbody.appendChild(cov);
 
   table.appendChild(tbody);
   wrap.appendChild(table);
@@ -2179,7 +2286,7 @@ function tbRenderCards(positions) {
 function tbRenderRisk(positions) {
   const frag = document.createDocumentFragment();
   const ranked = positions
-    .map(p => ({ p, c: tbCoverage(p), tier: tbRiskTier(tbCoverage(p).independent) }))
+    .map(p => ({ p, c: tbCoverage(p), tier: tbRiskTier(p, tbCoverage(p).independent) }))
     .sort((a, b) => a.c.independent - b.c.independent);
 
   for (const { p, c, tier } of ranked) {
@@ -2200,15 +2307,20 @@ function tbRenderRisk(positions) {
     card.appendChild(el('div', { class: 'tb-risk-meta' },
       `独立顶岗 ${c.independent} 人 · 师傅 ${c.trainers} 人 · 在训 ${c.learning} 人`));
 
-    // Advice + who holds it
+    // Advice + who holds it (uses this position's own thresholds)
+    const thr = tbThreshold(p);
     let advice = '';
     if (tier === 'risk') {
       const holders = employees.filter(e => tbLevel(e, p) >= 2).map(e => e.shortName);
+      const gap = thr.yellow - c.independent;
       advice = c.independent === 0
-        ? '当前无人能独立顶岗，须立即安排培养。'
-        : `${holders.join('、')} 一人扛岗，请假即断档。建议立刻安排 1-2 人在训。`;
+        ? `当前无人能独立顶岗，须立即安排培养（健康线 ${thr.yellow} 人）。`
+        : `${holders.join('、')} 扛岗，低于红线 ${thr.red} 人。建议再培养 ${gap} 人达到健康线 ${thr.yellow} 人。`;
     } else if (tier === 'warn') {
-      advice = c.learning > 0 ? '已有人在训，保持跟进即可升至健康。' : '仅 2 人且无人在训，建议培养第 3 人。';
+      const gap = thr.yellow - c.independent;
+      advice = c.learning > 0
+        ? `已有人在训，保持跟进即可达到健康线 ${thr.yellow} 人。`
+        : `未达健康线，建议再培养 ${gap} 人（目标 ${thr.yellow} 人）。`;
     }
     if (advice) card.appendChild(el('div', { class: 'tb-risk-advice' }, advice));
     frag.appendChild(card);
@@ -2264,9 +2376,9 @@ function tbSuggestNext(emp, positions) {
   const held = new Set([...(emp.positions||[]), ...(emp.canTrain||[]), ...(emp.training||[])]);
   const candidates = positions
     .filter(p => !held.has(p))
-    .map(p => ({ p, c: tbCoverage(p) }))
-    .filter(x => x.c.independent <= 2)
-    .sort((a, b) => a.c.independent - b.c.independent);
+    .map(p => ({ p, c: tbCoverage(p), thr: tbThreshold(p) }))
+    .filter(x => x.c.independent < x.thr.yellow)  // below this position's health line
+    .sort((a, b) => (a.c.independent - a.thr.yellow) - (b.c.independent - b.thr.yellow));
   return candidates.length ? candidates[0] : null;
 }
 
@@ -2398,9 +2510,9 @@ function renderDevCard() {
   if (suggestion) {
     const sSec = el('div', { class: 'tb-dev-section' });
     sSec.appendChild(el('div', { class: 'tb-dev-label' }, icon('bulb'), '系统建议下一步'));
-    const reason = suggestion.c.independent <= 1 ? '全店紧缺岗位' : '全店人手偏少';
+    const reason = suggestion.c.independent < suggestion.thr.red ? '全店紧缺岗位' : '全店人手偏少';
     sSec.appendChild(el('div', { class: 'tb-suggest' },
-      `建议学 ${tbPosShort(suggestion.p)}（${reason}，当前仅 ${suggestion.c.independent} 人能独立顶岗）`));
+      `建议学 ${tbPosShort(suggestion.p)}（${reason}，当前 ${suggestion.c.independent} 人能独立顶岗，健康线 ${suggestion.thr.yellow} 人）`));
     body.appendChild(sSec);
   }
 
