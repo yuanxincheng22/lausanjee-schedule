@@ -187,6 +187,86 @@
     .manager-note { background: var(--red-50); border: 1px solid var(--red-100); border-radius: var(--radius-sm); padding: 5px 9px; margin-top: 5px; font-size: 12px; color: var(--red-700); }
     .emp-actions { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
 
+    /* ── TALENT BOARD ── */
+    .tb-banner { background: var(--amber-50); border: 1px solid var(--amber-100); color: var(--amber-700); border-radius: var(--radius-md); padding: 9px 12px; font-size: 12px; margin-bottom: 12px; line-height: 1.5; }
+    .tb-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+    .tb-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px 11px; }
+    .tb-stat-label { font-size: 11px; color: var(--text-sub); }
+    .tb-stat-val { font-size: 20px; font-weight: 700; line-height: 1.2; margin-top: 2px; }
+    .tb-section-title { font-size: 13px; font-weight: 700; margin: 16px 0 8px; display: flex; align-items: center; gap: 6px; }
+    .tb-viewtoggle { display: flex; gap: 4px; margin-bottom: 10px; }
+    .tb-viewbtn { padding: 5px 12px; font-size: 12px; border: 1px solid var(--border-mid); background: var(--surface); border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font); color: var(--text-sub); }
+    .tb-viewbtn.active { background: var(--blue-50); color: var(--blue-700); border-color: var(--blue-100); font-weight: 600; }
+
+    /* Matrix */
+    .tb-matrix-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); }
+    .tb-matrix { border-collapse: collapse; font-size: 12px; min-width: 100%; }
+    .tb-matrix th, .tb-matrix td { padding: 5px 4px; text-align: center; white-space: nowrap; }
+    .tb-matrix thead th { position: sticky; top: 0; background: var(--gray-50); font-weight: 600; color: var(--text-sub); border-bottom: 1px solid var(--border); font-size: 11px; }
+    .tb-matrix .tb-name { position: sticky; left: 0; background: var(--surface); text-align: left; font-weight: 600; padding-left: 10px; z-index: 1; min-width: 84px; }
+    .tb-matrix thead .tb-name { z-index: 2; }
+    .tb-matrix tbody tr { border-top: 1px solid var(--gray-100); }
+    .tb-matrix tbody tr:hover .tb-name { background: var(--gray-50); }
+    .tb-cell { width: 26px; height: 26px; line-height: 26px; border-radius: 6px; display: inline-block; font-size: 11px; cursor: pointer; user-select: none; transition: transform .08s; }
+    .tb-cell:hover { transform: scale(1.12); }
+    .tb-cell.lv0 { color: var(--text-muted); cursor: pointer; }
+    .tb-cell.lv1 { background: var(--blue-50);  color: var(--blue-700);  }
+    .tb-cell.lv2 { background: var(--green-100); color: var(--green-700); }
+    .tb-cell.lv3 { background: var(--amber-100); color: var(--amber-700); font-weight: 700; }
+    .tb-cover-row td { font-weight: 700; border-top: 2px solid var(--border-mid); background: var(--gray-50); }
+    .tb-cover-ok   { color: var(--green-600); }
+    .tb-cover-warn { color: var(--amber-600); }
+    .tb-cover-risk { color: var(--red-600); }
+    .tb-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 9px; font-size: 11px; color: var(--text-sub); }
+    .tb-legend i { display: inline-block; width: 13px; height: 13px; border-radius: 3px; vertical-align: -2px; margin-right: 3px; }
+
+    /* Employee-card list (mobile-friendly view) */
+    .tb-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+    .tb-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 11px 13px; cursor: pointer; }
+    .tb-card:hover { border-color: var(--border-mid); }
+    .tb-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+    .tb-card-name { font-weight: 600; font-size: 14px; }
+    .tb-skillrow { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tb-skill { font-size: 11px; padding: 2px 8px; border-radius: 100px; }
+
+    /* Risk cards */
+    .tb-risk-card { background: var(--surface); border: 1px solid var(--border); border-left-width: 3px; border-radius: 0 var(--radius-md) var(--radius-md) 0; padding: 11px 13px; margin-bottom: 8px; }
+    .tb-risk-card.risk { border-left-color: var(--red-600); }
+    .tb-risk-card.warn { border-left-color: var(--amber-600); }
+    .tb-risk-card.ok   { border-left-color: var(--green-600); }
+    .tb-risk-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+    .tb-risk-name { font-weight: 600; display: flex; align-items: center; gap: 5px; }
+    .tb-risk-meta { font-size: 12px; color: var(--text-sub); }
+    .tb-risk-advice { font-size: 12px; margin-top: 4px; }
+
+    /* Dev card (modal) */
+    .tb-dev-section { margin-bottom: 14px; }
+    .tb-dev-label { font-size: 12px; color: var(--text-sub); margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+    .tb-goal { background: var(--gray-50); border-radius: var(--radius-md); padding: 9px 11px; margin-bottom: 6px; }
+    .tb-goal-prog { height: 5px; background: var(--gray-200); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+    .tb-goal-prog-bar { height: 100%; background: var(--blue-600); }
+    .tb-log-entry { border-left: 2px solid var(--border-mid); padding-left: 10px; margin-bottom: 8px; }
+    .tb-log-date { font-size: 11px; color: var(--text-muted); }
+    .tb-log-note { font-size: 13px; }
+    .tb-suggest { background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: var(--radius-md); padding: 9px 11px; font-size: 13px; color: var(--blue-700); }
+
+    /* Skill editor (dev card) */
+    .tb-skedit-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-top: 1px solid var(--gray-100); }
+    .tb-skedit-row:first-child { border-top: none; }
+    .tb-skedit-name { flex: 1; font-size: 13px; min-width: 56px; }
+    .tb-seg { display: inline-flex; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); overflow: hidden; }
+    .tb-seg button { border: none; background: var(--surface); padding: 4px 9px; font-size: 11px; cursor: pointer; font-family: var(--font); color: var(--text-sub); border-left: 1px solid var(--border); }
+    .tb-seg button:first-child { border-left: none; }
+    .tb-seg button.on0 { background: var(--gray-200); color: var(--gray-700); font-weight: 600; }
+    .tb-seg button.on1 { background: var(--blue-100);  color: var(--blue-700);  font-weight: 600; }
+    .tb-seg button.on2 { background: var(--green-100); color: var(--green-700); font-weight: 600; }
+    .tb-seg button.on3 { background: var(--amber-100); color: var(--amber-700); font-weight: 600; }
+
+    @media (max-width: 640px) {
+      .tb-stats { grid-template-columns: repeat(2, 1fr); }
+      .tb-cards { grid-template-columns: 1fr; }
+    }
+
     /* ── UNASSIGNED PANEL ── */
     .unassigned-panel { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 10px; background: var(--surface); }
     .unassigned-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13px; font-weight: 600; }
@@ -544,21 +624,41 @@ async function loadDailyLeave() {
 
 // ── EMPLOYEE DB FUNCTIONS ──
 function rowToEmp(row) {
+  // ── Talent board fields (graceful degrade if columns don't exist yet) ──
+  let training    = Array.isArray(row.training)    ? row.training    : [];
+  let devGoals    = Array.isArray(row.dev_goals)   ? row.dev_goals   : [];
+  let coachingLog = Array.isArray(row.coaching_log)? row.coaching_log: [];
+
+  // ── One-time migration: fold legacy manager_note + available_from into
+  //    coaching_log as a single undated "initial profile" entry. Only runs
+  //    when coaching_log is still empty, so it never duplicates. ──
+  if (coachingLog.length === 0) {
+    const bits = [];
+    if (row.manager_note && row.manager_note.trim()) bits.push(row.manager_note.trim());
+    if (row.available_from && row.available_from > 0) bits.push(`${row.available_from}:00后到岗`);
+    if (bits.length) {
+      coachingLog = [{ date: '', note: bits.join('（') + (row.available_from > 0 ? '）' : ''), seed: true }];
+    }
+  }
+
   return {
     id: row.id, fullName: row.full_name, shortName: row.short_name,
     role: row.role, positions: row.positions || [], canTrain: row.can_train || [],
-    tags: row.tags || [], managerNote: row.manager_note || '',
-    offDay: row.off_day || '', availableFrom: row.available_from || 0,
+    training, tags: row.tags || [], offDay: row.off_day || '',
+    devGoals, coachingLog,
   };
 }
 function empToRow(emp) {
-  return {
+  const row = {
     id: emp.id, store_id: STORE_ID,
     full_name: emp.fullName, short_name: emp.shortName, role: emp.role,
     positions: emp.positions, can_train: emp.canTrain, tags: emp.tags,
-    manager_note: emp.managerNote, off_day: emp.offDay,
-    available_from: emp.availableFrom, updated_at: new Date().toISOString(),
+    off_day: emp.offDay,
+    training: emp.training || [], dev_goals: emp.devGoals || [],
+    coaching_log: emp.coachingLog || [],
+    updated_at: new Date().toISOString(),
   };
+  return row;
 }
 async function loadEmployees() {
   try {
@@ -663,7 +763,18 @@ function getNextEmpId() {
   return 'e' + (max + 1);
 }
 async function saveEmployee(emp) {
-  const { error } = await db.from('employees').upsert(empToRow(emp), { onConflict: 'id' });
+  let { error } = await db.from('employees').upsert(empToRow(emp), { onConflict: 'id' });
+
+  // ── Graceful degrade: if the talent-board columns don't exist in Supabase
+  //    yet, the upsert fails with a "column not found" (PostgREST PGRST204).
+  //    Strip the new columns and retry so the app keeps working until the
+  //    user runs the ALTER TABLE migration. ──
+  if (error && /training|dev_goals|coaching_log|column/i.test(error.message || '')) {
+    const row = empToRow(emp);
+    delete row.training; delete row.dev_goals; delete row.coaching_log;
+    talentColumnsMissing = true;
+    ({ error } = await db.from('employees').upsert(row, { onConflict: 'id' }));
+  }
   if (error) throw error;
 
   // Optimistic update: reflect the change in memory immediately,
@@ -882,58 +993,58 @@ const BASE_SLOTS = [
 
 // =============================================================================
 // EMPLOYEE DATA  (48 staff, in Excel order)
-// Fields: id, fullName, shortName, role, positions, canTrain, tags, managerNote, offDay, availableFrom
+// Fields: id, fullName, shortName, role, positions(L2), canTrain(L3), training(L1), tags, offDay, devGoals, coachingLog
 // =============================================================================
 
 const DEFAULT_EMPLOYEES = [
-  { id:'e1',  fullName:'Yuan Xincheng',           shortName:'Yuan',         role:'店长',     positions:['A2 Steam','D Drink'],                         canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e2',  fullName:'Alen Wang',               shortName:'Alen',         role:'店长',     positions:['PIC','Cutting'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e3',  fullName:'Tom Buxton Wang',          shortName:'Tom Wang',     role:'店长',     positions:['PIC','A1 Wok'],                             canTrain:['A1 Wok'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e4',  fullName:'Yixing Yin',              shortName:'Yixing',       role:'店长',     positions:['B Chicken','D Drink'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e5',  fullName:'DuoDuo Wu',               shortName:'Duoduo',       role:'培训主管', positions:['PIC'],                                       canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e6',  fullName:'Dreamy Wang',              shortName:'Dreamy',       role:'培训员',   positions:['Service','D Drink'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e7',  fullName:'A Long Ma',               shortName:'A Long',       role:'培训员',   positions:['A1 Wok','C Chop'],                         canTrain:['A1 Wok'],               tags:[],              managerNote:'希望多加班，愿意承担',  offDay:'', availableFrom:0  },
-  { id:'e8',  fullName:'Green Ice Chen',           shortName:'Ice',          role:'培训员',   positions:['C Chop','PIC'],                             canTrain:['C Chop'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e9',  fullName:'Milk Wang',               shortName:'Milk',         role:'培训员',   positions:['A1 Wok','A2 Steam','B Chicken','C Chop'],       canTrain:['A1 Wok','C Chop'],     tags:[],              managerNote:'与欧姚/续兵班次绑定', offDay:'', availableFrom:0 },
-  { id:'e10', fullName:'Ouyao Zhongxing',          shortName:'Ouyao',        role:'培训员',   positions:['PIC','A2 Steam'],                             canTrain:['A1 Wok'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e11', fullName:'Adil Dai',                shortName:'Adil',         role:'培训员',   positions:['D Drink','A2 Steam'],                         canTrain:['D Drink'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e12', fullName:'Sandy Zhao',              shortName:'Sandy',        role:'培训员',   positions:['B Chicken'],                                     canTrain:['B Chicken'],                 tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e13', fullName:'Tao Ying',                shortName:'Tao',          role:'培训员',   positions:['A2 Steam','A1 Wok'],                         canTrain:['A1 Wok'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e14', fullName:'Luna Li',                 shortName:'Luna',         role:'培训员',   positions:['PIC','Service'],                               canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e15', fullName:'Peace Ban',               shortName:'Ban',          role:'培训员',   positions:['A1 Wok','A2 Steam','C Chop','D Drink'],     canTrain:['A2 Steam','C Chop'],     tags:[],              managerNote:'与晓欢班次绑定',      offDay:'', availableFrom:0 },
-  { id:'e16', fullName:'Dany Chen',               shortName:'Dany',         role:'培训员',   positions:['Cutting','D Drink'],                         canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e17', fullName:'Araf Ibne Alamgir',       shortName:'Araf',         role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'周一～周三',   availableFrom:0  },
-  { id:'e18', fullName:'Iza Siti Nurshariza',     shortName:'Iza Siti',     role:'后厨员工', positions:['D Drink'],                                   canTrain:['D Drink'],               tags:[],              managerNote:'饮料岗扛把子', offDay:'周一～周三', availableFrom:0 },
-  { id:'e19', fullName:'Prema Jannatul',          shortName:'Prema',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['收银'],        managerNote:'', offDay:'周一～周三',   availableFrom:0  },
-  { id:'e20', fullName:'Yad M.Akhyar',            shortName:'Yad',          role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:['引流'],        managerNote:'工作日18:00后和周末能来，活泼外向，研究生', offDay:'周中一天', availableFrom:18 },
-  { id:'e21', fullName:'Iza Nur Syuhada',         shortName:'Iza Nur',      role:'后厨员工', positions:['B Chicken','C Chop','Cutting'],                 canTrain:[],                        tags:[],              managerNote:'希望多上班，加班', offDay:'', availableFrom:0 },
-  { id:'e22', fullName:'Finn Marsya Saafia',      shortName:'Finn',         role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'只有周五、六、日能来', offDay:'周一-周四不排班', availableFrom:0 },
-  { id:'e23', fullName:'Nurul Nadwal',            shortName:'Nadwa',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['引流','收银'], managerNote:'前厅扛把子', offDay:'周一～周三', availableFrom:0 },
-  { id:'e24', fullName:'M.Faeez Bin Azmi',        shortName:'Faeez',        role:'后厨员工', positions:['B Chicken'],                                     canTrain:[],                        tags:[],              managerNote:'毛巾哥 动作慢', offDay:'周四', availableFrom:0 },
-  { id:'e25', fullName:'Putera Nur Afeef',        shortName:'Putera',       role:'后厨员工', positions:['B Chicken','Cutting','A2 Steam'],                 canTrain:[],                        tags:[],              managerNote:'阿飞，早晚班切换需休息一天', offDay:'周四/周五', availableFrom:0 },
-  { id:'e26', fullName:'Shaymin Bin Zaha',        shortName:'Shaymin',      role:'后厨员工', positions:['A1 Wok','A2 Steam','Cutting'],             canTrain:[],                        tags:[],              managerNote:'虾米，做事麻利', offDay:'周四/周五', availableFrom:0 },
-  { id:'e27', fullName:'Micheal Lim',             shortName:'Micheal',      role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'七月要去上学', offDay:'', availableFrom:0 },
-  { id:'e28', fullName:'Raziq Latiff',            shortName:'Raziq',        role:'店长',     positions:['A2 Steam','B Chicken','C Chop','D Drink'],       canTrain:[],                        tags:[],              managerNote:'当前过岗位中', offDay:'周四/周五', availableFrom:0 },
-  { id:'e29', fullName:'Erm Nuril Ilhami',        shortName:'Erm Ilhami',   role:'后厨员工', positions:['C Chop','A2 Steam','B Chicken'],               canTrain:[],                        tags:[],              managerNote:'活泼', offDay:'自己会找你请假', availableFrom:0 },
-  { id:'e30', fullName:'Aiman Bin Khairon',       shortName:'Aiman Khairon',role:'员工',     positions:['Service'],                                     canTrain:[],                        tags:['引流'],        managerNote:'有激情，善于引流', offDay:'周一/周五', availableFrom:0 },
-  { id:'e31', fullName:'Hani Athirah Pauzi',      shortName:'Hani',         role:'员工',     positions:['D Drink'],                                   canTrain:[],                        tags:[],              managerNote:'每周六休息，经常休息后第二天不来上班', offDay:'自己会找你请假', availableFrom:0 },
-  { id:'e32', fullName:'Siti Haleeja Affendi',    shortName:'Siti',         role:'员工',     positions:['B Chicken','C Chop'],                           canTrain:[],                        tags:[],              managerNote:'不太需要休息，想多上班', offDay:'自己会找你请假', availableFrom:0 },
-  { id:'e33', fullName:'Ariff Shah Rodzee',       shortName:'Ariff Shah',   role:'员工',     positions:['C Chop','Cutting'],                         canTrain:[],                        tags:[],              managerNote:'剁鸡比较快', offDay:'周一/周二', availableFrom:0 },
-  { id:'e34', fullName:'Ahmad Aiman',             shortName:'Ahmad Aiman',  role:'员工',     positions:['A2 Steam'],                                   canTrain:[],                        tags:[],              managerNote:'干了一个月A2找到感觉了', offDay:'周二/周三', availableFrom:0 },
-  { id:'e35', fullName:'Mohd Zafri Bin Zaihi',   shortName:'Zafri',        role:'员工',     positions:['Dishwash'],                                 canTrain:[],                        tags:[],              managerNote:'每天都迟到，除洗碗外难安排', offDay:'周二有事排休', availableFrom:0 },
-  { id:'e36', fullName:'Syazwan Bin Shaharuddin', shortName:'Syazwan',      role:'副理',     positions:['B Chicken','Service','D Drink'],                     canTrain:[],                        tags:[],              managerNote:'干活比较慢，出勤正常', offDay:'周四/周二', availableFrom:0 },
-  { id:'e37', fullName:'Ariff Tuah Daniel',       shortName:'Tuah',         role:'员工',     positions:['Dishwash'],                                 canTrain:[],                        tags:[],              managerNote:'⚠ 问题员工，沟通离职', offDay:'', availableFrom:0 },
-  { id:'e38', fullName:'Mahfuz Bin Md Nizar',     shortName:'Mahfuz',       role:'员工',     positions:['A1 Wok','Cutting'],                         canTrain:[],                        tags:[],              managerNote:'干活上手快、同事评价高', offDay:'周二/周三', availableFrom:0 },
-  { id:'e39', fullName:'Nur Qamarina nabila',     shortName:'Qamarina',     role:'员工',     positions:['D Drink','B Chicken','Cutting'],                 canTrain:[],                        tags:[],              managerNote:'入职后厨，其他后厨可能可以干', offDay:'周末/周一', availableFrom:0 },
-  { id:'e40', fullName:'Jassica Chan',            shortName:'Jassica',      role:'员工',     positions:['A1 Wok','B Chicken'],                           canTrain:[],                        tags:[],              managerNote:'同事评价高；工作日学驾照，排晚班', offDay:'', availableFrom:0 },
-  { id:'e41', fullName:'Seha Fasihan',            shortName:'Seha',         role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'周六/周三',   availableFrom:0  },
-  { id:'e42', fullName:'M.Aiman Bin Khairul Annuar', shortName:'Aiman Bobo', role:'后厨员工', positions:['Cutting','A1 Wok','B Chicken'],              canTrain:[],                        tags:[],              managerNote:'胖胖的，洗碗快', offDay:'', availableFrom:0 },
-  { id:'e43', fullName:'Norsidah Bt Amran',       shortName:'Sidah',        role:'员工',     positions:['Service'],                                     canTrain:[],                        tags:['引流','收银'], managerNote:'同事评价高、漂亮', offDay:'周一/周二', availableFrom:0 },
-  { id:'e44', fullName:'Nur Aida Binti Amran',    shortName:'Aida',         role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'只有晚上能来帮忙', offDay:'', availableFrom:18 },
-  { id:'e45', fullName:'Putri Salbiah',           shortName:'Putri',        role:'员工',     positions:['Service','D Drink'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e46', fullName:'Siti Nurfatimahfatin',    shortName:'Fatin',        role:'员工',     positions:['Cutting'],                                   canTrain:[],                        tags:[],              managerNote:'戴牙套', offDay:'', availableFrom:0 },
-  { id:'e47', fullName:'Adrus Aqasya',            shortName:'Adrus',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['引流'],        managerNote:'', offDay:'',           availableFrom:0  },
-  { id:'e48', fullName:'Natasha Nabilah',         shortName:'Natasha',      role:'副理',     positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e1',  fullName:'Yuan Xincheng',           shortName:'Yuan',         role:'店长',     positions:['A2 Steam','D Drink'],                         canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e2',  fullName:'Alen Wang',               shortName:'Alen',         role:'店长',     positions:['PIC','Cutting'],                             canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e3',  fullName:'Tom Buxton Wang',          shortName:'Tom Wang',     role:'店长',     positions:['PIC','A1 Wok'],                             canTrain:['A1 Wok'],               tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e4',  fullName:'Yixing Yin',              shortName:'Yixing',       role:'店长',     positions:['B Chicken','D Drink'],                             canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e5',  fullName:'DuoDuo Wu',               shortName:'Duoduo',       role:'培训主管', positions:['PIC'],                                       canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e6',  fullName:'Dreamy Wang',              shortName:'Dreamy',       role:'培训员',   positions:['Service','D Drink'],                             canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e7',  fullName:'A Long Ma',               shortName:'A Long',       role:'培训员',   positions:['A1 Wok','C Chop'],                         canTrain:['A1 Wok'],               tags:[],  offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'希望多加班，愿意承担', seed:true }] },
+  { id:'e8',  fullName:'Green Ice Chen',           shortName:'Ice',          role:'培训员',   positions:['C Chop','PIC'],                             canTrain:['C Chop'],               tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e9',  fullName:'Milk Wang',               shortName:'Milk',         role:'培训员',   positions:['A1 Wok','A2 Steam','B Chicken','C Chop'],       canTrain:['A1 Wok','C Chop'],     tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'与欧姚/续兵班次绑定', seed:true }] },
+  { id:'e10', fullName:'Ouyao Zhongxing',          shortName:'Ouyao',        role:'培训员',   positions:['PIC','A2 Steam'],                             canTrain:['A1 Wok'],               tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e11', fullName:'Adil Dai',                shortName:'Adil',         role:'培训员',   positions:['D Drink','A2 Steam'],                         canTrain:['D Drink'],               tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e12', fullName:'Sandy Zhao',              shortName:'Sandy',        role:'培训员',   positions:['B Chicken'],                                     canTrain:['B Chicken'],                 tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e13', fullName:'Tao Ying',                shortName:'Tao',          role:'培训员',   positions:['A2 Steam','A1 Wok'],                         canTrain:['A1 Wok'],               tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e14', fullName:'Luna Li',                 shortName:'Luna',         role:'培训员',   positions:['PIC','Service'],                               canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e15', fullName:'Peace Ban',               shortName:'Ban',          role:'培训员',   positions:['A1 Wok','A2 Steam','C Chop','D Drink'],     canTrain:['A2 Steam','C Chop'],     tags:[],      offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'与晓欢班次绑定', seed:true }] },
+  { id:'e16', fullName:'Dany Chen',               shortName:'Dany',         role:'培训员',   positions:['Cutting','D Drink'],                         canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e17', fullName:'Araf Ibne Alamgir',       shortName:'Araf',         role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'周一～周三', training:[], devGoals:[], coachingLog:[] },
+  { id:'e18', fullName:'Iza Siti Nurshariza',     shortName:'Iza Siti',     role:'后厨员工', positions:['D Drink'],                                   canTrain:['D Drink'],               tags:[], offDay:'周一～周三', training:[], devGoals:[], coachingLog:[{ date:'', note:'饮料岗扛把子', seed:true }] },
+  { id:'e19', fullName:'Prema Jannatul',          shortName:'Prema',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['收银'], offDay:'周一～周三', training:[], devGoals:[], coachingLog:[] },
+  { id:'e20', fullName:'Yad M.Akhyar',            shortName:'Yad',          role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:['引流'], offDay:'周中一天', training:[], devGoals:[], coachingLog:[{ date:'', note:'工作日18:00后和周末能来，活泼外向，研究生（18:00后到岗）', seed:true }] },
+  { id:'e21', fullName:'Iza Nur Syuhada',         shortName:'Iza Nur',      role:'后厨员工', positions:['B Chicken','C Chop','Cutting'],                 canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'希望多上班，加班', seed:true }] },
+  { id:'e22', fullName:'Finn Marsya Saafia',      shortName:'Finn',         role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'周一-周四不排班', training:[], devGoals:[], coachingLog:[{ date:'', note:'只有周五、六、日能来', seed:true }] },
+  { id:'e23', fullName:'Nurul Nadwal',            shortName:'Nadwa',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['引流','收银'], offDay:'周一～周三', training:[], devGoals:[], coachingLog:[{ date:'', note:'前厅扛把子', seed:true }] },
+  { id:'e24', fullName:'M.Faeez Bin Azmi',        shortName:'Faeez',        role:'后厨员工', positions:['B Chicken'],                                     canTrain:[],                        tags:[], offDay:'周四', training:[], devGoals:[], coachingLog:[{ date:'', note:'毛巾哥 动作慢', seed:true }] },
+  { id:'e25', fullName:'Putera Nur Afeef',        shortName:'Putera',       role:'后厨员工', positions:['B Chicken','Cutting','A2 Steam'],                 canTrain:[],                        tags:[], offDay:'周四/周五', training:[], devGoals:[], coachingLog:[{ date:'', note:'阿飞，早晚班切换需休息一天', seed:true }] },
+  { id:'e26', fullName:'Shaymin Bin Zaha',        shortName:'Shaymin',      role:'后厨员工', positions:['A1 Wok','A2 Steam','Cutting'],             canTrain:[],                        tags:[], offDay:'周四/周五', training:[], devGoals:[], coachingLog:[{ date:'', note:'虾米，做事麻利', seed:true }] },
+  { id:'e27', fullName:'Micheal Lim',             shortName:'Micheal',      role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'七月要去上学', seed:true }] },
+  { id:'e28', fullName:'Raziq Latiff',            shortName:'Raziq',        role:'店长',     positions:['A2 Steam','B Chicken','C Chop','D Drink'],       canTrain:[],                        tags:[], offDay:'周四/周五', training:[], devGoals:[], coachingLog:[{ date:'', note:'当前过岗位中', seed:true }] },
+  { id:'e29', fullName:'Erm Nuril Ilhami',        shortName:'Erm Ilhami',   role:'后厨员工', positions:['C Chop','A2 Steam','B Chicken'],               canTrain:[],                        tags:[], offDay:'自己会找你请假', training:[], devGoals:[], coachingLog:[{ date:'', note:'活泼', seed:true }] },
+  { id:'e30', fullName:'Aiman Bin Khairon',       shortName:'Aiman Khairon',role:'员工',     positions:['Service'],                                     canTrain:[],                        tags:['引流'], offDay:'周一/周五', training:[], devGoals:[], coachingLog:[{ date:'', note:'有激情，善于引流', seed:true }] },
+  { id:'e31', fullName:'Hani Athirah Pauzi',      shortName:'Hani',         role:'员工',     positions:['D Drink'],                                   canTrain:[],                        tags:[], offDay:'自己会找你请假', training:[], devGoals:[], coachingLog:[{ date:'', note:'每周六休息，经常休息后第二天不来上班', seed:true }] },
+  { id:'e32', fullName:'Siti Haleeja Affendi',    shortName:'Siti',         role:'员工',     positions:['B Chicken','C Chop'],                           canTrain:[],                        tags:[], offDay:'自己会找你请假', training:[], devGoals:[], coachingLog:[{ date:'', note:'不太需要休息，想多上班', seed:true }] },
+  { id:'e33', fullName:'Ariff Shah Rodzee',       shortName:'Ariff Shah',   role:'员工',     positions:['C Chop','Cutting'],                         canTrain:[],                        tags:[], offDay:'周一/周二', training:[], devGoals:[], coachingLog:[{ date:'', note:'剁鸡比较快', seed:true }] },
+  { id:'e34', fullName:'Ahmad Aiman',             shortName:'Ahmad Aiman',  role:'员工',     positions:['A2 Steam'],                                   canTrain:[],                        tags:[], offDay:'周二/周三', training:[], devGoals:[], coachingLog:[{ date:'', note:'干了一个月A2找到感觉了', seed:true }] },
+  { id:'e35', fullName:'Mohd Zafri Bin Zaihi',   shortName:'Zafri',        role:'员工',     positions:['Dishwash'],                                 canTrain:[],                        tags:[], offDay:'周二有事排休', training:[], devGoals:[], coachingLog:[{ date:'', note:'每天都迟到，除洗碗外难安排', seed:true }] },
+  { id:'e36', fullName:'Syazwan Bin Shaharuddin', shortName:'Syazwan',      role:'副理',     positions:['B Chicken','Service','D Drink'],                     canTrain:[],                        tags:[], offDay:'周四/周二', training:[], devGoals:[], coachingLog:[{ date:'', note:'干活比较慢，出勤正常', seed:true }] },
+  { id:'e37', fullName:'Ariff Tuah Daniel',       shortName:'Tuah',         role:'员工',     positions:['Dishwash'],                                 canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'⚠ 问题员工，沟通离职', seed:true }] },
+  { id:'e38', fullName:'Mahfuz Bin Md Nizar',     shortName:'Mahfuz',       role:'员工',     positions:['A1 Wok','Cutting'],                         canTrain:[],                        tags:[], offDay:'周二/周三', training:[], devGoals:[], coachingLog:[{ date:'', note:'干活上手快、同事评价高', seed:true }] },
+  { id:'e39', fullName:'Nur Qamarina nabila',     shortName:'Qamarina',     role:'员工',     positions:['D Drink','B Chicken','Cutting'],                 canTrain:[],                        tags:[], offDay:'周末/周一', training:[], devGoals:[], coachingLog:[{ date:'', note:'入职后厨，其他后厨可能可以干', seed:true }] },
+  { id:'e40', fullName:'Jassica Chan',            shortName:'Jassica',      role:'员工',     positions:['A1 Wok','B Chicken'],                           canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'同事评价高；工作日学驾照，排晚班', seed:true }] },
+  { id:'e41', fullName:'Seha Fasihan',            shortName:'Seha',         role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'周六/周三', training:[], devGoals:[], coachingLog:[] },
+  { id:'e42', fullName:'M.Aiman Bin Khairul Annuar', shortName:'Aiman Bobo', role:'后厨员工', positions:['Cutting','A1 Wok','B Chicken'],              canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'胖胖的，洗碗快', seed:true }] },
+  { id:'e43', fullName:'Norsidah Bt Amran',       shortName:'Sidah',        role:'员工',     positions:['Service'],                                     canTrain:[],                        tags:['引流','收银'], offDay:'周一/周二', training:[], devGoals:[], coachingLog:[{ date:'', note:'同事评价高、漂亮', seed:true }] },
+  { id:'e44', fullName:'Nur Aida Binti Amran',    shortName:'Aida',         role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'只有晚上能来帮忙（18:00后到岗）', seed:true }] },
+  { id:'e45', fullName:'Putri Salbiah',           shortName:'Putri',        role:'员工',     positions:['Service','D Drink'],                             canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e46', fullName:'Siti Nurfatimahfatin',    shortName:'Fatin',        role:'员工',     positions:['Cutting'],                                   canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'戴牙套', seed:true }] },
+  { id:'e47', fullName:'Adrus Aqasya',            shortName:'Adrus',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['引流'], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e48', fullName:'Natasha Nabilah',         shortName:'Natasha',      role:'副理',     positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
 ];
 
 // =============================================================================
@@ -943,13 +1054,14 @@ const DEFAULT_EMPLOYEES = [
 let employees         = [];   // active, loaded from Supabase
 let inactiveEmployees = [];   // is_active=false
 let allPositions      = [];   // positions_master table
+let talentColumnsMissing = false;  // set true if Supabase lacks training/dev_goals/coaching_log cols
 
 // Employee edit modal state
 let empModal = {
   open: false, mode: 'add', empId: null, saving: false, error: '',
   fullName: '', shortName: '', role: '员工',
-  positions: [], canTrain: [], tags: [],
-  managerNote: '', offDay: '', availableFrom: 0,
+  positions: [], canTrain: [], training: [], tags: [],
+  offDay: '', devGoals: [], coachingLog: [],
 };
 // Positions management modal state
 let posModal = { open: false, newName: '', newArea: '后厨', newTrainable: false, saving: false, error: '' };
@@ -1164,7 +1276,6 @@ function isEligible(employee, slot, computed) {
   const isStudentHere = assignment?.studentId === employee.id;
 
   if (alreadyAssigned && !isMainHere && !isStudentHere) return false;
-  if (employee.availableFrom && employee.availableFrom > slot.startHour) return false;
 
   if (slot.pos === 'Dacai')    return true;  // anyone can do 打菜
   if (slot.pos === 'Dishwash') return true;  // anyone can wash dishes
@@ -1826,6 +1937,589 @@ function renderScheduleTab(computed) {
 }
 
 // =============================================================================
+// TALENT BOARD (人才看板)
+// =============================================================================
+// Skill levels per position:
+//   L1 在训 (training[]) → L2 独立 (positions[]) → L3 师傅 (canTrain[])
+// positions/canTrain are reused from the existing schema. A position shows at
+// the HIGHEST level the employee holds it (师傅 implies 独立).
+
+const TB_LEVELS = {
+  0: { key: 'lv0', short: '·',  label: '未涉及' },
+  1: { key: 'lv1', short: '训', label: '在训 (L1)' },
+  2: { key: 'lv2', short: '●',  label: '独立 (L2)' },
+  3: { key: 'lv3', short: '师', label: '师傅 (L3)' },
+};
+
+// Talent board view state
+let talentState = { view: 'matrix' };  // 'matrix' | 'cards'
+
+// Returns the skill level (0-3) of an employee for a given position name.
+function tbLevel(emp, posName) {
+  if ((emp.canTrain || []).includes(posName))  return 3;
+  if ((emp.positions || []).includes(posName)) return 2;
+  if ((emp.training  || []).includes(posName)) return 1;
+  return 0;
+}
+
+// Build the ordered list of positions to show as matrix columns.
+// Source: positions_master if available, else collected from employee data.
+// Excludes "anyone can do" utility slots (Dacai/Dishwash/Reserve).
+const TB_EXCLUDE = ['Dacai', 'Dishwash', 'Reserve'];
+function tbPositions() {
+  const fromMaster = (allPositions || []).map(p => p.name);
+  const set = new Set(fromMaster);
+  for (const e of employees) {
+    for (const p of [...(e.positions||[]), ...(e.canTrain||[]), ...(e.training||[])]) set.add(p);
+  }
+  let list = [...set].filter(p => !TB_EXCLUDE.includes(toCanonicalPos(p)));
+  // Stable ordering: by area (后厨 first), then by master sort_order if known
+  const order = {}; (allPositions||[]).forEach(p => order[p.name] = p.sort_order ?? 999);
+  const KITCHEN = new Set(KITCHEN_POSITIONS);
+  list.sort((a, b) => {
+    const ka = KITCHEN.has(toCanonicalPos(a)) ? 0 : 1;
+    const kb = KITCHEN.has(toCanonicalPos(b)) ? 0 : 1;
+    if (ka !== kb) return ka - kb;
+    return (order[a] ?? 999) - (order[b] ?? 999) || a.localeCompare(b);
+  });
+  return list;
+}
+
+// Short column header for a position (strips the English suffix for compactness).
+function tbPosShort(posName) {
+  const canon = toCanonicalPos(posName);
+  const map = {
+    'A1 Wok':'A1 炒','A2 Steam':'A2 蒸','B Chicken':'B 鸡','C Chop':'C 砍',
+    'Cutting':'切配','D Drink':'D 饮','Service':'前厅','PIC':'PIC',
+  };
+  return map[canon] || posName;
+}
+
+// Coverage stats for a position across all (active) employees.
+function tbCoverage(posName) {
+  let independent = 0, trainers = 0, learning = 0;
+  for (const e of employees) {
+    const lv = tbLevel(e, posName);
+    if (lv === 3) { trainers++; independent++; }
+    else if (lv === 2) independent++;
+    else if (lv === 1) learning++;
+  }
+  return { independent, trainers, learning };
+}
+
+// Risk tier from independent count: ≤1 risk, =2 warn, ≥3 ok.
+function tbRiskTier(independent) {
+  if (independent <= 1) return 'risk';
+  if (independent === 2) return 'warn';
+  return 'ok';
+}
+
+function tbIsMultiSkilled(emp) {
+  const skills = new Set([...(emp.positions||[]), ...(emp.canTrain||[])].map(toCanonicalPos));
+  return skills.size >= 4;
+}
+
+// ── Main tab renderer ──
+function renderTalentTab() {
+  const frag = document.createDocumentFragment();
+  const positions = tbPositions();
+  const isManager = currentRole === 'manager';
+
+  // Migration banner (only if Supabase columns are missing)
+  if (talentColumnsMissing) {
+    frag.appendChild(el('div', { class: 'tb-banner' },
+      '提示：Supabase 尚未添加人才看板字段，当前修改仅在本次会话可见。请在 SQL Editor 运行加列脚本以启用云端同步。'));
+  }
+
+  // ── Summary stats ──
+  const onDuty = employees.length;
+  const learningCount = employees.filter(e => (e.training||[]).length > 0).length;
+  const multiCount = employees.filter(tbIsMultiSkilled).length;
+  const riskCount = positions.filter(p => tbRiskTier(tbCoverage(p).independent) === 'risk').length;
+
+  const stats = el('div', { class: 'tb-stats' });
+  const mkStat = (label, val, danger) => {
+    const s = el('div', { class: 'tb-stat' });
+    s.appendChild(el('div', { class: 'tb-stat-label' }, label));
+    s.appendChild(el('div', { class: 'tb-stat-val', style: danger && val > 0 ? { color:'var(--red-600)' } : {} }, String(val)));
+    return s;
+  };
+  stats.appendChild(mkStat('在岗员工', onDuty));
+  stats.appendChild(mkStat('正在带训', learningCount));
+  stats.appendChild(mkStat('多面手 (≥4岗)', multiCount));
+  stats.appendChild(mkStat('风险岗位', riskCount, true));
+  frag.appendChild(stats);
+
+  // ── Skill matrix section ──
+  frag.appendChild(el('div', { class: 'tb-section-title' }, icon('table'), '技能矩阵'));
+
+  const toggle = el('div', { class: 'tb-viewtoggle' });
+  const mkToggle = (key, label) => el('button', {
+    class: `tb-viewbtn${talentState.view === key ? ' active' : ''}`,
+    onClick: () => { talentState.view = key; render(); },
+  }, label);
+  toggle.appendChild(mkToggle('matrix', '表格视图'));
+  toggle.appendChild(mkToggle('cards', '卡片视图'));
+  frag.appendChild(toggle);
+
+  if (talentState.view === 'matrix') {
+    frag.appendChild(tbRenderMatrix(positions, isManager));
+  } else {
+    frag.appendChild(tbRenderCards(positions));
+  }
+
+  // Legend
+  const legend = el('div', { class: 'tb-legend' });
+  const mkLeg = (cls, text) => { const s = el('span'); const i = el('i', { class: cls }); s.appendChild(i); s.appendChild(document.createTextNode(text)); return s; };
+  legend.appendChild(mkLeg('lv1', '训 = 在训 L1'));
+  legend.appendChild(mkLeg('lv2', '● = 独立 L2'));
+  legend.appendChild(mkLeg('lv3', '师 = 师傅 L3'));
+  if (isManager && talentState.view === 'matrix') {
+    legend.appendChild(el('span', { style: { color:'var(--text-muted)' } }, '点击格子可切换：空→训→独立→师傅'));
+  }
+  frag.appendChild(legend);
+
+  // ── Risk section ──
+  frag.appendChild(el('div', { class: 'tb-section-title' }, icon('alert-triangle'), '岗位风险预警'));
+  frag.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', margin:'0 0 10px' } },
+    '按"能独立顶岗 (L2 及以上) 的人数"评估每个岗位的抗风险能力。'));
+  frag.appendChild(tbRenderRisk(positions));
+
+  return frag;
+}
+
+// ── Matrix (table) view ──
+function tbRenderMatrix(positions, isManager) {
+  const wrap = el('div', { class: 'tb-matrix-wrap' });
+  const table = el('table', { class: 'tb-matrix' });
+
+  // Header
+  const thead = el('thead');
+  const htr = el('tr');
+  htr.appendChild(el('th', { class: 'tb-name' }, '员工'));
+  for (const p of positions) htr.appendChild(el('th', { title: p }, tbPosShort(p)));
+  thead.appendChild(htr);
+  table.appendChild(thead);
+
+  // Body
+  const tbody = el('tbody');
+  const sorted = [...employees].sort((a, b) => a.shortName.localeCompare(b.shortName, 'zh'));
+  for (const emp of sorted) {
+    const tr = el('tr');
+    const nameTd = el('td', { class: 'tb-name', style: { cursor:'pointer' }, onClick: () => openDevCard(emp.id) }, emp.shortName);
+    tr.appendChild(nameTd);
+    for (const p of positions) {
+      const lv = tbLevel(emp, p);
+      const cell = el('span', {
+        class: `tb-cell ${TB_LEVELS[lv].key}`,
+        title: `${emp.shortName} · ${tbPosShort(p)} · ${TB_LEVELS[lv].label}`,
+      }, TB_LEVELS[lv].short);
+      if (isManager) {
+        cell.addEventListener('click', (ev) => { ev.stopPropagation(); tbCycleSkill(emp.id, p); });
+      }
+      const td = el('td'); td.appendChild(cell); tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+
+  // Coverage footer row
+  const cov = el('tr', { class: 'tb-cover-row' });
+  cov.appendChild(el('td', { class: 'tb-name' }, '岗位覆盖'));
+  for (const p of positions) {
+    const c = tbCoverage(p);
+    const tier = tbRiskTier(c.independent);
+    const cls = tier === 'risk' ? 'tb-cover-risk' : tier === 'warn' ? 'tb-cover-warn' : 'tb-cover-ok';
+    cov.appendChild(el('td', { class: cls, title: `独立 ${c.independent} · 师傅 ${c.trainers} · 在训 ${c.learning}` },
+      c.independent + (tier === 'risk' ? '!' : '')));
+  }
+  tbody.appendChild(cov);
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  return wrap;
+}
+
+// ── Card list view (mobile-friendly) ──
+function tbRenderCards(positions) {
+  const grid = el('div', { class: 'tb-cards' });
+  const sorted = [...employees].sort((a, b) => a.shortName.localeCompare(b.shortName, 'zh'));
+  for (const emp of sorted) {
+    const card = el('div', { class: 'tb-card', onClick: () => openDevCard(emp.id) });
+    const head = el('div', { class: 'tb-card-head' });
+    head.appendChild(el('div', { class: 'tb-card-name' }, emp.shortName));
+    const rs = getRoleStyle(emp.role);
+    head.appendChild(el('span', { class: 'badge', style: { background: rs.bg, color: rs.color } }, emp.role));
+    card.appendChild(head);
+
+    const skillRow = el('div', { class: 'tb-skillrow' });
+    let any = false;
+    for (const p of positions) {
+      const lv = tbLevel(emp, p);
+      if (lv === 0) continue;
+      any = true;
+      const lvCls = TB_LEVELS[lv].key;
+      const bg = lv === 3 ? 'var(--amber-100)' : lv === 2 ? 'var(--green-100)' : 'var(--blue-50)';
+      const col = lv === 3 ? 'var(--amber-700)' : lv === 2 ? 'var(--green-700)' : 'var(--blue-700)';
+      const suffix = lv === 3 ? ' 师' : lv === 1 ? ' 训' : '';
+      skillRow.appendChild(el('span', { class: 'tb-skill', style: { background: bg, color: col } }, tbPosShort(p) + suffix));
+    }
+    if (!any) skillRow.appendChild(el('span', { style: { fontSize:'12px', color:'var(--text-muted)' } }, '暂无技能记录'));
+    card.appendChild(skillRow);
+
+    if ((emp.training||[]).length > 0) {
+      card.appendChild(el('div', { style: { fontSize:'11px', color:'var(--blue-600)', marginTop:'6px' } },
+        '在训：' + emp.training.map(tbPosShort).join('、')));
+    }
+    grid.appendChild(card);
+  }
+  return grid;
+}
+
+// ── Risk cards ──
+function tbRenderRisk(positions) {
+  const frag = document.createDocumentFragment();
+  const ranked = positions
+    .map(p => ({ p, c: tbCoverage(p), tier: tbRiskTier(tbCoverage(p).independent) }))
+    .sort((a, b) => a.c.independent - b.c.independent);
+
+  for (const { p, c, tier } of ranked) {
+    const card = el('div', { class: `tb-risk-card ${tier}` });
+    const head = el('div', { class: 'tb-risk-head' });
+    const nameWrap = el('div', { class: 'tb-risk-name' });
+    const iconName = tier === 'risk' ? 'alert-triangle' : tier === 'warn' ? 'alert-circle' : 'circle-check';
+    const iconColor = tier === 'risk' ? 'var(--red-600)' : tier === 'warn' ? 'var(--amber-600)' : 'var(--green-600)';
+    const ic = icon(iconName); ic.style.color = iconColor;
+    nameWrap.appendChild(ic);
+    nameWrap.appendChild(document.createTextNode(tbPosShort(p)));
+    head.appendChild(nameWrap);
+    const tierLabel = tier === 'risk' ? '单点风险' : tier === 'warn' ? '脆弱' : '健康';
+    const tierBadge = tier === 'risk' ? 'badge-red' : tier === 'warn' ? 'badge-amber' : 'badge-green';
+    head.appendChild(badge(tierLabel, tierBadge));
+    card.appendChild(head);
+
+    card.appendChild(el('div', { class: 'tb-risk-meta' },
+      `独立顶岗 ${c.independent} 人 · 师傅 ${c.trainers} 人 · 在训 ${c.learning} 人`));
+
+    // Advice + who holds it
+    let advice = '';
+    if (tier === 'risk') {
+      const holders = employees.filter(e => tbLevel(e, p) >= 2).map(e => e.shortName);
+      advice = c.independent === 0
+        ? '当前无人能独立顶岗，须立即安排培养。'
+        : `${holders.join('、')} 一人扛岗，请假即断档。建议立刻安排 1-2 人在训。`;
+    } else if (tier === 'warn') {
+      advice = c.learning > 0 ? '已有人在训，保持跟进即可升至健康。' : '仅 2 人且无人在训，建议培养第 3 人。';
+    }
+    if (advice) card.appendChild(el('div', { class: 'tb-risk-advice' }, advice));
+    frag.appendChild(card);
+  }
+  return frag;
+}
+
+// ── Skill editing: cycle a cell empty→L1→L2→L3→empty ──
+// Set an employee's skill level (0-3) for a position. Single source of truth
+// for all skill mutations — both the matrix cell-cycle and the dev-card editor
+// route through here, so the three arrays can never drift out of sync.
+async function tbSetSkill(empId, posName, level) {
+  const emp = employees.find(e => e.id === empId);
+  if (!emp) return;
+  // Clean removal from all three arrays, then add to the right one(s).
+  const training  = (emp.training  || []).filter(p => p !== posName);
+  const positions = (emp.positions || []).filter(p => p !== posName);
+  const canTrain  = (emp.canTrain  || []).filter(p => p !== posName);
+  if (level === 1) training.push(posName);
+  if (level === 2) positions.push(posName);
+  if (level === 3) { positions.push(posName); canTrain.push(posName); }
+
+  const updated = { ...emp, training, positions, canTrain };
+  try {
+    await saveEmployee(updated);
+  } catch (e) {
+    console.error('tbSetSkill', e?.message || e);
+  }
+}
+
+async function tbCycleSkill(empId, posName) {
+  const emp = employees.find(e => e.id === empId);
+  if (!emp) return;
+  const next = (tbLevel(emp, posName) + 1) % 4;
+  await tbSetSkill(empId, posName, next);
+}
+
+// =============================================================================
+// DEV CARD (个人发展卡 — modal)
+// =============================================================================
+
+let devCard = { open: false, empId: null, newLog: '', goalDraft: null, saving: false, editSkills: false };
+
+function openDevCard(empId) {
+  devCard = { open: true, empId, newLog: '', goalDraft: null, saving: false, editSkills: false };
+  render();
+}
+function closeDevCard() { devCard.open = false; devCard.empId = null; render(); }
+
+// Suggest the next position to learn: a risk/warn position the employee doesn't
+// yet hold, preferring those they have an adjacent skill for.
+function tbSuggestNext(emp, positions) {
+  const held = new Set([...(emp.positions||[]), ...(emp.canTrain||[]), ...(emp.training||[])]);
+  const candidates = positions
+    .filter(p => !held.has(p))
+    .map(p => ({ p, c: tbCoverage(p) }))
+    .filter(x => x.c.independent <= 2)
+    .sort((a, b) => a.c.independent - b.c.independent);
+  return candidates.length ? candidates[0] : null;
+}
+
+function renderDevCard() {
+  if (!devCard.open) return null;
+  const emp = employees.find(e => e.id === devCard.empId);
+  if (!emp) return null;
+  const isManager = currentRole === 'manager';
+  const positions = tbPositions();
+
+  const overlay = el('div', { class: 'modal-overlay', onClick: (e) => { if (e.target === overlay) closeDevCard(); } });
+  const box = el('div', { class: 'modal-box', style: { maxWidth:'480px' } });
+
+  // Header
+  const header = el('div', { class: 'modal-header' });
+  const hLeft = el('div', { style: { display:'flex', alignItems:'center', gap:'10px' } });
+  const rs = getRoleStyle(emp.role);
+  const avatar = el('div', {
+    style: { width:'40px', height:'40px', borderRadius:'50%', background: rs.bg, color: rs.color,
+             display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', flexShrink:'0' }
+  }, emp.shortName.slice(0, 2));
+  hLeft.appendChild(avatar);
+  const hInfo = el('div');
+  hInfo.appendChild(el('div', { style: { fontWeight:'700', fontSize:'15px' } }, emp.fullName));
+  hInfo.appendChild(el('div', { style: { fontSize:'12px', color:'var(--text-sub)' } }, emp.role + (tbIsMultiSkilled(emp) ? ' · 多面手' : '')));
+  hLeft.appendChild(hInfo);
+  header.appendChild(hLeft);
+  header.appendChild(el('button', { class: 'btn-sm', onClick: closeDevCard }, icon('x')));
+  box.appendChild(header);
+
+  const body = el('div', { class: 'modal-body' });
+
+  // ── Skill status (with inline editor for managers) ──
+  const skSec = el('div', { class: 'tb-dev-section' });
+  const skLabel = el('div', { class: 'tb-dev-label', style: { justifyContent:'space-between' } });
+  const skLabelLeft = el('span', { style: { display:'flex', alignItems:'center', gap:'5px' } }, icon('award'), '技能状态');
+  skLabel.appendChild(skLabelLeft);
+  if (isManager) {
+    const editBtn = el('button', { class: 'btn-sm', style: { padding:'2px 8px' },
+      onClick: () => { devCard.editSkills = !devCard.editSkills; render(); } });
+    editBtn.appendChild(icon(devCard.editSkills ? 'check' : 'edit'));
+    editBtn.appendChild(document.createTextNode(devCard.editSkills ? ' 完成' : ' 编辑'));
+    skLabel.appendChild(editBtn);
+  }
+  skSec.appendChild(skLabel);
+
+  if (isManager && devCard.editSkills) {
+    // Editable: every position as a row with a 4-level segmented control.
+    const editor = el('div');
+    const SEG = [ {lv:0,t:'未涉及'}, {lv:1,t:'在训'}, {lv:2,t:'独立'}, {lv:3,t:'师傅'} ];
+    for (const p of positions) {
+      const cur = tbLevel(emp, p);
+      const row = el('div', { class: 'tb-skedit-row' });
+      row.appendChild(el('div', { class: 'tb-skedit-name' }, tbPosShort(p)));
+      const seg = el('div', { class: 'tb-seg' });
+      for (const s of SEG) {
+        const b = el('button', { class: cur === s.lv ? `on${s.lv}` : '',
+          onClick: () => tbSetSkill(emp.id, p, s.lv) }, s.t);
+        seg.appendChild(b);
+      }
+      row.appendChild(seg);
+      editor.appendChild(row);
+    }
+    skSec.appendChild(editor);
+    skSec.appendChild(el('p', { style: { fontSize:'11px', color:'var(--text-muted)', marginTop:'6px' } },
+      '师傅档自动包含独立顶岗能力。修改即时保存。'));
+  } else {
+    // Read-only: pills.
+    const skRow = el('div', { class: 'tb-skillrow' });
+    let anySkill = false;
+    for (const p of positions) {
+      const lv = tbLevel(emp, p);
+      if (lv === 0) continue;
+      anySkill = true;
+      const bg = lv === 3 ? 'var(--amber-100)' : lv === 2 ? 'var(--green-100)' : 'var(--blue-50)';
+      const col = lv === 3 ? 'var(--amber-700)' : lv === 2 ? 'var(--green-700)' : 'var(--blue-700)';
+      const lvName = lv === 3 ? '师傅' : lv === 2 ? '独立' : '在训';
+      skRow.appendChild(el('span', { class: 'tb-skill', style: { background: bg, color: col } }, `${tbPosShort(p)} · ${lvName}`));
+    }
+    if (!anySkill) skRow.appendChild(el('span', { style: { fontSize:'12px', color:'var(--text-muted)' } }, '暂无技能记录'));
+    skSec.appendChild(skRow);
+  }
+  body.appendChild(skSec);
+
+  // ── Training goals ──
+  const goalSec = el('div', { class: 'tb-dev-section' });
+  goalSec.appendChild(el('div', { class: 'tb-dev-label' }, icon('target'), '训练目标'));
+  const goals = emp.devGoals || [];
+  if (goals.length === 0 && !devCard.goalDraft) {
+    goalSec.appendChild(el('div', { style: { fontSize:'12px', color:'var(--text-muted)', marginBottom:'6px' } }, '暂无训练目标'));
+  }
+  goals.forEach((g, idx) => {
+    const gEl = el('div', { class: 'tb-goal' });
+    const gHead = el('div', { style: { display:'flex', justifyContent:'space-between', alignItems:'center' } });
+    gHead.appendChild(el('div', { style: { fontSize:'13px', fontWeight:'600' } },
+      `${tbPosShort(g.position)} ${g.fromLevel||''}${g.fromLevel?' → ':''}${g.toLevel||'独立'}`));
+    if (isManager) {
+      gHead.appendChild(el('button', { class: 'btn-sm', style: { padding:'2px 6px' }, onClick: () => tbRemoveGoal(emp.id, idx) }, icon('trash')));
+    }
+    gEl.appendChild(gHead);
+    const metaBits = [];
+    if (g.mentor) metaBits.push('师傅：' + g.mentor);
+    if (g.dueDate) metaBits.push('目标 ' + g.dueDate);
+    metaBits.push('进度 ' + (g.progress||0) + '%');
+    gEl.appendChild(el('div', { style: { fontSize:'12px', color:'var(--text-sub)', marginTop:'3px' } }, metaBits.join(' · ')));
+    const prog = el('div', { class: 'tb-goal-prog' });
+    prog.appendChild(el('div', { class: 'tb-goal-prog-bar', style: { width: (g.progress||0) + '%' } }));
+    gEl.appendChild(prog);
+    if (isManager) {
+      const slider = el('input', { type:'range', min:'0', max:'100', step:'10', value:String(g.progress||0), style:{ width:'100%', marginTop:'6px' } });
+      slider.addEventListener('change', e => tbSetGoalProgress(emp.id, idx, parseInt(e.target.value)||0));
+      gEl.appendChild(slider);
+    }
+    goalSec.appendChild(gEl);
+  });
+
+  if (isManager) {
+    if (devCard.goalDraft) {
+      goalSec.appendChild(tbRenderGoalDraft(emp, positions));
+    } else {
+      goalSec.appendChild(el('button', { class: 'btn-sm', onClick: () => { devCard.goalDraft = { position: positions[0]||'', toLevel:'独立', mentor:'', dueDate:'', progress:0 }; render(); } },
+        icon('plus'), ' 添加训练目标'));
+    }
+  }
+  body.appendChild(goalSec);
+
+  // ── System suggestion ──
+  const suggestion = tbSuggestNext(emp, positions);
+  if (suggestion) {
+    const sSec = el('div', { class: 'tb-dev-section' });
+    sSec.appendChild(el('div', { class: 'tb-dev-label' }, icon('bulb'), '系统建议下一步'));
+    const reason = suggestion.c.independent <= 1 ? '全店紧缺岗位' : '全店人手偏少';
+    sSec.appendChild(el('div', { class: 'tb-suggest' },
+      `建议学 ${tbPosShort(suggestion.p)}（${reason}，当前仅 ${suggestion.c.independent} 人能独立顶岗）`));
+    body.appendChild(sSec);
+  }
+
+  // ── Coaching log ──
+  const logSec = el('div', { class: 'tb-dev-section' });
+  logSec.appendChild(el('div', { class: 'tb-dev-label' }, icon('message'), '带训 / 一对一记录'));
+  const log = emp.coachingLog || [];
+  if (log.length === 0) {
+    logSec.appendChild(el('div', { style: { fontSize:'12px', color:'var(--text-muted)', marginBottom:'8px' } }, '暂无记录'));
+  }
+  // Newest first
+  [...log].reverse().forEach((entry, ri) => {
+    const realIdx = log.length - 1 - ri;
+    const e2 = el('div', { class: 'tb-log-entry' });
+    const dHead = el('div', { style: { display:'flex', justifyContent:'space-between', alignItems:'center' } });
+    dHead.appendChild(el('div', { class: 'tb-log-date' }, entry.date || '初始备注'));
+    if (isManager) {
+      dHead.appendChild(el('button', { class: 'btn-sm', style: { padding:'1px 5px' }, onClick: () => tbRemoveLog(emp.id, realIdx) }, icon('trash')));
+    }
+    e2.appendChild(dHead);
+    e2.appendChild(el('div', { class: 'tb-log-note' }, entry.note));
+    logSec.appendChild(e2);
+  });
+  if (isManager) {
+    const inputRow = el('div', { style: { display:'flex', gap:'8px', marginTop:'4px' } });
+    const inp = el('input', { type:'text', placeholder:'添加一条带训记录…', value: devCard.newLog, style:{ flex:'1' } });
+    inp.addEventListener('input', e => devCard.newLog = e.target.value);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') tbAddLog(emp.id); });
+    inputRow.appendChild(inp);
+    const addBtn = el('button', { onClick: () => tbAddLog(emp.id) }, '记录');
+    inputRow.appendChild(addBtn);
+    logSec.appendChild(inputRow);
+  }
+  body.appendChild(logSec);
+
+  box.appendChild(body);
+  overlay.appendChild(box);
+  return overlay;
+}
+
+function tbRenderGoalDraft(emp, positions) {
+  const d = devCard.goalDraft;
+  const wrap = el('div', { class: 'tb-goal' });
+  // Position select
+  const posSel = el('select', { style: { width:'100%', marginBottom:'6px' } });
+  for (const p of positions) {
+    const o = el('option', { value: p }, tbPosShort(p));
+    if (p === d.position) o.selected = true;
+    posSel.appendChild(o);
+  }
+  posSel.addEventListener('change', e => { d.position = e.target.value; });
+  wrap.appendChild(posSel);
+
+  // Mentor select (people who can train this position)
+  const mentorSel = el('select', { style: { width:'100%', marginBottom:'6px' } });
+  mentorSel.appendChild(el('option', { value:'' }, '（选择师傅，可留空）'));
+  const mentors = employees.filter(e => (e.canTrain||[]).includes(d.position));
+  for (const m of mentors) {
+    const o = el('option', { value: m.shortName }, m.shortName);
+    if (m.shortName === d.mentor) o.selected = true;
+    mentorSel.appendChild(o);
+  }
+  mentorSel.addEventListener('change', e => { d.mentor = e.target.value; });
+  wrap.appendChild(mentorSel);
+
+  // Due date
+  const dateIn = el('input', { type:'date', value: d.dueDate, style:{ width:'100%', marginBottom:'6px' } });
+  dateIn.addEventListener('input', e => { d.dueDate = e.target.value; });
+  wrap.appendChild(dateIn);
+
+  const btnRow = el('div', { style: { display:'flex', gap:'6px' } });
+  btnRow.appendChild(el('button', { class:'btn-sm', onClick: () => { devCard.goalDraft = null; render(); } }, '取消'));
+  btnRow.appendChild(el('button', { onClick: () => tbSaveGoal(emp.id) }, '保存目标'));
+  wrap.appendChild(btnRow);
+  return wrap;
+}
+
+// ── Dev card mutations ──
+async function tbAddLog(empId) {
+  const note = (devCard.newLog || '').trim();
+  if (!note) return;
+  const emp = employees.find(e => e.id === empId);
+  if (!emp) return;
+  const today = todayLocalStr();
+  const coachingLog = [...(emp.coachingLog||[]), { date: today, note }];
+  devCard.newLog = '';
+  try { await saveEmployee({ ...emp, coachingLog }); } catch(e) { console.error(e); }
+}
+async function tbRemoveLog(empId, idx) {
+  const emp = employees.find(e => e.id === empId);
+  if (!emp) return;
+  const coachingLog = (emp.coachingLog||[]).filter((_, i) => i !== idx);
+  try { await saveEmployee({ ...emp, coachingLog }); } catch(e) { console.error(e); }
+}
+async function tbSaveGoal(empId) {
+  const emp = employees.find(e => e.id === empId);
+  if (!emp || !devCard.goalDraft) return;
+  const d = devCard.goalDraft;
+  // Infer fromLevel from current skill
+  const cur = tbLevel(emp, d.position);
+  d.fromLevel = cur === 0 ? '未学' : cur === 1 ? '在训' : cur === 2 ? '独立' : '师傅';
+  const devGoals = [...(emp.devGoals||[]), { ...d }];
+  devCard.goalDraft = null;
+  try { await saveEmployee({ ...emp, devGoals }); } catch(e) { console.error(e); }
+}
+async function tbRemoveGoal(empId, idx) {
+  const emp = employees.find(e => e.id === empId);
+  if (!emp) return;
+  const devGoals = (emp.devGoals||[]).filter((_, i) => i !== idx);
+  try { await saveEmployee({ ...emp, devGoals }); } catch(e) { console.error(e); }
+}
+async function tbSetGoalProgress(empId, idx, val) {
+  const emp = employees.find(e => e.id === empId);
+  if (!emp) return;
+  const devGoals = (emp.devGoals||[]).map((g, i) => i === idx ? { ...g, progress: val } : g);
+  try { await saveEmployee({ ...emp, devGoals }); } catch(e) { console.error(e); }
+}
+
+// =============================================================================
 // EMPLOYEES TAB
 // =============================================================================
 
@@ -1937,7 +2631,6 @@ function buildEmpRow(emp, absences, isMgr, isInactive) {
 
   const metaRow = el('div', { class: 'emp-meta' });
   metaRow.appendChild(el('span', { class: 'badge badge-gray', style: { background: roleStyle.bg, color: roleStyle.color } }, emp.role));
-  if (emp.availableFrom > 0) metaRow.appendChild(badge(`From ${emp.availableFrom}:00`, 'badge-amber'));
   for (const tag of emp.tags) metaRow.appendChild(badge(tag, 'badge-blue'));
   info.appendChild(metaRow);
 
@@ -1951,18 +2644,19 @@ function buildEmpRow(emp, absences, isMgr, isInactive) {
     info.appendChild(trainerRow);
   }
   if (emp.offDay) {
-    const offRow = el('div', { class: 'flex items-center gap-1 text-xs', style: { color:'var(--text-sub)', marginBottom: emp.managerNote ? '4px' : '0' } });
+    const offRow = el('div', { class: 'flex items-center gap-1 text-xs', style: { color:'var(--text-sub)', marginBottom: (emp.coachingLog && emp.coachingLog.length) ? '4px' : '0' } });
     offRow.appendChild(icon('calendar-off'));
     offRow.appendChild(document.createTextNode(' ' + emp.offDay));
     info.appendChild(offRow);
   }
-  if (emp.managerNote && currentRole === 'manager') {
+  if (currentRole === 'manager' && emp.coachingLog && emp.coachingLog.length > 0) {
+    const latest = emp.coachingLog[emp.coachingLog.length - 1];
     const noteBox   = el('div', { class: 'manager-note' });
     const noteTitle = el('div', { class: 'flex items-center gap-1', style: { fontWeight:'600', marginBottom:'2px', fontSize:'11px' } });
-    noteTitle.appendChild(icon('lock'));
-    noteTitle.appendChild(document.createTextNode(' Manager note'));
+    noteTitle.appendChild(icon('message'));
+    noteTitle.appendChild(document.createTextNode(latest.date ? ` 带训记录 · ${latest.date}` : ' 备注'));
     noteBox.appendChild(noteTitle);
-    noteBox.appendChild(document.createTextNode(emp.managerNote));
+    noteBox.appendChild(document.createTextNode(latest.note));
     info.appendChild(noteBox);
   }
   row.appendChild(info);
@@ -2020,14 +2714,15 @@ function openEmpModal(mode, emp) {
     empModal.role        = emp.role;
     empModal.positions   = [...emp.positions];
     empModal.canTrain    = [...emp.canTrain];
+    empModal.training    = [...(emp.training || [])];
     empModal.tags        = [...emp.tags];
-    empModal.managerNote = emp.managerNote;
     empModal.offDay      = emp.offDay;
-    empModal.availableFrom = emp.availableFrom;
+    empModal.devGoals    = (emp.devGoals || []).map(g => ({ ...g }));
+    empModal.coachingLog = (emp.coachingLog || []).map(c => ({ ...c }));
   } else {
     empModal.empId = null; empModal.fullName = ''; empModal.shortName = ''; empModal.role = '员工';
-    empModal.positions = []; empModal.canTrain = []; empModal.tags = [];
-    empModal.managerNote = ''; empModal.offDay = ''; empModal.availableFrom = 0;
+    empModal.positions = []; empModal.canTrain = []; empModal.training = []; empModal.tags = [];
+    empModal.offDay = ''; empModal.devGoals = []; empModal.coachingLog = [];
   }
   renderEmpModal();
 }
@@ -2153,14 +2848,8 @@ function renderEmpModal() {
   offIn.addEventListener('input', e => empModal.offDay = e.target.value);
   body.appendChild(formRow('惯例休息日', offIn));
 
-  const availIn = el('input', { type:'number', placeholder:'0', value: String(empModal.availableFrom), style:{ width:'80px' } });
-  availIn.addEventListener('input', e => empModal.availableFrom = parseInt(e.target.value) || 0);
-  body.appendChild(formRow('最早上班时间（0 = 全天，18 = 仅晚班）', availIn));
-
-  const noteIn = el('textarea', { placeholder: '仅 Manager 可见...' });
-  noteIn.value = empModal.managerNote;
-  noteIn.addEventListener('input', e => empModal.managerNote = e.target.value);
-  body.appendChild(formRow('Manager 备注', noteIn));
+  body.appendChild(el('p', { style: { fontSize:'11px', color:'var(--text-muted)', marginTop:'4px' } },
+    '技能等级、训练目标与带训记录请在「人才看板」中编辑。'));
 
   if (empModal.error) {
     body.appendChild(el('p', { style: { color:'var(--red-600)', fontSize:'12px', marginTop:'8px' } }, empModal.error));
@@ -2181,8 +2870,8 @@ function renderEmpModal() {
       await saveEmployee({
         id, fullName: empModal.fullName.trim(), shortName: empModal.shortName.trim(),
         role: empModal.role, positions: empModal.positions, canTrain: empModal.canTrain,
-        tags: empModal.tags, managerNote: empModal.managerNote,
-        offDay: empModal.offDay, availableFrom: empModal.availableFrom,
+        training: empModal.training, tags: empModal.tags, offDay: empModal.offDay,
+        devGoals: empModal.devGoals, coachingLog: empModal.coachingLog,
       });
       closeEmpModal();
     } catch(e) { empModal.saving = false; empModal.error = '保存失败，请重试'; renderEmpModal(); }
@@ -4143,6 +4832,7 @@ function render() {
   const tabDefs = [
     { id: 'schedule',   label: '排班',        iconName: 'calendar'    },
     { id: 'employees',  label: '员工',        iconName: 'users'       },
+    { id: 'talent',     label: '人才看板',    iconName: 'chart-dots-3'},
     { id: 'shifts',     label: '班次',        iconName: 'clock-edit'  },
     { id: 'leave',      label: `Leave${leaveCount > 0 ? ` (${leaveCount})` : ''}`, iconName: 'calendar-off' },
     { id: 'roster',     label: 'Roster',      iconName: 'table'       },
@@ -4161,6 +4851,7 @@ function render() {
   switch (state.currentTab) {
     case 'schedule':   appEl.appendChild(renderScheduleTab(computed));  break;
     case 'employees':  appEl.appendChild(renderEmployeesTab());          break;
+    case 'talent':     appEl.appendChild(renderTalentTab());             break;
     case 'shifts':     appEl.appendChild(renderShiftsTab());             break;
     case 'leave':      appEl.appendChild(renderLeaveTab(computed));      break;
     case 'roster':     appEl.appendChild(renderRosterTab());             break;
@@ -4173,6 +4864,10 @@ function render() {
   if (copyModal) appEl.appendChild(copyModal);
   const copyToast = renderCopyToast();
   if (copyToast) appEl.appendChild(copyToast);
+
+  // ── Dev card modal (talent board) ──
+  const devCardEl = renderDevCard();
+  if (devCardEl) appEl.appendChild(devCardEl);
 }
 
 // =============================================================================
