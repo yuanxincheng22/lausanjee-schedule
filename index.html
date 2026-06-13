@@ -251,6 +251,8 @@
     .tb-log-date { font-size: 11px; color: var(--text-muted); }
     .tb-log-note { font-size: 13px; }
     .tb-suggest { background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: var(--radius-md); padding: 9px 11px; font-size: 13px; color: var(--blue-700); }
+    .tb-ex-toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-main); cursor: pointer; user-select: none; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); }
+    .tb-ex-toggle input { width: 15px; height: 15px; cursor: pointer; accent-color: var(--blue-600); margin: 0; }
 
     /* Skill editor (dev card) */
     .tb-skedit-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-top: 1px solid var(--gray-100); }
@@ -735,7 +737,14 @@ async function loadCoverageSettings() {
       };
       // Per-position risk thresholds (talent board). Graceful if column absent.
       if (data.pos_thresholds && typeof data.pos_thresholds === 'object') {
-        state.posThresholds = data.pos_thresholds;
+        const raw = { ...data.pos_thresholds };
+        // The exclude-management preference is stored under a reserved key
+        // inside the same JSONB blob, so no extra column/SQL is needed.
+        if (Object.prototype.hasOwnProperty.call(raw, '__excludeMgmt')) {
+          state.tbExcludeMgmt = !!raw.__excludeMgmt;
+          delete raw.__excludeMgmt;
+        }
+        state.posThresholds = raw;
       }
     }
   } catch(e) { console.warn('loadCoverageSettings (table may not exist yet):', e?.message || e); }
@@ -757,9 +766,11 @@ async function savePosThresholds(map) {
   state.posThresholds = map;  // optimistic
   render();
   try {
+    // Persist the reserved exclude-mgmt flag alongside the thresholds.
+    const blob = { ...map, __excludeMgmt: state.tbExcludeMgmt };
     let { error } = await db.from('coverage_settings').upsert({
       store_id: STORE_ID,
-      pos_thresholds: map,
+      pos_thresholds: blob,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'store_id' });
     if (error && /pos_thresholds|column/i.test(error.message || '')) {
@@ -768,6 +779,24 @@ async function savePosThresholds(map) {
       throw error;
     }
   } catch(e) { console.warn('savePosThresholds failed:', e?.message || e); }
+}
+// Persist the talent-board "exclude management" view preference.
+async function saveTbExcludeMgmt(val) {
+  state.tbExcludeMgmt = val;  // optimistic
+  render();
+  try {
+    const blob = { ...(state.posThresholds || {}), __excludeMgmt: val };
+    let { error } = await db.from('coverage_settings').upsert({
+      store_id: STORE_ID,
+      pos_thresholds: blob,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'store_id' });
+    if (error && /pos_thresholds|column/i.test(error.message || '')) {
+      posThresholdColMissing = true;
+    } else if (error) {
+      throw error;
+    }
+  } catch(e) { console.warn('saveTbExcludeMgmt failed:', e?.message || e); }
 }
 
 // ── TIME HELPERS ──
@@ -1115,6 +1144,7 @@ let state = {
   slotOverrides:   {},     // { slotId: { startHour, endHour } } — permanent, from Supabase
   coverageThresholds: { onDuty: 30, front: 7 },  // staffing warning thresholds — from Supabase, editable by manager
   posThresholds:   {},     // { posName: { red, yellow } } — per-position risk thresholds (talent board)
+  tbExcludeMgmt:   true,    // talent board: exclude mgmt/trainer roles from coverage (default ON, persisted)
   dayMeta:         { estRevenue: '', actualRevenue: '', dayTags: [], dayNote: '', workload: {}, unplannedAbsent: [] },  // per-day planning inputs + review
   searchQuery:     '',
   showUnassigned:  false,
@@ -1412,6 +1442,13 @@ function el(tag, attrs, ...children) {
         element.addEventListener(key.slice(2).toLowerCase(), value);
       } else if (key === 'style' && typeof value === 'object') {
         Object.assign(element.style, value);
+      } else if (typeof value === 'boolean') {
+        // Boolean attributes (disabled, checked, readonly, …) work by presence:
+        // setAttribute('disabled', false) would STILL disable the element (the
+        // attribute exists). So set the property directly and only add the
+        // attribute when true.
+        element[key] = value;
+        if (value) element.setAttribute(key, ''); else element.removeAttribute(key);
       } else {
         element.setAttribute(key, value);
       }
@@ -2044,15 +2081,25 @@ function tbPosShort(posName) {
 }
 
 // Coverage stats for a position across all (active) employees.
-function tbCoverage(posName) {
-  let independent = 0, trainers = 0, learning = 0;
+// Roles considered management / trainer track — may be reassigned off-floor,
+// so the manager can exclude them to see true front-line bench strength.
+const TB_MGMT_ROLES = ['店长', '培训主管', '培训员'];
+function tbIsFrontline(emp) { return !TB_MGMT_ROLES.includes(emp.role); }
+
+// Coverage for a position. When excludeMgmt is true, management/trainer-track
+// staff are dropped from the counts. Always also returns the full (unfiltered)
+// independent count so the UI can show "10 → 6" style deltas.
+function tbCoverage(posName, excludeMgmt) {
+  let independent = 0, trainers = 0, learning = 0, independentAll = 0;
   for (const e of employees) {
     const lv = tbLevel(e, posName);
+    if (lv >= 2) independentAll++;
+    if (excludeMgmt && !tbIsFrontline(e)) continue;  // skip mgmt when filtering
     if (lv === 3) { trainers++; independent++; }
     else if (lv === 2) independent++;
     else if (lv === 1) learning++;
   }
-  return { independent, trainers, learning };
+  return { independent, trainers, learning, independentAll };
 }
 
 // Risk tier from independent count: ≤1 risk, =2 warn, ≥3 ok.
@@ -2097,7 +2144,7 @@ function renderTalentTab() {
   const onDuty = employees.length;
   const learningCount = employees.filter(e => (e.training||[]).length > 0).length;
   const multiCount = employees.filter(tbIsMultiSkilled).length;
-  const riskCount = positions.filter(p => tbRiskTier(p, tbCoverage(p).independent) === 'risk').length;
+  const riskCount = positions.filter(p => tbRiskTier(p, tbCoverage(p, state.tbExcludeMgmt).independent) === 'risk').length;
 
   const stats = el('div', { class: 'tb-stats' });
   const mkStat = (label, val, danger) => {
@@ -2160,8 +2207,25 @@ function renderTalentTab() {
     riskTitle.appendChild(thBtn);
   }
   frag.appendChild(riskTitle);
-  frag.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', margin:'0 0 10px' } },
+  frag.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', margin:'0 0 8px' } },
     '按"能独立顶岗 (L2 及以上) 的人数"评估每个岗位的抗风险能力。'));
+
+  // Exclude-management toggle — see true front-line bench strength.
+  const exToggle = el('label', { class: 'tb-ex-toggle' });
+  const exCb = el('input', { type: 'checkbox' });
+  exCb.checked = !!state.tbExcludeMgmt;
+  exCb.addEventListener('change', (e) => saveTbExcludeMgmt(e.target.checked));
+  exToggle.appendChild(exCb);
+  exToggle.appendChild(el('span', {}, '仅统计一线员工（排除店长 / 培训主管 / 培训员）'));
+  frag.appendChild(exToggle);
+  if (state.tbExcludeMgmt) {
+    const exCount = employees.filter(e => !tbIsFrontline(e)).length;
+    frag.appendChild(el('p', { style: { fontSize:'11px', color:'var(--text-muted)', margin:'2px 0 10px' } },
+      `已排除 ${exCount} 名管理 / 培训人员，下列为一线可长期顶岗的口径。`));
+  } else {
+    frag.appendChild(el('div', { style: { height:'8px' } }));
+  }
+
   if (isManager && talentState.editThresholds) {
     frag.appendChild(tbRenderThresholdEditor(positions));
   }
@@ -2193,7 +2257,7 @@ function tbRenderThresholdEditor(positions) {
   for (const p of positions) {
     const cur = tbThreshold(p);
     const set = (state.posThresholds || {})[p] || {};
-    const c = tbCoverage(p);
+    const c = tbCoverage(p, state.tbExcludeMgmt);
     const row = el('div', { style: { display:'flex', alignItems:'center', gap:'8px', padding:'5px 0', borderTop:'1px solid var(--gray-100)' } });
     row.appendChild(el('div', { class: 'tb-skedit-name', style: { flex:'1' } }, tbPosShort(p)));
 
@@ -2241,11 +2305,12 @@ function tbRenderMatrix(positions, isManager) {
   const cov = el('tr', { class: 'tb-cover-row' });
   cov.appendChild(el('th', { class: 'tb-name' }, '岗位覆盖'));
   for (const p of positions) {
-    const c = tbCoverage(p);
+    const c = tbCoverage(p, state.tbExcludeMgmt);
     const tier = tbRiskTier(p, c.independent);
     const cls = tier === 'risk' ? 'tb-cover-risk' : tier === 'warn' ? 'tb-cover-warn' : 'tb-cover-ok';
     const th = tbThreshold(p);
-    cov.appendChild(el('th', { class: cls, title: `独立 ${c.independent} · 师傅 ${c.trainers} · 在训 ${c.learning}（红线<${th.red}，黄线<${th.yellow}）` },
+    const delta = (state.tbExcludeMgmt && c.independentAll !== c.independent) ? `（全员 ${c.independentAll}）` : '';
+    cov.appendChild(el('th', { class: cls, title: `一线独立 ${c.independent}${delta} · 师傅 ${c.trainers} · 在训 ${c.learning}（红线<${th.red}，黄线<${th.yellow}）` },
       c.independent + (tier === 'risk' ? '!' : '')));
   }
   thead.appendChild(cov);
@@ -2316,8 +2381,9 @@ function tbRenderCards(positions) {
 // ── Risk cards ──
 function tbRenderRisk(positions) {
   const frag = document.createDocumentFragment();
+  const ex = state.tbExcludeMgmt;
   const ranked = positions
-    .map(p => ({ p, c: tbCoverage(p), tier: tbRiskTier(p, tbCoverage(p).independent) }))
+    .map(p => ({ p, c: tbCoverage(p, ex), tier: tbRiskTier(p, tbCoverage(p, ex).independent) }))
     .sort((a, b) => a.c.independent - b.c.independent);
 
   for (const { p, c, tier } of ranked) {
@@ -2335,20 +2401,23 @@ function tbRenderRisk(positions) {
     head.appendChild(badge(tierLabel, tierBadge));
     card.appendChild(head);
 
+    const delta = (ex && c.independentAll !== c.independent)
+      ? `（含管理层共 ${c.independentAll} 人）` : '';
     card.appendChild(el('div', { class: 'tb-risk-meta' },
-      `独立顶岗 ${c.independent} 人 · 师傅 ${c.trainers} 人 · 在训 ${c.learning} 人`));
+      `一线独立顶岗 ${c.independent} 人${delta} · 师傅 ${c.trainers} 人 · 在训 ${c.learning} 人`));
 
-    // Advice + who holds it (uses this position's own thresholds)
+    // Advice + who holds it (uses this position's own thresholds).
+    // Holders list respects the exclude-mgmt filter so it matches the count.
     const thr = tbThreshold(p);
     let advice = '';
     if (tier === 'risk') {
-      const holders = employees.filter(e => tbLevel(e, p) >= 2).map(e => e.shortName);
-      const gap = thr.yellow - c.independent;
+      const holders = employees.filter(e => tbLevel(e, p) >= 2 && (!ex || tbIsFrontline(e))).map(e => e.shortName);
+      const gap = Math.max(1, thr.yellow - c.independent);
       advice = c.independent === 0
-        ? `当前无人能独立顶岗，须立即安排培养（健康线 ${thr.yellow} 人）。`
-        : `${holders.join('、')} 扛岗，低于红线 ${thr.red} 人。建议再培养 ${gap} 人达到健康线 ${thr.yellow} 人。`;
+        ? `当前无一线员工能独立顶岗，须立即安排培养（健康线 ${thr.yellow} 人）。`
+        : `${holders.join('、')} 扛岗，低于红线 ${thr.red} 人。建议再培养 ${gap} 名一线员工达到健康线 ${thr.yellow} 人。`;
     } else if (tier === 'warn') {
-      const gap = thr.yellow - c.independent;
+      const gap = Math.max(1, thr.yellow - c.independent);
       advice = c.learning > 0
         ? `已有人在训，保持跟进即可达到健康线 ${thr.yellow} 人。`
         : `未达健康线，建议再培养 ${gap} 人（目标 ${thr.yellow} 人）。`;
