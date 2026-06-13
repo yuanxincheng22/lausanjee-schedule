@@ -956,6 +956,12 @@ const POSITION_SLOT_MAP = {
   'B鸡':     'B Chicken',
   'C剁鸡':   'C Chop',
   'D饮料':   'D Drink',
+  // ── 兼容看板简称写法（曾用于显示，可能混入数据）──
+  'A1 炒':   'A1 Wok',
+  'A2 蒸':   'A2 Steam',
+  'C 砍':    'C Chop',   // “砍”是 C Chop（剁鸡）的旧简称 — 注意：与“切配/Cutting”是不同岗位
+  'D 饮':    'D Drink',
+  '切配':    'Cutting',  // 切菜，独立岗位，绝不并入 C Chop
   // Cutting / Dishwash / Reserve / PIC 本身已是英文，无需映射
 };
 
@@ -1981,9 +1987,13 @@ let talentState = { view: 'matrix', editThresholds: false };  // 'matrix' | 'car
 
 // Returns the skill level (0-3) of an employee for a given position name.
 function tbLevel(emp, posName) {
-  if ((emp.canTrain || []).includes(posName))  return 3;
-  if ((emp.positions || []).includes(posName)) return 2;
-  if ((emp.training  || []).includes(posName)) return 1;
+  // Compare by canonical name so a station stored under any writing
+  // (e.g. 'A1 炒菜' vs 'A1 Wok') is matched consistently.
+  const target = toCanonicalPos(posName);
+  const has = (arr) => (arr || []).some(p => toCanonicalPos(p) === target);
+  if (has(emp.canTrain))  return 3;
+  if (has(emp.positions)) return 2;
+  if (has(emp.training))  return 1;
   return 0;
 }
 
@@ -1992,18 +2002,31 @@ function tbLevel(emp, posName) {
 // Excludes "anyone can do" utility slots (Dacai/Dishwash/Reserve).
 const TB_EXCLUDE = ['Dacai', 'Dishwash', 'Reserve'];
 function tbPositions() {
-  const fromMaster = (allPositions || []).map(p => p.name);
-  const set = new Set(fromMaster);
+  // Collect every position string that appears, but DEDUPE BY CANONICAL NAME.
+  // The data may mix writings of the same station (e.g. 'A1 Wok' vs 'A1 炒菜'),
+  // which all map to one canonical id via toCanonicalPos(). Without canonical
+  // dedupe, the same station would appear as multiple identical-looking rows.
+  const byCanon = new Map();  // canonical → representative raw name
+  const consider = (raw) => {
+    const canon = toCanonicalPos(raw);
+    if (TB_EXCLUDE.includes(canon)) return;
+    // Prefer the canonical form itself as the representative when present,
+    // so editing/saving always writes the canonical name going forward.
+    if (!byCanon.has(canon) || raw === canon) byCanon.set(canon, raw === canon ? raw : byCanon.get(canon) ?? raw);
+  };
+  for (const p of (allPositions || []).map(p => p.name)) consider(p);
   for (const e of employees) {
-    for (const p of [...(e.positions||[]), ...(e.canTrain||[]), ...(e.training||[])]) set.add(p);
+    for (const p of [...(e.positions||[]), ...(e.canTrain||[]), ...(e.training||[])]) consider(p);
   }
-  let list = [...set].filter(p => !TB_EXCLUDE.includes(toCanonicalPos(p)));
+  // Use canonical names as the working list — one entry per station.
+  let list = [...byCanon.keys()];
+
   // Stable ordering: by area (后厨 first), then by master sort_order if known
-  const order = {}; (allPositions||[]).forEach(p => order[p.name] = p.sort_order ?? 999);
+  const order = {}; (allPositions||[]).forEach(p => order[toCanonicalPos(p.name)] = p.sort_order ?? 999);
   const KITCHEN = new Set(KITCHEN_POSITIONS);
   list.sort((a, b) => {
-    const ka = KITCHEN.has(toCanonicalPos(a)) ? 0 : 1;
-    const kb = KITCHEN.has(toCanonicalPos(b)) ? 0 : 1;
+    const ka = KITCHEN.has(a) ? 0 : 1;
+    const kb = KITCHEN.has(b) ? 0 : 1;
     if (ka !== kb) return ka - kb;
     return (order[a] ?? 999) - (order[b] ?? 999) || a.localeCompare(b);
   });
@@ -2014,7 +2037,7 @@ function tbPositions() {
 function tbPosShort(posName) {
   const canon = toCanonicalPos(posName);
   const map = {
-    'A1 Wok':'A1 炒','A2 Steam':'A2 蒸','B Chicken':'B 鸡','C Chop':'C 砍',
+    'A1 Wok':'A1 炒','A2 Steam':'A2 蒸','B Chicken':'B 鸡','C Chop':'C 剁鸡',
     'Cutting':'切配','D Drink':'D 饮','Service':'前厅','PIC':'PIC',
   };
   return map[canon] || posName;
@@ -2090,7 +2113,15 @@ function renderTalentTab() {
   frag.appendChild(stats);
 
   // ── Skill matrix section ──
-  frag.appendChild(el('div', { class: 'tb-section-title' }, icon('table'), '技能矩阵'));
+  const matrixTitle = el('div', { class: 'tb-section-title', style: { justifyContent:'space-between' } });
+  matrixTitle.appendChild(el('span', { style: { display:'flex', alignItems:'center', gap:'6px' } }, icon('table'), '技能矩阵'));
+  if (isManager) {
+    const normBtn = el('button', { class: 'btn-sm', style: { padding:'2px 8px' }, onClick: openNormalizeModal });
+    normBtn.appendChild(icon('wand'));
+    normBtn.appendChild(document.createTextNode(' 规范化数据'));
+    matrixTitle.appendChild(normBtn);
+  }
+  frag.appendChild(matrixTitle);
 
   const toggle = el('div', { class: 'tb-viewtoggle' });
   const mkToggle = (key, label) => el('button', {
@@ -2335,13 +2366,17 @@ function tbRenderRisk(positions) {
 async function tbSetSkill(empId, posName, level) {
   const emp = employees.find(e => e.id === empId);
   if (!emp) return;
-  // Clean removal from all three arrays, then add to the right one(s).
-  const training  = (emp.training  || []).filter(p => p !== posName);
-  const positions = (emp.positions || []).filter(p => p !== posName);
-  const canTrain  = (emp.canTrain  || []).filter(p => p !== posName);
-  if (level === 1) training.push(posName);
-  if (level === 2) positions.push(posName);
-  if (level === 3) { positions.push(posName); canTrain.push(posName); }
+  const canon = toCanonicalPos(posName);
+  // Remove the station under ANY writing (canonical or variant) from all three
+  // arrays, then re-add under the canonical name. This also self-heals legacy
+  // data: editing a station rewrites it to the canonical form everywhere.
+  const drop = (arr) => (arr || []).filter(p => toCanonicalPos(p) !== canon);
+  const training  = drop(emp.training);
+  const positions = drop(emp.positions);
+  const canTrain  = drop(emp.canTrain);
+  if (level === 1) training.push(canon);
+  if (level === 2) positions.push(canon);
+  if (level === 3) { positions.push(canon); canTrain.push(canon); }
 
   const updated = { ...emp, training, positions, canTrain };
   try {
@@ -2356,6 +2391,203 @@ async function tbCycleSkill(empId, posName) {
   if (!emp) return;
   const next = (tbLevel(emp, posName) + 1) % 4;
   await tbSetSkill(empId, posName, next);
+}
+
+// =============================================================================
+// DATA NORMALIZATION (一键规范化)
+// =============================================================================
+// Rewrites every employee's positions/canTrain/training to canonical English
+// names, de-duplicates, and reports anything it doesn't recognise. Storage
+// layer becomes uniformly English; display stays Chinese via tbPosShort.
+
+// The set of valid canonical names a station can normalise to.
+const TB_CANONICAL_SET = ['A1 Wok','A2 Steam','B Chicken','C Chop','Cutting','D Drink','Service','PIC','Dacai','Dishwash','Reserve'];
+
+// Normalise one raw position string. Returns { canon, known }.
+// known=false means the writing isn't in our map AND isn't already canonical —
+// we keep it untouched and surface it for the manager to review.
+function tbNormalizeOne(raw) {
+  const mapped = toCanonicalPos(raw);  // applies POSITION_SLOT_MAP, else returns raw
+  const known = TB_CANONICAL_SET.includes(mapped);
+  return { canon: mapped, known };
+}
+
+// Normalise one employee's three skill arrays. Returns the cleaned arrays plus
+// a per-array changelog. Does NOT touch any other field. De-dupes by canonical.
+function tbNormalizeEmployee(emp) {
+  const unknown = new Set();
+  const cleanArr = (arr) => {
+    const seen = new Set();
+    const out = [];
+    for (const raw of (arr || [])) {
+      const { canon, known } = tbNormalizeOne(raw);
+      if (!known) unknown.add(raw);
+      if (seen.has(canon)) continue;  // de-dup by canonical
+      seen.add(canon);
+      out.push(canon);
+    }
+    return out;
+  };
+  const positions = cleanArr(emp.positions);
+  const canTrain  = cleanArr(emp.canTrain);
+  const training  = cleanArr(emp.training);
+
+  // Invariant: a station can't be both "still learning" (training) and already
+  // "independent/master" (positions). If both exist after cleaning, the higher
+  // level wins — drop it from training.
+  const trainingFiltered = training.filter(p => !positions.includes(p) && !canTrain.includes(p));
+
+  return { positions, canTrain, training: trainingFiltered, unknown: [...unknown] };
+}
+
+// Build a preview of all changes without writing anything.
+function tbBuildNormalizationPreview() {
+  const changes = [];   // { emp, before:{...}, after:{...} }
+  const unknownAll = new Set();
+  for (const emp of employees) {
+    const after = tbNormalizeEmployee(emp);
+    const before = {
+      positions: [...(emp.positions||[])],
+      canTrain:  [...(emp.canTrain||[])],
+      training:  [...(emp.training||[])],
+    };
+    after.unknown.forEach(u => unknownAll.add(u));
+    const changed =
+      JSON.stringify(before.positions) !== JSON.stringify(after.positions) ||
+      JSON.stringify(before.canTrain)  !== JSON.stringify(after.canTrain)  ||
+      JSON.stringify(before.training)  !== JSON.stringify(after.training);
+    if (changed) changes.push({ emp, before, after });
+  }
+  return { changes, unknown: [...unknownAll] };
+}
+
+// Normalization modal state
+let normModal = { open: false, preview: null, running: false, done: null, error: '' };
+
+function openNormalizeModal() {
+  normModal = { open: true, preview: tbBuildNormalizationPreview(), running: false, done: null, error: '' };
+  render();
+}
+function closeNormalizeModal() { normModal = { open: false, preview: null, running: false, done: null, error: '' }; render(); }
+
+// Execute: write all changed employees back to Supabase.
+async function tbRunNormalization() {
+  if (!normModal.preview) return;
+  normModal.running = true; render();
+  let savedCount = 0, mergedDupes = 0, failed = 0;
+  for (const ch of normModal.preview.changes) {
+    // count merged duplicates (length shrinkage across the three arrays)
+    const beforeLen = ch.before.positions.length + ch.before.canTrain.length + ch.before.training.length;
+    const afterLen  = ch.after.positions.length + ch.after.canTrain.length + ch.after.training.length;
+    if (afterLen < beforeLen) mergedDupes += (beforeLen - afterLen);
+    try {
+      await saveEmployee({
+        ...ch.emp,
+        positions: ch.after.positions,
+        canTrain:  ch.after.canTrain,
+        training:  ch.after.training,
+      });
+      savedCount++;
+    } catch (e) {
+      failed++; console.error('normalize save failed for', ch.emp.shortName, e?.message || e);
+    }
+  }
+  normModal.running = false;
+  normModal.done = { savedCount, mergedDupes, failed, unknown: normModal.preview.unknown };
+  render();
+}
+
+function renderNormalizeModal() {
+  if (!normModal.open) return null;
+  const overlay = el('div', { class: 'modal-overlay', onClick: (e) => { if (e.target === overlay && !normModal.running) closeNormalizeModal(); } });
+  const box = el('div', { class: 'modal-box', style: { maxWidth:'560px' } });
+
+  const header = el('div', { class: 'modal-header' });
+  header.appendChild(el('div', { style: { fontWeight:'700', fontSize:'15px', display:'flex', alignItems:'center', gap:'6px' } }, icon('wand'), '规范化岗位数据'));
+  if (!normModal.running) header.appendChild(el('button', { class: 'btn-sm', onClick: closeNormalizeModal }, icon('x')));
+  box.appendChild(header);
+
+  const body = el('div', { class: 'modal-body' });
+
+  // ── Done state: show summary report ──
+  if (normModal.done) {
+    const d = normModal.done;
+    const ok = el('div', { class: 'tb-banner', style: { background:'var(--green-50)', borderColor:'var(--green-100)', color:'var(--green-700)' } },
+      `完成：已规范化 ${d.savedCount} 名员工，合并重复 ${d.mergedDupes} 条。` + (d.failed ? ` ${d.failed} 名保存失败（见控制台）。` : ''));
+    body.appendChild(ok);
+    if (d.unknown.length) {
+      body.appendChild(el('div', { class: 'tb-banner', style: { marginTop:'8px' } },
+        '以下写法不在已知映射中，已原样保留，请手动检查：' + d.unknown.join('、')));
+    }
+    body.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', marginTop:'10px' } },
+      '所有技能数据现已统一为标准名称。排班、矩阵、风险预警将使用一致的岗位口径。'));
+    box.appendChild(body);
+    const footer = el('div', { class: 'modal-footer' });
+    footer.appendChild(el('button', { class: 'btn-primary', onClick: closeNormalizeModal }, '知道了'));
+    box.appendChild(footer);
+    overlay.appendChild(box);
+    return overlay;
+  }
+
+  // ── Preview state ──
+  const pv = normModal.preview;
+  if (!pv || pv.changes.length === 0) {
+    body.appendChild(el('div', { class: 'tb-banner', style: { background:'var(--green-50)', borderColor:'var(--green-100)', color:'var(--green-700)' } },
+      '全店数据已经是规范格式，无需清洗。'));
+    if (pv && pv.unknown.length) {
+      body.appendChild(el('div', { class: 'tb-banner', style: { marginTop:'8px' } },
+        '但发现未知写法（已保留）：' + pv.unknown.join('、')));
+    }
+    box.appendChild(body);
+    const footer = el('div', { class: 'modal-footer' });
+    footer.appendChild(el('button', { class: 'btn-primary', onClick: closeNormalizeModal }, '关闭'));
+    box.appendChild(footer);
+    overlay.appendChild(box);
+    return overlay;
+  }
+
+  body.appendChild(el('p', { style: { fontSize:'13px', marginBottom:'4px' } },
+    `将规范化 ${pv.changes.length} 名员工的技能数据。请先确认下列改动：`));
+  body.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', marginBottom:'10px' } },
+    '强烈建议先在 Supabase 后台导出 employees 表备份。此操作直接写入数据库，无法自动撤销。'));
+
+  if (pv.unknown.length) {
+    body.appendChild(el('div', { class: 'tb-banner', style: { marginBottom:'10px' } },
+      '注意：以下写法不在已知映射中，将原样保留不动：' + pv.unknown.join('、')));
+  }
+
+  // Change list
+  const list = el('div', { style: { maxHeight:'320px', overflowY:'auto', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' } });
+  const fmtArr = (arr) => arr.length ? arr.map(tbPosShort).join('、') : '（空）';
+  for (const ch of pv.changes) {
+    const row = el('div', { style: { padding:'8px 11px', borderTop:'1px solid var(--gray-100)' } });
+    row.appendChild(el('div', { style: { fontWeight:'600', fontSize:'13px', marginBottom:'3px' } }, ch.emp.shortName));
+    const mkLine = (label, before, after) => {
+      if (JSON.stringify(before) === JSON.stringify(after)) return;
+      const line = el('div', { style: { fontSize:'12px', color:'var(--text-sub)', lineHeight:'1.5' } });
+      line.appendChild(el('span', {}, `${label}：`));
+      line.appendChild(el('span', { style: { textDecoration:'line-through', color:'var(--text-muted)' } }, before.join('、') || '（空）'));
+      line.appendChild(el('span', {}, ' → '));
+      line.appendChild(el('span', { style: { color:'var(--green-700)' } }, fmtArr(after)));
+      row.appendChild(line);
+    };
+    mkLine('独立', ch.before.positions, ch.after.positions);
+    mkLine('带训', ch.before.canTrain, ch.after.canTrain);
+    mkLine('在训', ch.before.training, ch.after.training);
+    list.appendChild(row);
+  }
+  body.appendChild(list);
+  box.appendChild(body);
+
+  const footer = el('div', { class: 'modal-footer' });
+  footer.appendChild(el('button', { class: 'btn-sm', onClick: closeNormalizeModal, disabled: normModal.running }, '取消'));
+  const runBtn = el('button', { class: 'btn-primary', onClick: tbRunNormalization, disabled: normModal.running },
+    normModal.running ? '正在写入…' : `确认规范化 ${pv.changes.length} 名员工`);
+  footer.appendChild(runBtn);
+  box.appendChild(footer);
+
+  overlay.appendChild(box);
+  return overlay;
 }
 
 // =============================================================================
@@ -4980,6 +5212,10 @@ function render() {
   // ── Dev card modal (talent board) ──
   const devCardEl = renderDevCard();
   if (devCardEl) appEl.appendChild(devCardEl);
+
+  // ── Data normalization modal (talent board) ──
+  const normEl = renderNormalizeModal();
+  if (normEl) appEl.appendChild(normEl);
 }
 
 // =============================================================================
