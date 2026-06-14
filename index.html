@@ -1050,6 +1050,31 @@ const BASE_SLOTS = [
 ];
 
 // =============================================================================
+// POSITION → AREA RESOLVER (shared)
+// =============================================================================
+// 为什么需要它：原先 empHomeArea / getEmpArea 用 `allPositions.find(p => p.name
+// === posName)` 直接字符串比较来定位岗位所在区域。但 positions_master 存的是
+// 中文名（如 "前厅"），而员工 positions 多为英文（如 "Service"），`===` 永远
+// 匹配不上 → 静默返回兜底值 "后备"，导致「前厅 FOH」覆盖行长期读成 ~0、Roster
+// 大量员工被错分到「后备」。
+// 修复：① 按 canonical（归一化）名匹配 positions_master；② 匹配不到时回退到
+// 始终存在的 BASE_SLOTS 的 pos→area 映射；③ 都没有才返回 "后备"。
+const BASE_POS_AREA = (() => {
+  const m = {};
+  for (const s of BASE_SLOTS) m[s.pos] = s.area;   // canonical pos → area
+  return m;
+})();
+
+// 解析任意岗位名（英文 / 中文 / 旧写法）对应的区域。
+// 优先级：positions_master(canonical 匹配) → BASE_SLOTS → '后备'。
+function getPositionArea(posName) {
+  const canon  = toCanonicalPos(posName);
+  const master = (allPositions || []).find(p => toCanonicalPos(p.name) === canon);
+  if (master && master.area) return master.area;
+  return BASE_POS_AREA[canon] || '后备';
+}
+
+// =============================================================================
 // EMPLOYEE DATA  (48 staff, in Excel order)
 // Fields: id, fullName, shortName, role, positions(L2), canTrain(L3), training(L1), tags, offDay, devGoals, coachingLog
 // =============================================================================
@@ -3412,8 +3437,8 @@ function renderWeekPreview() {
   function empHomeArea(emp) {
     const counts = {};
     for (const posName of (emp.positions || [])) {
-      const posObj = allPositions.find(p => p.name === posName);
-      if (posObj) counts[posObj.area] = (counts[posObj.area] || 0) + 1;
+      const area = getPositionArea(posName);   // canonical 解析，不再静默漏匹配
+      counts[area] = (counts[area] || 0) + 1;
     }
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     return sorted[0]?.[0] || '后备';
@@ -4205,11 +4230,11 @@ function renderRosterTab() {
     // Only show in 管理 if assigned to a PIC slot today
     const slot = mainMap[emp.id] || studentMap[emp.id]?.slot;
     if (slot) return slot.area;
-    // Fallback: majority area from positions list
+    // Fallback: majority area from positions list (resolved canonically)
     const counts = {};
-    for (const posName of emp.positions) {
-      const posObj = allPositions.find(p => p.name === posName);
-      if (posObj) counts[posObj.area] = (counts[posObj.area] || 0) + 1;
+    for (const posName of (emp.positions || [])) {
+      const area = getPositionArea(posName);
+      counts[area] = (counts[area] || 0) + 1;
     }
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     return sorted[0]?.[0] || '后备';
