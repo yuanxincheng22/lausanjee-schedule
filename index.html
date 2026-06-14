@@ -1984,13 +1984,20 @@ function renderScheduleTab(computed) {
 
         // Student slot (for kitchen positions and any trainable front positions like D Drink)
         if (isTrainablePos) {
-          const studentBox = el('div', { class: 'student-box', style: { opacity: canAddStudent ? '1' : '0.4' } });
+          // 已存在的学员可能变成"孤儿"：当主岗不再是合格 trainer 时（trainer 失去
+          // canTrain、主岗被换成非 trainer、或复制班表把学员连带搬了过来），
+          // canAddStudent 会变 false。若不显示出来，这个学员会被静默困住——仍占着
+          // 这个人，使其从其他下拉和"未排班"里消失，且无法清除。
+          const hasOrphanStudent = !canAddStudent && !!currentStuId;
+          const studentBox = el('div', { class: 'student-box', style: { opacity: (canAddStudent || hasOrphanStudent) ? '1' : '0.4' } });
           const studentLabel = el('div', { class: 'student-label' });
           studentLabel.appendChild(icon('school'));
           studentLabel.appendChild(document.createTextNode(
             canAddStudent
               ? (slot.pos === 'PIC' ? ' Student PIC' : ' Student')
-              : ' Need Trainer to add student'
+              : hasOrphanStudent
+                ? ' Student · trainer 已无资格'
+                : ' Need Trainer to add student'
           ));
           studentBox.appendChild(studentLabel);
 
@@ -2011,6 +2018,16 @@ function renderScheduleTab(computed) {
             if (!currentStuId) studentSel.value = '';
             studentSel.addEventListener('change', e => assignStudent(slot.id, e.target.value || undefined));
             studentBox.appendChild(studentSel);
+          } else if (hasOrphanStudent) {
+            // 把被困学员显示出来，并提供一键清除，使其重新可被排班。
+            const stuEmp = employees.find(e => e.id === currentStuId);
+            const row = el('div', { style: { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'6px', marginTop:'2px' } });
+            row.appendChild(el('span', { style: { fontSize:'12px', fontWeight:'600' } }, stuEmp ? stuEmp.shortName : currentStuId));
+            const clearBtn = el('button', { class: 'btn-sm btn-danger', style: { fontSize:'10px' }, onClick: () => assignStudent(slot.id, undefined) });
+            clearBtn.appendChild(icon('x'));
+            clearBtn.appendChild(document.createTextNode(' 清除'));
+            row.appendChild(clearBtn);
+            studentBox.appendChild(row);
           }
 
           slotWrap.appendChild(studentBox);
@@ -5123,6 +5140,16 @@ async function executeCopySchedule(sourceAssignments, sourceDate) {
     const entry = { ...a };
     if (entry.empId && absentIds.has(entry.empId))     { entry.empId = null; entry.studentId = null; blankedCount++; }
     if (entry.studentId && absentIds.has(entry.studentId)) { entry.studentId = null; }
+    // 若主岗已不是该岗位的合格 trainer（失去资格 / 换人 / 主岗空缺），
+    // 不要把学员一起搬过来，否则会在新一天制造一个看不见的"孤儿学员"。
+    if (entry.studentId) {
+      const slot = allSlots().find(s => s.id === slotId);
+      if (slot) {
+        const main = entry.empId ? employees.find(e => e.id === entry.empId) : null;
+        const trainerOk = !!main && (slot.pos === 'PIC' || isTrainerFor(main, slot.pos));
+        if (!trainerOk) entry.studentId = null;
+      }
+    }
     newAssignments[slotId] = entry;
   }
 
