@@ -680,6 +680,8 @@ async function loadEmployees() {
     console.error('loadEmployees', e?.message || e);
     employees         = DEFAULT_EMPLOYEES;
     inactiveEmployees = [];
+  } finally {
+    rebuildEmpIndex();   // employees 已更新，重建查找索引（覆盖所有分支）
   }
 }
 async function loadPositions() {
@@ -996,8 +998,14 @@ const POSITION_SLOT_MAP = {
 
 // Returns the canonical BASE_SLOTS pos name for any position name variant.
 // Falls back to the original name so English names (legacy records) still work.
+// 性能优化：结果只依赖固定的 POSITION_SLOT_MAP（程序运行期间不变），
+// 所以可以安全地把每个名称的翻译结果缓存下来，避免在大循环里被反复查表。
+const _canonCache = new Map();
 function toCanonicalPos(name) {
-  return POSITION_SLOT_MAP[name] ?? name;
+  if (_canonCache.has(name)) return _canonCache.get(name);
+  const result = POSITION_SLOT_MAP[name] ?? name;
+  _canonCache.set(name, result);
+  return result;
 }
 
 // =============================================================================
@@ -1139,6 +1147,22 @@ let inactiveEmployees = [];   // is_active=false
 let allPositions      = [];   // positions_master table
 let talentColumnsMissing = false;  // set true if Supabase lacks training/dev_goals/coaching_log cols
 let posThresholdColMissing = false;  // set true if coverage_settings lacks pos_thresholds col
+
+// ── 员工查找索引 ────────────────────────────────────────────────────────────
+// 性能优化：原先到处用 getEmp(id)，等于「从头挨个找」，
+// 还写在循环里，重复了几百次。这里维护一本「电话簿」(id → 员工)，查谁都是秒查。
+// 注意：只索引在职员工 employees，与原 employees.find(...) 的查找范围完全一致，
+//       不会改变任何现有行为（离职员工原本也查不到）。
+// 任何给 employees 重新赋值的地方都要调用一次 rebuildEmpIndex()。
+let _empById = new Map();
+function rebuildEmpIndex() {
+  _empById = new Map();
+  for (const e of employees) _empById.set(e.id, e);
+}
+// 行为等价于原来的全表扫描查找：找不到时返回 undefined。
+function getEmp(id) {
+  return _empById.get(id);
+}
 
 // Employee edit modal state
 let empModal = {
@@ -1331,7 +1355,18 @@ function computeState() {
   };
 }
 
+// ── allSlots() 缓存 ──────────────────────────────────────────────────────────
+// 性能优化：原先每次调用都从头重算 30+ 个班次，而一次刷新会调用十几次。
+// 这里用一个「指纹」(slotOverrides + extraSlots 的 JSON) 判断数据有没有变：
+//   - 没变 → 直接返回上次的结果（秒回）；
+//   - 变了 → 重算并记下新指纹。
+// 因为指纹覆盖了唯一两个会影响结果的来源，所以无需手动清缓存，永远不会读到过期数据。
+let _slotsCache    = null;
+let _slotsCacheKey = null;
 function allSlots() {
+  const key = JSON.stringify(state.slotOverrides) + '|' + JSON.stringify(state.extraSlots);
+  if (_slotsCache !== null && key === _slotsCacheKey) return _slotsCache;
+
   // Apply permanent slot_overrides on top of BASE_SLOTS
   const base = BASE_SLOTS.map(s => {
     const ov = state.slotOverrides[s.id];
@@ -1339,7 +1374,9 @@ function allSlots() {
     return { ...s, startHour: ov.startHour, endHour: ov.endHour,
              shift: formatHourNum(ov.startHour) + '–' + formatHourNum(ov.endHour) };
   });
-  return [...base, ...state.extraSlots];
+  _slotsCache    = [...base, ...state.extraSlots];
+  _slotsCacheKey = key;
+  return _slotsCache;
 }
 
 // Returns a slot with any per-day time override applied (from assignments.timeOverride)
@@ -1652,7 +1689,7 @@ function renderDayMetaPanel() {
   if (noShow.length) {
     const chips = el('div', { class:'daymeta-tags', style:{ marginTop:'6px' } });
     for (const id of noShow) {
-      const emp  = employees.find(e => e.id === id);
+      const emp  = getEmp(id);
       const chip = el('span', { class:'absent-chip' }, emp ? emp.shortName : id);
       chip.appendChild(el('i', { class:'ti ti-x', style:{ marginLeft:'4px', cursor:'pointer' },
         onClick: () => { m.unplannedAbsent = m.unplannedAbsent.filter(x => x !== id); scheduleSave(); render(); } }));
@@ -1665,7 +1702,7 @@ function renderDayMetaPanel() {
     '计划可用 ', el('b', {}, String(planned)), ' 人 · 实际出勤 ', el('b', {}, String(actualOnDuty)), ' 人');
   if (noShow.length) hcInfo.appendChild(el('span', { class:'short' }, ` (临时缺 ${noShow.length})`));
   if (onLeaveIds.length) {
-    const onLeaveNames = onLeaveIds.map(id => (employees.find(e => e.id === id) || {}).shortName || id);
+    const onLeaveNames = onLeaveIds.map(id => (getEmp(id) || {}).shortName || id);
     hcInfo.appendChild(el('div', { class:'absent' }, `已请假：${onLeaveNames.join('、')}`));
   }
   hcGroup.appendChild(hcInfo);
@@ -1845,7 +1882,7 @@ function renderScheduleTab(computed) {
         const currentStuId = assignment.studentId;
         const isFilled     = !!currentEmpId;
 
-        const mainEmployee   = employees.find(e => e.id === currentEmpId);
+        const mainEmployee   = getEmp(currentEmpId);
         const canAddStudent  = isFilled && isTrainablePos && mainEmployee
           && (slot.pos === 'PIC' || isTrainerFor(mainEmployee, slot.pos));
 
@@ -2020,7 +2057,7 @@ function renderScheduleTab(computed) {
             studentBox.appendChild(studentSel);
           } else if (hasOrphanStudent) {
             // 把被困学员显示出来，并提供一键清除，使其重新可被排班。
-            const stuEmp = employees.find(e => e.id === currentStuId);
+            const stuEmp = getEmp(currentStuId);
             const row = el('div', { style: { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'6px', marginTop:'2px' } });
             row.appendChild(el('span', { style: { fontSize:'12px', fontWeight:'600' } }, stuEmp ? stuEmp.shortName : currentStuId));
             const clearBtn = el('button', { class: 'btn-sm btn-danger', style: { fontSize:'10px' }, onClick: () => assignStudent(slot.id, undefined) });
@@ -2475,7 +2512,7 @@ function tbRenderRisk(positions) {
 // for all skill mutations — both the matrix cell-cycle and the dev-card editor
 // route through here, so the three arrays can never drift out of sync.
 async function tbSetSkill(empId, posName, level) {
-  const emp = employees.find(e => e.id === empId);
+  const emp = getEmp(empId);
   if (!emp) return;
   const canon = toCanonicalPos(posName);
   // Remove the station under ANY writing (canonical or variant) from all three
@@ -2498,7 +2535,7 @@ async function tbSetSkill(empId, posName, level) {
 }
 
 async function tbCycleSkill(empId, posName) {
-  const emp = employees.find(e => e.id === empId);
+  const emp = getEmp(empId);
   if (!emp) return;
   const next = (tbLevel(emp, posName) + 1) % 4;
   await tbSetSkill(empId, posName, next);
@@ -2727,7 +2764,7 @@ function tbSuggestNext(emp, positions) {
 
 function renderDevCard() {
   if (!devCard.open) return null;
-  const emp = employees.find(e => e.id === devCard.empId);
+  const emp = getEmp(devCard.empId);
   if (!emp) return null;
   const isManager = currentRole === 'manager';
   const positions = tbPositions();
@@ -2937,7 +2974,7 @@ function tbRenderGoalDraft(emp, positions) {
 async function tbAddLog(empId) {
   const note = (devCard.newLog || '').trim();
   if (!note) return;
-  const emp = employees.find(e => e.id === empId);
+  const emp = getEmp(empId);
   if (!emp) return;
   const today = todayLocalStr();
   const coachingLog = [...(emp.coachingLog||[]), { date: today, note }];
@@ -2945,13 +2982,13 @@ async function tbAddLog(empId) {
   try { await saveEmployee({ ...emp, coachingLog }); } catch(e) { console.error(e); }
 }
 async function tbRemoveLog(empId, idx) {
-  const emp = employees.find(e => e.id === empId);
+  const emp = getEmp(empId);
   if (!emp) return;
   const coachingLog = (emp.coachingLog||[]).filter((_, i) => i !== idx);
   try { await saveEmployee({ ...emp, coachingLog }); } catch(e) { console.error(e); }
 }
 async function tbSaveGoal(empId) {
-  const emp = employees.find(e => e.id === empId);
+  const emp = getEmp(empId);
   if (!emp || !devCard.goalDraft) return;
   const d = devCard.goalDraft;
   // Infer fromLevel from current skill
@@ -2962,13 +2999,13 @@ async function tbSaveGoal(empId) {
   try { await saveEmployee({ ...emp, devGoals }); } catch(e) { console.error(e); }
 }
 async function tbRemoveGoal(empId, idx) {
-  const emp = employees.find(e => e.id === empId);
+  const emp = getEmp(empId);
   if (!emp) return;
   const devGoals = (emp.devGoals||[]).filter((_, i) => i !== idx);
   try { await saveEmployee({ ...emp, devGoals }); } catch(e) { console.error(e); }
 }
 async function tbSetGoalProgress(empId, idx, val) {
-  const emp = employees.find(e => e.id === empId);
+  const emp = getEmp(empId);
   if (!emp) return;
   const devGoals = (emp.devGoals||[]).map((g, i) => i === idx ? { ...g, progress: val } : g);
   try { await saveEmployee({ ...emp, devGoals }); } catch(e) { console.error(e); }
@@ -3875,7 +3912,7 @@ function renderLeaveTab(computed) {
     frag.appendChild(el('p', { style: { fontSize:'13px', color:'var(--text-sub)', marginBottom:'12px' } }, 'No absences today.'));
   } else {
     for (const [empId, leaveType] of absList) {
-      const emp = employees.find(e => e.id === empId);
+      const emp = getEmp(empId);
       if (!emp) continue;
       const lt = LEAVE_TYPES[leaveType] || { label: leaveType, badgeClass: 'badge-gray' };
 
@@ -3927,7 +3964,7 @@ function renderLeaveTab(computed) {
   const typeSel  = createSelect(typeOpts, leaveForm.type, v => { leaveForm.type = v; });
 
   // ── Searchable employee picker ──
-  const currentEmp = leaveForm.employeeId ? employees.find(e => e.id === leaveForm.employeeId) : null;
+  const currentEmp = leaveForm.employeeId ? getEmp(leaveForm.employeeId) : null;
   const empSearchWrap = el('div', { class: 'emp-search-wrap' });
   const empSearchInput = el('input', {
     type: 'text',
@@ -4165,7 +4202,7 @@ function renderLeaveTab(computed) {
       if (drpEl) { drpEl.style.borderColor = 'var(--red-600)'; setTimeout(() => { drpEl.style.borderColor = ''; }, 1800); }
       return;
     }
-    const toastEmp = employees.find(e => e.id === leaveForm.employeeId);
+    const toastEmp = getEmp(leaveForm.employeeId);
     const { employeeId, fromDate, toDate, type } = leaveForm;
     leaveFormToast = { empName: toastEmp?.shortName || '', from: fromDate, to: toDate };
     leaveForm.employeeId = ''; leaveForm.fromDate = ''; leaveForm.toDate = ''; leaveForm.pickStep = 'from'; // reset for next entry
@@ -4195,7 +4232,7 @@ function renderLeaveTab(computed) {
     if (!Array.isArray(leaves)) continue;
     for (const [index, lv] of leaves.entries()) {
       if (lv.to >= state.selectedDate) {
-        const emp = employees.find(e => e.id === empId);
+        const emp = getEmp(empId);
         if (emp) upcoming.push({ emp, lv, empId, index });
       }
     }
@@ -4484,7 +4521,7 @@ function renderRosterTab() {
         lines.push(`${emp.shortName}\t${s.pos}\t${formatHourNum(s.startHour)}–${formatHourNum(s.endHour)}${isT ? ' (T)' : ''}`);
       } else if (sm[emp.id]) {
         const { s, tid } = sm[emp.id];
-        const t = employees.find(e => e.id === tid);
+        const t = getEmp(tid);
         lines.push(`${emp.shortName}\t${s.pos}\t${formatHourNum(s.startHour)}–${formatHourNum(s.endHour)} (Student w/ ${t?.shortName || '?'})`);
       } else {
         lines.push(`${emp.shortName}\t—`);
@@ -4563,8 +4600,8 @@ function renderGanttTab() {
 
     for (const slot of areaSlots) {
       const assignment  = state.assignments[slot.id];
-      const mainEmp     = employees.find(e => e.id === assignment.empId);
-      const studentEmp  = assignment.studentId ? employees.find(e => e.id === assignment.studentId) : null;
+      const mainEmp     = getEmp(assignment.empId);
+      const studentEmp  = assignment.studentId ? getEmp(assignment.studentId) : null;
       const isTrainer   = KITCHEN_POSITIONS.includes(slot.pos) && mainEmp && isTrainerFor(mainEmp, slot.pos);
 
       // Clamp bar to view window
@@ -4661,8 +4698,8 @@ function renderAttendanceTab() {
     const assignment = state.assignments[slot.id];
     if (!assignment?.empId) continue;
 
-    const mainEmp    = employees.find(e => e.id === assignment.empId);
-    const studentEmp = assignment.studentId ? employees.find(e => e.id === assignment.studentId) : null;
+    const mainEmp    = getEmp(assignment.empId);
+    const studentEmp = assignment.studentId ? getEmp(assignment.studentId) : null;
 
     const eff            = getEffectiveSlot(slot);
     const hours          = eff.endHour - eff.startHour;
@@ -4718,7 +4755,7 @@ function renderAttendanceTab() {
   if (absList.length > 0) {
     tbody.appendChild(el('tr', {}, el('td', { colspan: '8', style: { padding:'8px 12px', fontWeight:'700', fontSize:'11px', color:'var(--text-sub)', background:'var(--gray-50)', textTransform:'uppercase', letterSpacing:'0.4px' } }, 'Leave Record')));
     for (const [empId, leaveType] of absList) {
-      const emp = employees.find(e => e.id === empId);
+      const emp = getEmp(empId);
       if (!emp) continue;
       const lt  = LEAVE_TYPES[leaveType];
       const tr  = el('tr', {});
@@ -4743,7 +4780,7 @@ function renderAttendanceTab() {
     const header = ['Name','Full Name','Position','Sched In','Sched Out','Actual In','Actual Out','Paid Hours'].join('\t');
     const body   = rows.map(r => [r.name, r.fullName, r.position, r.schedIn, r.schedOut, '', '', r.paidHours+'h'].join('\t')).join('\n');
     const lvRecs = Object.entries(absences).map(([id, t]) => {
-      const e = employees.find(x => x.id === id);
+      const e = getEmp(id);
       return e ? [e.shortName, e.fullName, '—','—','—','—','—', LEAVE_TYPES[t]?.label || t].join('\t') : '';
     }).filter(Boolean).join('\n');
 
@@ -4969,9 +5006,15 @@ function downloadCSV(filename, csv) {
 
 const WD_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-async function fetchAllScheduleRows() {
-  const { data, error } = await db.from('daily_schedule').select('*')
-    .eq('store_id', STORE_ID).order('schedule_date');
+// 性能/扩展性优化：历史排班会随时间无限增长，全量拉回浏览器是「数据涨10倍」时
+// 最先变慢的地方。这里加上可选的日期范围参数：
+//   - 不传参数 → 行为与原来完全一致（拉取全部，保证现有导出不受影响）；
+//   - 传入 fromDate / toDate → 只拉该区间，导出量受用户控制，不再随年份累积变慢。
+async function fetchAllScheduleRows(fromDate, toDate) {
+  let q = db.from('daily_schedule').select('*').eq('store_id', STORE_ID);
+  if (fromDate) q = q.gte('schedule_date', fromDate);
+  if (toDate)   q = q.lte('schedule_date', toDate);
+  const { data, error } = await q.order('schedule_date');
   if (error) throw error;
   return data || [];
 }
@@ -5004,9 +5047,9 @@ async function exportSummaryCSV() {
     const wd   = WD_SHORT[d.getDay()];
     const onLeaveIds   = Object.keys(getAbsencesForDate(date));
     const planned      = employees.length - onLeaveIds.length;
-    const onLeaveNames = onLeaveIds.map(id => (employees.find(e => e.id === id) || {}).shortName || id);
+    const onLeaveNames = onLeaveIds.map(id => (getEmp(id) || {}).shortName || id);
     const noShow       = (row.unplanned_absent || []);
-    const noShowNames  = noShow.map(id => (employees.find(e => e.id === id) || {}).shortName || id);
+    const noShowNames  = noShow.map(id => (getEmp(id) || {}).shortName || id);
     const actualAtt    = planned - noShow.length;
     const labor = computeRowLabor(row);
     const est = row.est_revenue, act = row.actual_revenue;
@@ -5047,7 +5090,7 @@ async function exportDetailCSV() {
       const paid  = (foh && !(sh >= 18) && h >= 8.5) ? h - 1 : h;
       const paidStr = (Math.round(paid * 10) / 10);
       const emit = (seat, empId) => {
-        const emp = employees.find(e => e.id === empId);
+        const emp = getEmp(empId);
         lines.push([date, wd, slot.area, slot.pos, slot.id,
           formatHourNum(sh), formatHourNum(eh), paidStr, seat,
           emp?.shortName || empId, emp?.fullName || ''].map(csvEscape).join(','));
@@ -5113,7 +5156,7 @@ async function initiateCopySchedule(sourceDate) {
   const absentNamesSet = new Set();
   for (const a of Object.values(sourceAssignments)) {
     if (a?.empId && absentIds.has(a.empId)) {
-      const emp = employees.find(e => e.id === a.empId);
+      const emp = getEmp(a.empId);
       if (emp) absentNamesSet.add(emp.shortName);
     }
   }
@@ -5145,7 +5188,7 @@ async function executeCopySchedule(sourceAssignments, sourceDate) {
     if (entry.studentId) {
       const slot = allSlots().find(s => s.id === slotId);
       if (slot) {
-        const main = entry.empId ? employees.find(e => e.id === entry.empId) : null;
+        const main = entry.empId ? getEmp(entry.empId) : null;
         const trainerOk = !!main && (slot.pos === 'PIC' || isTrainerFor(main, slot.pos));
         if (!trainerOk) entry.studentId = null;
       }
