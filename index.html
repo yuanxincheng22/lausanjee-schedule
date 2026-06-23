@@ -1050,10 +1050,10 @@ function computeShiftChange(empId, todaySlot, yMap) {
   if (!yMap) return null;                 // no yesterday data -> never flag
   if (!todaySlot) return null;            // not on duty today -> nothing to flag
   const y = yMap[empId];
-  if (!y) return { kind: 'new', label: '今上' };   // off/absent yesterday -> on today
-  if (y.pos !== todaySlot.pos) return { kind: 'pos', label: '岗位变' };
+  if (!y) return { kind: 'new', label: 'NEW' };   // off/absent yesterday -> on today
+  if (y.pos !== todaySlot.pos) return { kind: 'pos', label: 'CP' };
   if (y.startHour !== todaySlot.startHour || y.endHour !== todaySlot.endHour) {
-    return { kind: 'time', label: '时间变' };
+    return { kind: 'time', label: 'CT' };
   }
   return null;
 }
@@ -2752,13 +2752,14 @@ function renderRosterTab() {
   const nowT  = new Date();
   const tStr  = String(nowT.getHours()).padStart(2,'0') + ':' + String(nowT.getMinutes()).padStart(2,'0');
   const footer = document.createElement('div');
-  footer.style.cssText = 'background:#1c1917;padding:9px 22px;display:flex;align-items:center;justify-content:space-between;';
+  footer.id = 'roster-footer';
+  footer.style.cssText = 'background:#1c1917;padding:9px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;';
   footer.innerHTML = `
     <div style="font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:.3px;">老乡鸡 IOI City Mall · 排班系统</div>
     <div style="font-size:10px;color:rgba(255,255,255,0.22);">Generated ${tStr}</div>`;
   card.appendChild(footer);
 
-  frag.appendChild(el('p', { class: 'roster-hint' }, '按区域分组 · 区域内按字母排序 · T = Trainer · S = Student · 🟢今上 🟡时间/岗位变 · 9h班自动标注 break'));
+  frag.appendChild(el('p', { class: 'roster-hint' }, '按区域分组 · 区域内按字母排序 · T = Trainer · S = Student · 🟢 NEW = 今天新上班 · 🟡 CT = change time · CP = change position · 9h班自动标注 break'));
   frag.appendChild(card);
 
   // ── Async: highlight employees whose shift changed vs. yesterday ──
@@ -2785,10 +2786,12 @@ function renderRosterTab() {
     const liveCard = document.getElementById('roster-export-card');
     if (!liveCard) return;
     const rows = liveCard.querySelectorAll('[data-emp-id]');
+    let changeCount = 0;
     rows.forEach(row => {
       const empId = row.dataset.empId;
       const change = computeShiftChange(empId, todayShiftMap[empId], yMap);
       if (!change) return;
+      changeCount++;
       const st = CHANGE_STYLE[change.kind];
       // Left color bar (occupies the reserved 3px gutter inside the 22px padding)
       const bar = document.createElement('div');
@@ -2805,6 +2808,27 @@ function renderRosterTab() {
         row.appendChild(chip);
       }
     });
+
+    // Inject a legend strip above the footer only when changes exist.
+    if (changeCount > 0 && !document.getElementById('roster-change-legend')) {
+      const footerEl = document.getElementById('roster-footer');
+      const legend = document.createElement('div');
+      legend.id = 'roster-change-legend';
+      legend.style.cssText = 'background:#fafaf9;border-top:1px solid #f0ede9;padding:7px 22px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;';
+      legend.innerHTML = `
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#57534e;font-weight:600;">
+          <span style="font-size:9px;font-weight:700;background:#dcfce7;color:#166534;border-radius:4px;padding:1px 5px;">NEW</span> 今天新上班 · on duty today
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#57534e;font-weight:600;">
+          <span style="font-size:9px;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;">CT</span> change time 时间变
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#57534e;font-weight:600;">
+          <span style="font-size:9px;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;">CP</span> change position 岗位变
+        </span>`;
+      if (footerEl && footerEl.parentNode) {
+        footerEl.parentNode.insertBefore(legend, footerEl);
+      }
+    }
   });
 
   // ── Action buttons ──
