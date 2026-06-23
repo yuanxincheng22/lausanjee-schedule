@@ -187,90 +187,6 @@
     .manager-note { background: var(--red-50); border: 1px solid var(--red-100); border-radius: var(--radius-sm); padding: 5px 9px; margin-top: 5px; font-size: 12px; color: var(--red-700); }
     .emp-actions { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
 
-    /* ── TALENT BOARD ── */
-    .tb-banner { background: var(--amber-50); border: 1px solid var(--amber-100); color: var(--amber-700); border-radius: var(--radius-md); padding: 9px 12px; font-size: 12px; margin-bottom: 12px; line-height: 1.5; }
-    .tb-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
-    .tb-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px 11px; }
-    .tb-stat-label { font-size: 11px; color: var(--text-sub); }
-    .tb-stat-val { font-size: 20px; font-weight: 700; line-height: 1.2; margin-top: 2px; }
-    .tb-section-title { font-size: 13px; font-weight: 700; margin: 16px 0 8px; display: flex; align-items: center; gap: 6px; }
-    .tb-viewtoggle { display: flex; gap: 4px; margin-bottom: 10px; }
-    .tb-viewbtn { padding: 5px 12px; font-size: 12px; border: 1px solid var(--border-mid); background: var(--surface); border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font); color: var(--text-sub); }
-    .tb-viewbtn.active { background: var(--blue-50); color: var(--blue-700); border-color: var(--blue-100); font-weight: 600; }
-
-    /* Matrix */
-    .tb-matrix-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); }
-    .tb-matrix { border-collapse: collapse; font-size: 12px; min-width: 100%; }
-    .tb-matrix th, .tb-matrix td { padding: 5px 4px; text-align: center; white-space: nowrap; }
-    .tb-matrix thead th { position: sticky; top: 0; background: var(--gray-50); font-weight: 600; color: var(--text-sub); border-bottom: 1px solid var(--border); font-size: 11px; }
-    .tb-matrix thead .tb-cover-row th { top: 27px; border-bottom: 2px solid var(--border-mid); font-weight: 700; font-size: 12px; }
-    .tb-matrix thead .tb-cover-row .tb-name { background: var(--gray-50); }
-    .tb-matrix .tb-name { position: sticky; left: 0; background: var(--surface); text-align: left; font-weight: 600; padding-left: 10px; z-index: 1; min-width: 84px; }
-    .tb-matrix thead .tb-name { z-index: 2; }
-    .tb-matrix tbody tr { border-top: 1px solid var(--gray-100); }
-    .tb-matrix tbody tr:hover .tb-name { background: var(--gray-50); }
-    .tb-cell { width: 26px; height: 26px; line-height: 26px; border-radius: 6px; display: inline-block; font-size: 11px; cursor: pointer; user-select: none; transition: transform .08s; }
-    .tb-cell:hover { transform: scale(1.12); }
-    .tb-cell.lv0 { color: var(--text-muted); cursor: pointer; }
-    .tb-cell.lv1 { background: var(--blue-50);  color: var(--blue-700);  }
-    .tb-cell.lv2 { background: var(--green-100); color: var(--green-700); }
-    .tb-cell.lv3 { background: var(--amber-100); color: var(--amber-700); font-weight: 700; }
-    .tb-cover-row td { font-weight: 700; border-top: 2px solid var(--border-mid); background: var(--gray-50); }
-    .tb-cover-ok   { color: var(--green-600); }
-    .tb-cover-warn { color: var(--amber-600); }
-    .tb-cover-risk { color: var(--red-600); }
-    .tb-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 9px; font-size: 11px; color: var(--text-sub); }
-    .tb-legend i { display: inline-block; width: 13px; height: 13px; border-radius: 3px; vertical-align: -2px; margin-right: 3px; }
-
-    /* Employee-card list (mobile-friendly view) */
-    .tb-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
-    .tb-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 11px 13px; cursor: pointer; }
-    .tb-card:hover { border-color: var(--border-mid); }
-    .tb-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
-    .tb-card-name { font-weight: 600; font-size: 14px; }
-    .tb-skillrow { display: flex; flex-wrap: wrap; gap: 4px; }
-    .tb-skill { font-size: 11px; padding: 2px 8px; border-radius: 100px; }
-
-    /* Risk cards */
-    .tb-risk-card { background: var(--surface); border: 1px solid var(--border); border-left-width: 3px; border-radius: 0 var(--radius-md) var(--radius-md) 0; padding: 11px 13px; margin-bottom: 8px; }
-    .tb-risk-card.risk { border-left-color: var(--red-600); }
-    .tb-risk-card.warn { border-left-color: var(--amber-600); }
-    .tb-risk-card.ok   { border-left-color: var(--green-600); }
-    .tb-risk-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
-    .tb-risk-name { font-weight: 600; display: flex; align-items: center; gap: 5px; }
-    .tb-risk-meta { font-size: 12px; color: var(--text-sub); }
-    .tb-risk-advice { font-size: 12px; margin-top: 4px; }
-
-    /* Dev card (modal) */
-    .tb-dev-section { margin-bottom: 14px; }
-    .tb-dev-label { font-size: 12px; color: var(--text-sub); margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
-    .tb-goal { background: var(--gray-50); border-radius: var(--radius-md); padding: 9px 11px; margin-bottom: 6px; }
-    .tb-goal-prog { height: 5px; background: var(--gray-200); border-radius: 3px; margin-top: 6px; overflow: hidden; }
-    .tb-goal-prog-bar { height: 100%; background: var(--blue-600); }
-    .tb-log-entry { border-left: 2px solid var(--border-mid); padding-left: 10px; margin-bottom: 8px; }
-    .tb-log-date { font-size: 11px; color: var(--text-muted); }
-    .tb-log-note { font-size: 13px; }
-    .tb-suggest { background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: var(--radius-md); padding: 9px 11px; font-size: 13px; color: var(--blue-700); }
-    .tb-ex-toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-main); cursor: pointer; user-select: none; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); }
-    .tb-ex-toggle input { width: 15px; height: 15px; cursor: pointer; accent-color: var(--blue-600); margin: 0; }
-
-    /* Skill editor (dev card) */
-    .tb-skedit-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-top: 1px solid var(--gray-100); }
-    .tb-skedit-row:first-child { border-top: none; }
-    .tb-skedit-name { flex: 1; font-size: 13px; min-width: 56px; }
-    .tb-seg { display: inline-flex; border: 1px solid var(--border-mid); border-radius: var(--radius-sm); overflow: hidden; }
-    .tb-seg button { border: none; background: var(--surface); padding: 4px 9px; font-size: 11px; cursor: pointer; font-family: var(--font); color: var(--text-sub); border-left: 1px solid var(--border); }
-    .tb-seg button:first-child { border-left: none; }
-    .tb-seg button.on0 { background: var(--gray-200); color: var(--gray-700); font-weight: 600; }
-    .tb-seg button.on1 { background: var(--blue-100);  color: var(--blue-700);  font-weight: 600; }
-    .tb-seg button.on2 { background: var(--green-100); color: var(--green-700); font-weight: 600; }
-    .tb-seg button.on3 { background: var(--amber-100); color: var(--amber-700); font-weight: 600; }
-
-    @media (max-width: 640px) {
-      .tb-stats { grid-template-columns: repeat(2, 1fr); }
-      .tb-cards { grid-template-columns: 1fr; }
-    }
-
     /* ── UNASSIGNED PANEL ── */
     .unassigned-panel { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 10px; background: var(--surface); }
     .unassigned-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13px; font-weight: 600; }
@@ -282,34 +198,6 @@
     .leave-row  { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
     .upcoming-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 5px; background: var(--surface); flex-wrap: wrap; gap: 6px; }
     .section-title { font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin: 14px 0 8px; }
-
-    /* ── REST TRACKER ── */
-    .rt-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 10px; }
-    .rt-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-    .rt-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
-    .rt-title .ti { color: var(--blue-600); }
-    .rt-progress { height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
-    .rt-progress-fill { height: 100%; background: var(--green-600); border-radius: 3px; transition: width 0.3s; }
-    .rt-stats { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-    .rt-stat { flex: 1; min-width: 70px; background: var(--gray-50); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; text-align: center; }
-    .rt-stat-num { font-size: 18px; font-weight: 700; line-height: 1.2; }
-    .rt-stat-lbl { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
-    .rt-divider { height: 1px; background: var(--border); margin: 0 0 10px; }
-    .rt-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-    .rt-chip { display: inline-flex; flex-direction: column; align-items: center; padding: 4px 10px; border-radius: var(--radius-md); border: 1px solid var(--border-mid); background: var(--surface); }
-    .rt-chip.rested       { background: var(--green-50);  border-color: var(--green-100); }
-    .rt-chip.rested-multi { background: var(--amber-50);  border-color: var(--amber-100); }
-    .rt-chip.clickable    { cursor: pointer; }
-    .rt-chip.clickable:hover { filter: brightness(0.96); }
-    .rt-chip-name { font-size: 12px; font-weight: 700; }
-    .rt-chip-hint { font-size: 10px; margin-top: 1px; }
-    .rt-chip.rested        .rt-chip-name { color: var(--green-700); }
-    .rt-chip.rested        .rt-chip-hint { color: var(--green-600); }
-    .rt-chip.rested-multi  .rt-chip-name { color: var(--amber-700); }
-    .rt-chip.rested-multi  .rt-chip-hint { color: var(--amber-600); }
-    .rt-hint-warn  { color: var(--amber-600) !important; }
-    .rt-hint-alert { color: var(--red-600)   !important; }
-    .rt-hint-none  { color: var(--text-muted) !important; }
 
     /* ── ROSTER ── */
     .roster-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px; }
@@ -338,15 +226,6 @@
     .gantt-bar { position: absolute; height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 6px; font-size: 10px; overflow: hidden; white-space: nowrap; }
     .gantt-gl  { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
     .gantt-stu { font-style: italic; color: var(--text-sub); }
-    /* position sub-header inside an area (by-position grouping) */
-    .gantt-pos { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
-                 color: var(--text-sub); padding: 6px 0 2px 4px; min-width: 440px; }
-    .gantt-pos::before { content: ''; width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
-                         background: var(--pos-dot, #d6d3d1); }
-    .gantt-pos-empty { font-style: italic; font-weight: 400; color: var(--text-muted); }
-    /* empty-slot placeholder row */
-    .gantt-empty-row { display: flex; align-items: center; height: 22px; margin-bottom: 3px; min-width: 440px;
-                       font-size: 11px; font-style: italic; color: var(--text-muted); padding-left: 14px; }
     .view-toggle { display: flex; gap: 4px; margin-bottom: 12px; }
     .view-btn { padding: 5px 12px; font-size: 12px; }
     .view-btn.active { background: var(--blue-50); color: var(--blue-700); border-color: var(--blue-100); }
@@ -398,32 +277,6 @@
     #save-indicator.show{opacity:1;}
     .role-badge{font-size:11px;font-weight:700;border-radius:100px;padding:4px 10px;background:#1c1917;color:white;}
     .header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
-
-    /* ── COPY SCHEDULE ── */
-    .copy-btn-wrap { position: relative; }
-    .copy-dropdown {
-      position: absolute; top: calc(100% + 6px); right: 0; z-index: 100;
-      background: var(--surface); border: 1px solid var(--border-mid);
-      border-radius: var(--radius-lg); padding: 6px; min-width: 215px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.10);
-    }
-    .copy-dropdown-title { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px 7px; }
-    .copy-opt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); cursor: pointer; }
-    .copy-opt:hover { background: var(--gray-50); }
-    .copy-opt-icon { width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--gray-100); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; color: var(--text-sub); }
-    .copy-opt-label { font-size: 13px; font-weight: 600; color: var(--text); }
-    .copy-opt-sub   { font-size: 11px; color: var(--text-sub); margin-top: 1px; }
-    .copy-dropdown-note { font-size: 11px; color: var(--text-muted); padding: 7px 8px 3px; border-top: 1px solid var(--border); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
-    .copy-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.38); z-index: 150; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-    .copy-modal { background: var(--surface); border-radius: var(--radius-lg); padding: 20px 22px; width: 380px; max-width: 100%; border: 1px solid var(--border); }
-    .copy-modal-head { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-    .copy-modal-body { font-size: 13px; color: var(--text-sub); line-height: 1.6; margin-bottom: 12px; }
-    .copy-modal-warn { background: var(--amber-50); border: 1px solid var(--amber-100); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 14px; font-size: 12px; color: var(--amber-700); display: flex; gap: 8px; }
-    .copy-modal-warn .ti { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
-    .copy-absent-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-    .copy-absent-chip { font-size: 11px; font-weight: 600; border-radius: 100px; padding: 2px 9px; background: var(--red-50); color: var(--red-700); border: 1px solid var(--red-100); }
-    .copy-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
-    .copy-toast { position: fixed; bottom: 56px; right: 20px; background: var(--green-50); border: 1px solid var(--green-100); color: var(--green-700); padding: 10px 16px; border-radius: var(--radius-lg); font-size: 13px; font-weight: 600; z-index: 60; display: flex; align-items: flex-start; gap: 7px; max-width: 360px; line-height: 1.5; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 
     /* ── EMPLOYEE MODAL ── */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
@@ -480,27 +333,6 @@
     .emp-search-item .emp-si-short { font-weight: 600; color: var(--text); }
     .emp-search-item .emp-si-full  { font-size: 11px; color: var(--text-sub); }
     .emp-search-empty { padding: 10px 12px; font-size: 12px; color: var(--text-muted); }
-
-    /* ── DATE RANGE PICKER ── */
-    .drp-wrap { display: inline-block; border: 1px solid var(--border-mid); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; min-width: 224px; }
-    .drp-header { display: flex; align-items: center; justify-content: space-between; padding: 7px 6px; border-bottom: 1px solid var(--border); }
-    .drp-nav { background: none !important; border: none !important; padding: 3px 8px !important; color: var(--text-sub); border-radius: var(--radius-sm) !important; line-height: 1; }
-    .drp-nav:hover { background: var(--gray-100) !important; color: var(--text) !important; }
-    .drp-month-label { font-size: 13px; font-weight: 700; color: var(--text); }
-    .drp-grid { display: grid; grid-template-columns: repeat(7, 1fr); padding: 8px 6px 4px; gap: 1px; }
-    .drp-dh { font-size: 10px; font-weight: 600; color: var(--text-muted); text-align: center; padding: 3px 0 5px; }
-    .drp-cell { font-size: 12px; text-align: center; padding: 6px 2px; cursor: pointer; border-radius: 4px; user-select: none; position: relative; color: var(--text); }
-    .drp-cell:hover { background: var(--gray-100); }
-    .drp-cell.today { font-weight: 700; }
-    .drp-cell.today::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: var(--blue-600); }
-    .drp-cell.in-range { background: var(--blue-50); color: var(--blue-700); border-radius: 0; }
-    .drp-cell.in-range:hover { background: var(--blue-100); }
-    .drp-cell.range-start { background: var(--blue-600) !important; color: #fff !important; border-radius: 4px 0 0 4px; }
-    .drp-cell.range-end   { background: var(--blue-600) !important; color: #fff !important; border-radius: 0 4px 4px 0; }
-    .drp-cell.range-start.range-end { border-radius: 4px !important; }
-    .drp-cell.drp-blank   { pointer-events: none; }
-    .drp-summary { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 7px 10px; border-top: 1px solid var(--border); background: var(--gray-50); font-size: 12px; min-height: 36px; }
-    .drp-hint { font-size: 11px; color: var(--text-muted); padding: 5px 10px 7px; border-top: 1px solid var(--border); }
 
   </style>
 </head>
@@ -637,41 +469,21 @@ async function loadDailyLeave() {
 
 // ── EMPLOYEE DB FUNCTIONS ──
 function rowToEmp(row) {
-  // ── Talent board fields (graceful degrade if columns don't exist yet) ──
-  let training    = Array.isArray(row.training)    ? row.training    : [];
-  let devGoals    = Array.isArray(row.dev_goals)   ? row.dev_goals   : [];
-  let coachingLog = Array.isArray(row.coaching_log)? row.coaching_log: [];
-
-  // ── One-time migration: fold legacy manager_note + available_from into
-  //    coaching_log as a single undated "initial profile" entry. Only runs
-  //    when coaching_log is still empty, so it never duplicates. ──
-  if (coachingLog.length === 0) {
-    const bits = [];
-    if (row.manager_note && row.manager_note.trim()) bits.push(row.manager_note.trim());
-    if (row.available_from && row.available_from > 0) bits.push(`${row.available_from}:00后到岗`);
-    if (bits.length) {
-      coachingLog = [{ date: '', note: bits.join('（') + (row.available_from > 0 ? '）' : ''), seed: true }];
-    }
-  }
-
   return {
     id: row.id, fullName: row.full_name, shortName: row.short_name,
     role: row.role, positions: row.positions || [], canTrain: row.can_train || [],
-    training, tags: row.tags || [], offDay: row.off_day || '',
-    devGoals, coachingLog,
+    tags: row.tags || [], managerNote: row.manager_note || '',
+    offDay: row.off_day || '', availableFrom: row.available_from || 0,
   };
 }
 function empToRow(emp) {
-  const row = {
+  return {
     id: emp.id, store_id: STORE_ID,
     full_name: emp.fullName, short_name: emp.shortName, role: emp.role,
     positions: emp.positions, can_train: emp.canTrain, tags: emp.tags,
-    off_day: emp.offDay,
-    training: emp.training || [], dev_goals: emp.devGoals || [],
-    coaching_log: emp.coachingLog || [],
-    updated_at: new Date().toISOString(),
+    manager_note: emp.managerNote, off_day: emp.offDay,
+    available_from: emp.availableFrom, updated_at: new Date().toISOString(),
   };
-  return row;
 }
 async function loadEmployees() {
   try {
@@ -689,8 +501,6 @@ async function loadEmployees() {
     console.error('loadEmployees', e?.message || e);
     employees         = DEFAULT_EMPLOYEES;
     inactiveEmployees = [];
-  } finally {
-    rebuildEmpIndex();   // employees 已更新，重建查找索引（覆盖所有分支）
   }
 }
 async function loadPositions() {
@@ -735,81 +545,6 @@ async function deleteSlotOverride(slotId) {
   delete state.slotOverrides[slotId];
 }
 
-// ── COVERAGE THRESHOLD SETTINGS (store-level, one row per store) ──
-async function loadCoverageSettings() {
-  try {
-    const { data, error } = await db.from('coverage_settings')
-      .select('*').eq('store_id', STORE_ID).maybeSingle();
-    if (error) throw error;
-    if (data) {
-      state.coverageThresholds = {
-        onDuty: Number(data.on_duty_min),
-        front:  Number(data.front_min),
-      };
-      // Per-position risk thresholds (talent board). Graceful if column absent.
-      if (data.pos_thresholds && typeof data.pos_thresholds === 'object') {
-        const raw = { ...data.pos_thresholds };
-        // The exclude-management preference is stored under a reserved key
-        // inside the same JSONB blob, so no extra column/SQL is needed.
-        if (Object.prototype.hasOwnProperty.call(raw, '__excludeMgmt')) {
-          state.tbExcludeMgmt = !!raw.__excludeMgmt;
-          delete raw.__excludeMgmt;
-        }
-        state.posThresholds = raw;
-      }
-    }
-  } catch(e) { console.warn('loadCoverageSettings (table may not exist yet):', e?.message || e); }
-}
-async function saveCoverageSettings(onDutyMin, frontMin) {
-  state.coverageThresholds = { onDuty: onDutyMin, front: frontMin };  // optimistic local update
-  try {
-    const { error } = await db.from('coverage_settings').upsert({
-      store_id: STORE_ID,
-      on_duty_min: onDutyMin,
-      front_min:   frontMin,
-      updated_at:  new Date().toISOString(),
-    }, { onConflict: 'store_id' });
-    if (error) throw error;
-  } catch(e) { console.warn('saveCoverageSettings failed:', e?.message || e); }
-}
-// Save per-position risk thresholds. { posName: { red, yellow } }
-async function savePosThresholds(map) {
-  state.posThresholds = map;  // optimistic
-  render();
-  try {
-    // Persist the reserved exclude-mgmt flag alongside the thresholds.
-    const blob = { ...map, __excludeMgmt: state.tbExcludeMgmt };
-    let { error } = await db.from('coverage_settings').upsert({
-      store_id: STORE_ID,
-      pos_thresholds: blob,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'store_id' });
-    if (error && /pos_thresholds|column/i.test(error.message || '')) {
-      posThresholdColMissing = true;  // column not added yet — local-only
-    } else if (error) {
-      throw error;
-    }
-  } catch(e) { console.warn('savePosThresholds failed:', e?.message || e); }
-}
-// Persist the talent-board "exclude management" view preference.
-async function saveTbExcludeMgmt(val) {
-  state.tbExcludeMgmt = val;  // optimistic
-  render();
-  try {
-    const blob = { ...(state.posThresholds || {}), __excludeMgmt: val };
-    let { error } = await db.from('coverage_settings').upsert({
-      store_id: STORE_ID,
-      pos_thresholds: blob,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'store_id' });
-    if (error && /pos_thresholds|column/i.test(error.message || '')) {
-      posThresholdColMissing = true;
-    } else if (error) {
-      throw error;
-    }
-  } catch(e) { console.warn('saveTbExcludeMgmt failed:', e?.message || e); }
-}
-
 // ── TIME HELPERS ──
 // Generate half-hour time options from 06:00 to 23:30
 function generateTimeOptions() {
@@ -826,33 +561,11 @@ function getNextEmpId() {
   return 'e' + (max + 1);
 }
 async function saveEmployee(emp) {
-  let { error } = await db.from('employees').upsert(empToRow(emp), { onConflict: 'id' });
-
-  // ── Graceful degrade: if the talent-board columns don't exist in Supabase
-  //    yet, the upsert fails with a "column not found" (PostgREST PGRST204).
-  //    Strip the new columns and retry so the app keeps working until the
-  //    user runs the ALTER TABLE migration. ──
-  if (error && /training|dev_goals|coaching_log|column/i.test(error.message || '')) {
-    const row = empToRow(emp);
-    delete row.training; delete row.dev_goals; delete row.coaching_log;
-    talentColumnsMissing = true;
-    ({ error } = await db.from('employees').upsert(row, { onConflict: 'id' }));
-  }
+  const { error } = await db.from('employees').upsert(empToRow(emp), { onConflict: 'id' });
   if (error) throw error;
-
-  // Optimistic update: reflect the change in memory immediately,
-  // without waiting for the DB read-after-write round-trip.
-  // This eliminates the "skill added but not visible" race condition.
-  const idx = employees.findIndex(e => e.id === emp.id);
-  if (idx >= 0) employees[idx] = { ...emp };
-  else           employees.push({ ...emp });
-  render();
-
-  // Background sync: confirm the DB write came back correctly.
-  // The Supabase realtime subscription will also trigger loadEmployees,
-  // so this is just a belt-and-suspenders safety net.
-  await loadEmployees();
-  render();
+  await loadEmployees(); render();
+  // Secondary reload after a short delay to catch any Supabase replication lag
+  setTimeout(async () => { await loadEmployees(); render(); }, 900);
 }
 async function markEmployeeInactive(empId) {
   await db.from('employees').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', empId);
@@ -924,10 +637,6 @@ function subscribeToChanges() {
       event: '*', schema: 'public', table: 'slot_overrides',
       filter: `store_id=eq.${STORE_ID}`,
     }, async () => { await loadSlotOverrides(); render(); })
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'coverage_settings',
-      filter: `store_id=eq.${STORE_ID}`,
-    }, async () => { await loadCoverageSettings(); render(); })
     .subscribe();
 }
 
@@ -948,7 +657,6 @@ const LEAVE_TYPES = {
   mc:        { label: 'MC',              badgeClass: 'badge-amber', },
   unplanned: { label: 'Unplanned Leave', badgeClass: 'badge-red',   },
   noshow:    { label: 'No-Show ⚠',       badgeClass: 'badge-red',   },
-  rest:      { label: 'Rest Day',        badgeClass: 'badge-gray',  },
 };
 
 const GANTT_VIEWS = {
@@ -975,47 +683,6 @@ const ROLE_STYLE = {
   '后厨员工': { bg: '#f5f5f4', color: '#57534e' },
   '员工':     { bg: '#f5f5f4', color: '#57534e' },
 };
-
-// ── POSITION NAME NORMALISER ──
-// positions_master stores Chinese display names; BASE_SLOTS uses English pos keys.
-// Any entry here maps a Chinese (or legacy) name → the canonical BASE_SLOTS pos value.
-// Add a new line here whenever a positions_master name doesn't match a BASE_SLOTS pos.
-const POSITION_SLOT_MAP = {
-  // ── 前厅 ──────────────────────────────────────
-  '前厅':    'Service',
-  '打菜':    'Dacai',
-  'D 饮料':  'D Drink',
-  // ── 后厨 ──────────────────────────────────────
-  'A1 炒菜': 'A1 Wok',
-  'A2 蒸菜': 'A2 Steam',
-  'B 鸡':    'B Chicken',
-  'C 剁鸡':  'C Chop',
-  // ── 兼容旧记录（无空格写法）──────────────────
-  'A1炒菜':  'A1 Wok',
-  'A2蒸菜':  'A2 Steam',
-  'B鸡':     'B Chicken',
-  'C剁鸡':   'C Chop',
-  'D饮料':   'D Drink',
-  // ── 兼容看板简称写法（曾用于显示，可能混入数据）──
-  'A1 炒':   'A1 Wok',
-  'A2 蒸':   'A2 Steam',
-  'C 砍':    'C Chop',   // “砍”是 C Chop（剁鸡）的旧简称 — 注意：与“切配/Cutting”是不同岗位
-  'D 饮':    'D Drink',
-  '切配':    'Cutting',  // 切菜，独立岗位，绝不并入 C Chop
-  // Cutting / Dishwash / Reserve / PIC 本身已是英文，无需映射
-};
-
-// Returns the canonical BASE_SLOTS pos name for any position name variant.
-// Falls back to the original name so English names (legacy records) still work.
-// 性能优化：结果只依赖固定的 POSITION_SLOT_MAP（程序运行期间不变），
-// 所以可以安全地把每个名称的翻译结果缓存下来，避免在大循环里被反复查表。
-const _canonCache = new Map();
-function toCanonicalPos(name) {
-  if (_canonCache.has(name)) return _canonCache.get(name);
-  const result = POSITION_SLOT_MAP[name] ?? name;
-  _canonCache.set(name, result);
-  return result;
-}
 
 // =============================================================================
 // BASE SLOTS (the default daily template)
@@ -1067,84 +734,59 @@ const BASE_SLOTS = [
 ];
 
 // =============================================================================
-// POSITION → AREA RESOLVER (shared)
-// =============================================================================
-// 为什么需要它：原先 empHomeArea / getEmpArea 用 `allPositions.find(p => p.name
-// === posName)` 直接字符串比较来定位岗位所在区域。但 positions_master 存的是
-// 中文名（如 "前厅"），而员工 positions 多为英文（如 "Service"），`===` 永远
-// 匹配不上 → 静默返回兜底值 "后备"，导致「前厅 FOH」覆盖行长期读成 ~0、Roster
-// 大量员工被错分到「后备」。
-// 修复：① 按 canonical（归一化）名匹配 positions_master；② 匹配不到时回退到
-// 始终存在的 BASE_SLOTS 的 pos→area 映射；③ 都没有才返回 "后备"。
-const BASE_POS_AREA = (() => {
-  const m = {};
-  for (const s of BASE_SLOTS) m[s.pos] = s.area;   // canonical pos → area
-  return m;
-})();
-
-// 解析任意岗位名（英文 / 中文 / 旧写法）对应的区域。
-// 优先级：positions_master(canonical 匹配) → BASE_SLOTS → '后备'。
-function getPositionArea(posName) {
-  const canon  = toCanonicalPos(posName);
-  const master = (allPositions || []).find(p => toCanonicalPos(p.name) === canon);
-  if (master && master.area) return master.area;
-  return BASE_POS_AREA[canon] || '后备';
-}
-
-// =============================================================================
 // EMPLOYEE DATA  (48 staff, in Excel order)
-// Fields: id, fullName, shortName, role, positions(L2), canTrain(L3), training(L1), tags, offDay, devGoals, coachingLog
+// Fields: id, fullName, shortName, role, positions, canTrain, tags, managerNote, offDay, availableFrom
 // =============================================================================
 
 const DEFAULT_EMPLOYEES = [
-  { id:'e1',  fullName:'Yuan Xincheng',           shortName:'Yuan',         role:'店长',     positions:['A2 Steam','D Drink'],                         canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e2',  fullName:'Alen Wang',               shortName:'Alen',         role:'店长',     positions:['PIC','Cutting'],                             canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e3',  fullName:'Tom Buxton Wang',          shortName:'Tom Wang',     role:'店长',     positions:['PIC','A1 Wok'],                             canTrain:['A1 Wok'],               tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e4',  fullName:'Yixing Yin',              shortName:'Yixing',       role:'店长',     positions:['B Chicken','D Drink'],                             canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e5',  fullName:'DuoDuo Wu',               shortName:'Duoduo',       role:'培训主管', positions:['PIC'],                                       canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e6',  fullName:'Dreamy Wang',              shortName:'Dreamy',       role:'培训员',   positions:['Service','D Drink'],                             canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e7',  fullName:'A Long Ma',               shortName:'A Long',       role:'培训员',   positions:['A1 Wok','C Chop'],                         canTrain:['A1 Wok'],               tags:[],  offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'希望多加班，愿意承担', seed:true }] },
-  { id:'e8',  fullName:'Green Ice Chen',           shortName:'Ice',          role:'培训员',   positions:['C Chop','PIC'],                             canTrain:['C Chop'],               tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e9',  fullName:'Milk Wang',               shortName:'Milk',         role:'培训员',   positions:['A1 Wok','A2 Steam','B Chicken','C Chop'],       canTrain:['A1 Wok','C Chop'],     tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'与欧姚/续兵班次绑定', seed:true }] },
-  { id:'e10', fullName:'Ouyao Zhongxing',          shortName:'Ouyao',        role:'培训员',   positions:['PIC','A2 Steam'],                             canTrain:['A1 Wok'],               tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e11', fullName:'Adil Dai',                shortName:'Adil',         role:'培训员',   positions:['D Drink','A2 Steam'],                         canTrain:['D Drink'],               tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e12', fullName:'Sandy Zhao',              shortName:'Sandy',        role:'培训员',   positions:['B Chicken'],                                     canTrain:['B Chicken'],                 tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e13', fullName:'Tao Ying',                shortName:'Tao',          role:'培训员',   positions:['A2 Steam','A1 Wok'],                         canTrain:['A1 Wok'],               tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e14', fullName:'Luna Li',                 shortName:'Luna',         role:'培训员',   positions:['PIC','Service'],                               canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e15', fullName:'Peace Ban',               shortName:'Ban',          role:'培训员',   positions:['A1 Wok','A2 Steam','C Chop','D Drink'],     canTrain:['A2 Steam','C Chop'],     tags:[],      offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'与晓欢班次绑定', seed:true }] },
-  { id:'e16', fullName:'Dany Chen',               shortName:'Dany',         role:'培训员',   positions:['Cutting','D Drink'],                         canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e17', fullName:'Araf Ibne Alamgir',       shortName:'Araf',         role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'周一～周三', training:[], devGoals:[], coachingLog:[] },
-  { id:'e18', fullName:'Iza Siti Nurshariza',     shortName:'Iza Siti',     role:'后厨员工', positions:['D Drink'],                                   canTrain:['D Drink'],               tags:[], offDay:'周一～周三', training:[], devGoals:[], coachingLog:[{ date:'', note:'饮料岗扛把子', seed:true }] },
-  { id:'e19', fullName:'Prema Jannatul',          shortName:'Prema',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['收银'], offDay:'周一～周三', training:[], devGoals:[], coachingLog:[] },
-  { id:'e20', fullName:'Yad M.Akhyar',            shortName:'Yad',          role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:['引流'], offDay:'周中一天', training:[], devGoals:[], coachingLog:[{ date:'', note:'工作日18:00后和周末能来，活泼外向，研究生（18:00后到岗）', seed:true }] },
-  { id:'e21', fullName:'Iza Nur Syuhada',         shortName:'Iza Nur',      role:'后厨员工', positions:['B Chicken','C Chop','Cutting'],                 canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'希望多上班，加班', seed:true }] },
-  { id:'e22', fullName:'Finn Marsya Saafia',      shortName:'Finn',         role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'周一-周四不排班', training:[], devGoals:[], coachingLog:[{ date:'', note:'只有周五、六、日能来', seed:true }] },
-  { id:'e23', fullName:'Nurul Nadwal',            shortName:'Nadwa',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['引流','收银'], offDay:'周一～周三', training:[], devGoals:[], coachingLog:[{ date:'', note:'前厅扛把子', seed:true }] },
-  { id:'e24', fullName:'M.Faeez Bin Azmi',        shortName:'Faeez',        role:'后厨员工', positions:['B Chicken'],                                     canTrain:[],                        tags:[], offDay:'周四', training:[], devGoals:[], coachingLog:[{ date:'', note:'毛巾哥 动作慢', seed:true }] },
-  { id:'e25', fullName:'Putera Nur Afeef',        shortName:'Putera',       role:'后厨员工', positions:['B Chicken','Cutting','A2 Steam'],                 canTrain:[],                        tags:[], offDay:'周四/周五', training:[], devGoals:[], coachingLog:[{ date:'', note:'阿飞，早晚班切换需休息一天', seed:true }] },
-  { id:'e26', fullName:'Shaymin Bin Zaha',        shortName:'Shaymin',      role:'后厨员工', positions:['A1 Wok','A2 Steam','Cutting'],             canTrain:[],                        tags:[], offDay:'周四/周五', training:[], devGoals:[], coachingLog:[{ date:'', note:'虾米，做事麻利', seed:true }] },
-  { id:'e27', fullName:'Micheal Lim',             shortName:'Micheal',      role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'七月要去上学', seed:true }] },
-  { id:'e28', fullName:'Raziq Latiff',            shortName:'Raziq',        role:'店长',     positions:['A2 Steam','B Chicken','C Chop','D Drink'],       canTrain:[],                        tags:[], offDay:'周四/周五', training:[], devGoals:[], coachingLog:[{ date:'', note:'当前过岗位中', seed:true }] },
-  { id:'e29', fullName:'Erm Nuril Ilhami',        shortName:'Erm Ilhami',   role:'后厨员工', positions:['C Chop','A2 Steam','B Chicken'],               canTrain:[],                        tags:[], offDay:'自己会找你请假', training:[], devGoals:[], coachingLog:[{ date:'', note:'活泼', seed:true }] },
-  { id:'e30', fullName:'Aiman Bin Khairon',       shortName:'Aiman Khairon',role:'员工',     positions:['Service'],                                     canTrain:[],                        tags:['引流'], offDay:'周一/周五', training:[], devGoals:[], coachingLog:[{ date:'', note:'有激情，善于引流', seed:true }] },
-  { id:'e31', fullName:'Hani Athirah Pauzi',      shortName:'Hani',         role:'员工',     positions:['D Drink'],                                   canTrain:[],                        tags:[], offDay:'自己会找你请假', training:[], devGoals:[], coachingLog:[{ date:'', note:'每周六休息，经常休息后第二天不来上班', seed:true }] },
-  { id:'e32', fullName:'Siti Haleeja Affendi',    shortName:'Siti',         role:'员工',     positions:['B Chicken','C Chop'],                           canTrain:[],                        tags:[], offDay:'自己会找你请假', training:[], devGoals:[], coachingLog:[{ date:'', note:'不太需要休息，想多上班', seed:true }] },
-  { id:'e33', fullName:'Ariff Shah Rodzee',       shortName:'Ariff Shah',   role:'员工',     positions:['C Chop','Cutting'],                         canTrain:[],                        tags:[], offDay:'周一/周二', training:[], devGoals:[], coachingLog:[{ date:'', note:'剁鸡比较快', seed:true }] },
-  { id:'e34', fullName:'Ahmad Aiman',             shortName:'Ahmad Aiman',  role:'员工',     positions:['A2 Steam'],                                   canTrain:[],                        tags:[], offDay:'周二/周三', training:[], devGoals:[], coachingLog:[{ date:'', note:'干了一个月A2找到感觉了', seed:true }] },
-  { id:'e35', fullName:'Mohd Zafri Bin Zaihi',   shortName:'Zafri',        role:'员工',     positions:['Dishwash'],                                 canTrain:[],                        tags:[], offDay:'周二有事排休', training:[], devGoals:[], coachingLog:[{ date:'', note:'每天都迟到，除洗碗外难安排', seed:true }] },
-  { id:'e36', fullName:'Syazwan Bin Shaharuddin', shortName:'Syazwan',      role:'副理',     positions:['B Chicken','Service','D Drink'],                     canTrain:[],                        tags:[], offDay:'周四/周二', training:[], devGoals:[], coachingLog:[{ date:'', note:'干活比较慢，出勤正常', seed:true }] },
-  { id:'e37', fullName:'Ariff Tuah Daniel',       shortName:'Tuah',         role:'员工',     positions:['Dishwash'],                                 canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'⚠ 问题员工，沟通离职', seed:true }] },
-  { id:'e38', fullName:'Mahfuz Bin Md Nizar',     shortName:'Mahfuz',       role:'员工',     positions:['A1 Wok','Cutting'],                         canTrain:[],                        tags:[], offDay:'周二/周三', training:[], devGoals:[], coachingLog:[{ date:'', note:'干活上手快、同事评价高', seed:true }] },
-  { id:'e39', fullName:'Nur Qamarina nabila',     shortName:'Qamarina',     role:'员工',     positions:['D Drink','B Chicken','Cutting'],                 canTrain:[],                        tags:[], offDay:'周末/周一', training:[], devGoals:[], coachingLog:[{ date:'', note:'入职后厨，其他后厨可能可以干', seed:true }] },
-  { id:'e40', fullName:'Jassica Chan',            shortName:'Jassica',      role:'员工',     positions:['A1 Wok','B Chicken'],                           canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'同事评价高；工作日学驾照，排晚班', seed:true }] },
-  { id:'e41', fullName:'Seha Fasihan',            shortName:'Seha',         role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'周六/周三', training:[], devGoals:[], coachingLog:[] },
-  { id:'e42', fullName:'M.Aiman Bin Khairul Annuar', shortName:'Aiman Bobo', role:'后厨员工', positions:['Cutting','A1 Wok','B Chicken'],              canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'胖胖的，洗碗快', seed:true }] },
-  { id:'e43', fullName:'Norsidah Bt Amran',       shortName:'Sidah',        role:'员工',     positions:['Service'],                                     canTrain:[],                        tags:['引流','收银'], offDay:'周一/周二', training:[], devGoals:[], coachingLog:[{ date:'', note:'同事评价高、漂亮', seed:true }] },
-  { id:'e44', fullName:'Nur Aida Binti Amran',    shortName:'Aida',         role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'只有晚上能来帮忙（18:00后到岗）', seed:true }] },
-  { id:'e45', fullName:'Putri Salbiah',           shortName:'Putri',        role:'员工',     positions:['Service','D Drink'],                             canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e46', fullName:'Siti Nurfatimahfatin',    shortName:'Fatin',        role:'员工',     positions:['Cutting'],                                   canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[{ date:'', note:'戴牙套', seed:true }] },
-  { id:'e47', fullName:'Adrus Aqasya',            shortName:'Adrus',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['引流'], offDay:'', training:[], devGoals:[], coachingLog:[] },
-  { id:'e48', fullName:'Natasha Nabilah',         shortName:'Natasha',      role:'副理',     positions:['Service'],                                     canTrain:[],                        tags:[], offDay:'', training:[], devGoals:[], coachingLog:[] },
+  { id:'e1',  fullName:'Yuan Xincheng',           shortName:'Yuan',         role:'店长',     positions:['A2 Steam','D Drink'],                         canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e2',  fullName:'Alen Wang',               shortName:'Alen',         role:'店长',     positions:['PIC','Cutting'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e3',  fullName:'Tom Buxton Wang',          shortName:'Tom Wang',     role:'店长',     positions:['PIC','A1 Wok'],                             canTrain:['A1 Wok'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e4',  fullName:'Yixing Yin',              shortName:'Yixing',       role:'店长',     positions:['B Chicken','D Drink'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e5',  fullName:'DuoDuo Wu',               shortName:'Duoduo',       role:'培训主管', positions:['PIC'],                                       canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e6',  fullName:'Dreamy Wang',              shortName:'Dreamy',       role:'培训员',   positions:['Service','D Drink'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e7',  fullName:'A Long Ma',               shortName:'A Long',       role:'培训员',   positions:['A1 Wok','C Chop'],                         canTrain:['A1 Wok'],               tags:[],              managerNote:'希望多加班，愿意承担',  offDay:'', availableFrom:0  },
+  { id:'e8',  fullName:'Green Ice Chen',           shortName:'Ice',          role:'培训员',   positions:['C Chop','PIC'],                             canTrain:['C Chop'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e9',  fullName:'Milk Wang',               shortName:'Milk',         role:'培训员',   positions:['A1 Wok','A2 Steam','B Chicken','C Chop'],       canTrain:['A1 Wok','C Chop'],     tags:[],              managerNote:'与欧姚/续兵班次绑定', offDay:'', availableFrom:0 },
+  { id:'e10', fullName:'Ouyao Zhongxing',          shortName:'Ouyao',        role:'培训员',   positions:['PIC','A2 Steam'],                             canTrain:['A1 Wok'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e11', fullName:'Adil Dai',                shortName:'Adil',         role:'培训员',   positions:['D Drink','A2 Steam'],                         canTrain:['D Drink'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e12', fullName:'Sandy Zhao',              shortName:'Sandy',        role:'培训员',   positions:['B Chicken'],                                     canTrain:['B Chicken'],                 tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e13', fullName:'Tao Ying',                shortName:'Tao',          role:'培训员',   positions:['A2 Steam','A1 Wok'],                         canTrain:['A1 Wok'],               tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e14', fullName:'Luna Li',                 shortName:'Luna',         role:'培训员',   positions:['PIC','Service'],                               canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e15', fullName:'Peace Ban',               shortName:'Ban',          role:'培训员',   positions:['A1 Wok','A2 Steam','C Chop','D Drink'],     canTrain:['A2 Steam','C Chop'],     tags:[],              managerNote:'与晓欢班次绑定',      offDay:'', availableFrom:0 },
+  { id:'e16', fullName:'Dany Chen',               shortName:'Dany',         role:'培训员',   positions:['Cutting','D Drink'],                         canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e17', fullName:'Araf Ibne Alamgir',       shortName:'Araf',         role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'周一～周三',   availableFrom:0  },
+  { id:'e18', fullName:'Iza Siti Nurshariza',     shortName:'Iza Siti',     role:'后厨员工', positions:['D Drink'],                                   canTrain:['D Drink'],               tags:[],              managerNote:'饮料岗扛把子', offDay:'周一～周三', availableFrom:0 },
+  { id:'e19', fullName:'Prema Jannatul',          shortName:'Prema',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['收银'],        managerNote:'', offDay:'周一～周三',   availableFrom:0  },
+  { id:'e20', fullName:'Yad M.Akhyar',            shortName:'Yad',          role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:['引流'],        managerNote:'工作日18:00后和周末能来，活泼外向，研究生', offDay:'周中一天', availableFrom:18 },
+  { id:'e21', fullName:'Iza Nur Syuhada',         shortName:'Iza Nur',      role:'后厨员工', positions:['B Chicken','C Chop','Cutting'],                 canTrain:[],                        tags:[],              managerNote:'希望多上班，加班', offDay:'', availableFrom:0 },
+  { id:'e22', fullName:'Finn Marsya Saafia',      shortName:'Finn',         role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'只有周五、六、日能来', offDay:'周一-周四不排班', availableFrom:0 },
+  { id:'e23', fullName:'Nurul Nadwal',            shortName:'Nadwa',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['引流','收银'], managerNote:'前厅扛把子', offDay:'周一～周三', availableFrom:0 },
+  { id:'e24', fullName:'M.Faeez Bin Azmi',        shortName:'Faeez',        role:'后厨员工', positions:['B Chicken'],                                     canTrain:[],                        tags:[],              managerNote:'毛巾哥 动作慢', offDay:'周四', availableFrom:0 },
+  { id:'e25', fullName:'Putera Nur Afeef',        shortName:'Putera',       role:'后厨员工', positions:['B Chicken','Cutting','A2 Steam'],                 canTrain:[],                        tags:[],              managerNote:'阿飞，早晚班切换需休息一天', offDay:'周四/周五', availableFrom:0 },
+  { id:'e26', fullName:'Shaymin Bin Zaha',        shortName:'Shaymin',      role:'后厨员工', positions:['A1 Wok','A2 Steam','Cutting'],             canTrain:[],                        tags:[],              managerNote:'虾米，做事麻利', offDay:'周四/周五', availableFrom:0 },
+  { id:'e27', fullName:'Micheal Lim',             shortName:'Micheal',      role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'七月要去上学', offDay:'', availableFrom:0 },
+  { id:'e28', fullName:'Raziq Latiff',            shortName:'Raziq',        role:'店长',     positions:['A2 Steam','B Chicken','C Chop','D Drink'],       canTrain:[],                        tags:[],              managerNote:'当前过岗位中', offDay:'周四/周五', availableFrom:0 },
+  { id:'e29', fullName:'Erm Nuril Ilhami',        shortName:'Erm Ilhami',   role:'后厨员工', positions:['C Chop','A2 Steam','B Chicken'],               canTrain:[],                        tags:[],              managerNote:'活泼', offDay:'自己会找你请假', availableFrom:0 },
+  { id:'e30', fullName:'Aiman Bin Khairon',       shortName:'Aiman Khairon',role:'员工',     positions:['Service'],                                     canTrain:[],                        tags:['引流'],        managerNote:'有激情，善于引流', offDay:'周一/周五', availableFrom:0 },
+  { id:'e31', fullName:'Hani Athirah Pauzi',      shortName:'Hani',         role:'员工',     positions:['D Drink'],                                   canTrain:[],                        tags:[],              managerNote:'每周六休息，经常休息后第二天不来上班', offDay:'自己会找你请假', availableFrom:0 },
+  { id:'e32', fullName:'Siti Haleeja Affendi',    shortName:'Siti',         role:'员工',     positions:['B Chicken','C Chop'],                           canTrain:[],                        tags:[],              managerNote:'不太需要休息，想多上班', offDay:'自己会找你请假', availableFrom:0 },
+  { id:'e33', fullName:'Ariff Shah Rodzee',       shortName:'Ariff Shah',   role:'员工',     positions:['C Chop','Cutting'],                         canTrain:[],                        tags:[],              managerNote:'剁鸡比较快', offDay:'周一/周二', availableFrom:0 },
+  { id:'e34', fullName:'Ahmad Aiman',             shortName:'Ahmad Aiman',  role:'员工',     positions:['A2 Steam'],                                   canTrain:[],                        tags:[],              managerNote:'干了一个月A2找到感觉了', offDay:'周二/周三', availableFrom:0 },
+  { id:'e35', fullName:'Mohd Zafri Bin Zaihi',   shortName:'Zafri',        role:'员工',     positions:['Dishwash'],                                 canTrain:[],                        tags:[],              managerNote:'每天都迟到，除洗碗外难安排', offDay:'周二有事排休', availableFrom:0 },
+  { id:'e36', fullName:'Syazwan Bin Shaharuddin', shortName:'Syazwan',      role:'副理',     positions:['B Chicken','Service','D Drink'],                     canTrain:[],                        tags:[],              managerNote:'干活比较慢，出勤正常', offDay:'周四/周二', availableFrom:0 },
+  { id:'e37', fullName:'Ariff Tuah Daniel',       shortName:'Tuah',         role:'员工',     positions:['Dishwash'],                                 canTrain:[],                        tags:[],              managerNote:'⚠ 问题员工，沟通离职', offDay:'', availableFrom:0 },
+  { id:'e38', fullName:'Mahfuz Bin Md Nizar',     shortName:'Mahfuz',       role:'员工',     positions:['A1 Wok','Cutting'],                         canTrain:[],                        tags:[],              managerNote:'干活上手快、同事评价高', offDay:'周二/周三', availableFrom:0 },
+  { id:'e39', fullName:'Nur Qamarina nabila',     shortName:'Qamarina',     role:'员工',     positions:['D Drink','B Chicken','Cutting'],                 canTrain:[],                        tags:[],              managerNote:'入职后厨，其他后厨可能可以干', offDay:'周末/周一', availableFrom:0 },
+  { id:'e40', fullName:'Jassica Chan',            shortName:'Jassica',      role:'员工',     positions:['A1 Wok','B Chicken'],                           canTrain:[],                        tags:[],              managerNote:'同事评价高；工作日学驾照，排晚班', offDay:'', availableFrom:0 },
+  { id:'e41', fullName:'Seha Fasihan',            shortName:'Seha',         role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'周六/周三',   availableFrom:0  },
+  { id:'e42', fullName:'M.Aiman Bin Khairul Annuar', shortName:'Aiman Bobo', role:'后厨员工', positions:['Cutting','A1 Wok','B Chicken'],              canTrain:[],                        tags:[],              managerNote:'胖胖的，洗碗快', offDay:'', availableFrom:0 },
+  { id:'e43', fullName:'Norsidah Bt Amran',       shortName:'Sidah',        role:'员工',     positions:['Service'],                                     canTrain:[],                        tags:['引流','收银'], managerNote:'同事评价高、漂亮', offDay:'周一/周二', availableFrom:0 },
+  { id:'e44', fullName:'Nur Aida Binti Amran',    shortName:'Aida',         role:'兼职',     positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'只有晚上能来帮忙', offDay:'', availableFrom:18 },
+  { id:'e45', fullName:'Putri Salbiah',           shortName:'Putri',        role:'员工',     positions:['Service','D Drink'],                             canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e46', fullName:'Siti Nurfatimahfatin',    shortName:'Fatin',        role:'员工',     positions:['Cutting'],                                   canTrain:[],                        tags:[],              managerNote:'戴牙套', offDay:'', availableFrom:0 },
+  { id:'e47', fullName:'Adrus Aqasya',            shortName:'Adrus',        role:'前厅员工', positions:['Service'],                                     canTrain:[],                        tags:['引流'],        managerNote:'', offDay:'',           availableFrom:0  },
+  { id:'e48', fullName:'Natasha Nabilah',         shortName:'Natasha',      role:'副理',     positions:['Service'],                                     canTrain:[],                        tags:[],              managerNote:'', offDay:'',           availableFrom:0  },
 ];
 
 // =============================================================================
@@ -1154,31 +796,13 @@ const DEFAULT_EMPLOYEES = [
 let employees         = [];   // active, loaded from Supabase
 let inactiveEmployees = [];   // is_active=false
 let allPositions      = [];   // positions_master table
-let talentColumnsMissing = false;  // set true if Supabase lacks training/dev_goals/coaching_log cols
-let posThresholdColMissing = false;  // set true if coverage_settings lacks pos_thresholds col
-
-// ── 员工查找索引 ────────────────────────────────────────────────────────────
-// 性能优化：原先到处用 getEmp(id)，等于「从头挨个找」，
-// 还写在循环里，重复了几百次。这里维护一本「电话簿」(id → 员工)，查谁都是秒查。
-// 注意：只索引在职员工 employees，与原 employees.find(...) 的查找范围完全一致，
-//       不会改变任何现有行为（离职员工原本也查不到）。
-// 任何给 employees 重新赋值的地方都要调用一次 rebuildEmpIndex()。
-let _empById = new Map();
-function rebuildEmpIndex() {
-  _empById = new Map();
-  for (const e of employees) _empById.set(e.id, e);
-}
-// 行为等价于原来的全表扫描查找：找不到时返回 undefined。
-function getEmp(id) {
-  return _empById.get(id);
-}
 
 // Employee edit modal state
 let empModal = {
   open: false, mode: 'add', empId: null, saving: false, error: '',
   fullName: '', shortName: '', role: '员工',
-  positions: [], canTrain: [], training: [], tags: [],
-  offDay: '', devGoals: [], coachingLog: [],
+  positions: [], canTrain: [], tags: [],
+  managerNote: '', offDay: '', availableFrom: 0,
 };
 // Positions management modal state
 let posModal = { open: false, newName: '', newArea: '后厨', newTrainable: false, saving: false, error: '' };
@@ -1200,14 +824,10 @@ let state = {
   plannedLeave:    {},     // { empId: [{ from, to, type }] }
   dailyLeave:      {},     // { 'YYYY-MM-DD': { empId: leaveType } }
   slotOverrides:   {},     // { slotId: { startHour, endHour } } — permanent, from Supabase
-  coverageThresholds: { onDuty: 30, front: 7 },  // staffing warning thresholds — from Supabase, editable by manager
-  posThresholds:   {},     // { posName: { red, yellow } } — per-position risk thresholds (talent board)
-  tbExcludeMgmt:   true,    // talent board: exclude mgmt/trainer roles from coverage (default ON, persisted)
   dayMeta:         { estRevenue: '', actualRevenue: '', dayTags: [], dayNote: '', workload: {}, unplannedAbsent: [] },  // per-day planning inputs + review
   searchQuery:     '',
   showUnassigned:  false,
   ganttView:       'full',
-  ganttGroupBy:    'position',   // 'position' (by station, default) | 'person'
 };
 
 // Per-day time override popover state
@@ -1218,18 +838,9 @@ let slotTimeEdit   = { startHour: 0, endHour: 0 };    // working values inside p
 let shiftTabEdit   = { slotId: null, startHour: 0, endHour: 0 };
 
 let addShiftForm = { openPosition: null, startTime: '11:00', endTime: '20:00', employeeId: '' };
-let leaveForm      = { employeeId: '', type: 'planned', fromDate: '', toDate: '', pickStep: 'from', pickerYear: null, pickerMonth: null };
+let leaveForm      = { employeeId: '', type: 'planned', fromDate: '', toDate: '' };
 let leaveFormToast      = null; // { empName, from, to } — shown briefly after submit
-let weekPreviewExpanded  = false; // toggle for "no leave" employees section
-let restRestedExpanded   = false; // toggle for "已排休" chips in rest tracker
-
-// Copy-schedule feature state
-let copyScheduleState = {
-  dropdownOpen: false,
-  modal:  null,   // null | { sourceDate, absentNames[], assignments{}, hasExisting }
-  toast:  null,   // null | { msg }
-};
-let _copyDropdownCloseHandler = null;
+let weekPreviewExpanded = false; // toggle for "no leave" employees section
 
 // Persistence: Supabase (see DB FUNCTIONS above)
 function saveToStorage() { scheduleSave(); }
@@ -1365,18 +976,7 @@ function computeState() {
   };
 }
 
-// ── allSlots() 缓存 ──────────────────────────────────────────────────────────
-// 性能优化：原先每次调用都从头重算 30+ 个班次，而一次刷新会调用十几次。
-// 这里用一个「指纹」(slotOverrides + extraSlots 的 JSON) 判断数据有没有变：
-//   - 没变 → 直接返回上次的结果（秒回）；
-//   - 变了 → 重算并记下新指纹。
-// 因为指纹覆盖了唯一两个会影响结果的来源，所以无需手动清缓存，永远不会读到过期数据。
-let _slotsCache    = null;
-let _slotsCacheKey = null;
 function allSlots() {
-  const key = JSON.stringify(state.slotOverrides) + '|' + JSON.stringify(state.extraSlots);
-  if (_slotsCache !== null && key === _slotsCacheKey) return _slotsCache;
-
   // Apply permanent slot_overrides on top of BASE_SLOTS
   const base = BASE_SLOTS.map(s => {
     const ov = state.slotOverrides[s.id];
@@ -1384,9 +984,7 @@ function allSlots() {
     return { ...s, startHour: ov.startHour, endHour: ov.endHour,
              shift: formatHourNum(ov.startHour) + '–' + formatHourNum(ov.endHour) };
   });
-  _slotsCache    = [...base, ...state.extraSlots];
-  _slotsCacheKey = key;
-  return _slotsCache;
+  return [...base, ...state.extraSlots];
 }
 
 // Returns a slot with any per-day time override applied (from assignments.timeOverride)
@@ -1399,6 +997,67 @@ function getEffectiveSlot(slot) {
            shift: formatHourNum(sh) + '–' + formatHourNum(eh) };
 }
 
+// Calendar previous day (local date parts, avoids UTC shift for UTC+8)
+function prevDateStr(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  const y  = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${dy}`;
+}
+
+// Build a map of empId -> { startHour, endHour, pos } for a given day's assignments object.
+// Uses current slotOverrides/extraSlots as the slot layout (best-effort fallback) but
+// honors per-assignment timeOverride from that day's data. Absent employees excluded.
+function buildShiftMapFromAssignments(assignments, dateStr) {
+  const absences = getAbsencesForDate(dateStr);
+  const slotById = {};
+  for (const s of allSlots()) slotById[s.id] = s;
+  const map = {};
+  for (const [slotId, a] of Object.entries(assignments || {})) {
+    const slot = slotById[slotId];
+    if (!slot) continue;
+    const ov = a?.timeOverride;
+    const sh = ov?.startHour ?? slot.startHour;
+    const eh = ov?.endHour   ?? slot.endHour;
+    const info = { startHour: sh, endHour: eh, pos: slot.pos };
+    if (a?.empId     && !absences[a.empId])     map[a.empId]     = info;
+    if (a?.studentId && !absences[a.studentId]) map[a.studentId] = info;
+  }
+  return map;
+}
+
+// Fetch yesterday's schedule row and build its shift map. Returns null if no data
+// (e.g. opening day, blank Sunday) so callers can skip change-highlighting safely.
+async function fetchYesterdayShiftMap(dateStr) {
+  try {
+    const prev = prevDateStr(dateStr);
+    const { data, error } = await db.from('daily_schedule').select('assignments')
+      .eq('store_id', STORE_ID).eq('schedule_date', prev).maybeSingle();
+    if (error) throw error;
+    if (!data || !data.assignments || !Object.keys(data.assignments).length) return null;
+    return buildShiftMapFromAssignments(data.assignments, prev);
+  } catch (e) {
+    console.error('fetchYesterdayShiftMap', e?.message || e);
+    return null;
+  }
+}
+
+// Compare today's shift info against yesterday's map. Returns a change descriptor
+// { kind: 'new'|'pos'|'time', label } or null. Priority: new > pos > time.
+function computeShiftChange(empId, todaySlot, yMap) {
+  if (!yMap) return null;                 // no yesterday data -> never flag
+  if (!todaySlot) return null;            // not on duty today -> nothing to flag
+  const y = yMap[empId];
+  if (!y) return { kind: 'new', label: '今上' };   // off/absent yesterday -> on today
+  if (y.pos !== todaySlot.pos) return { kind: 'pos', label: '岗位变' };
+  if (y.startHour !== todaySlot.startHour || y.endHour !== todaySlot.endHour) {
+    return { kind: 'time', label: '时间变' };
+  }
+  return null;
+}
+
 // Is this employee eligible to be the main person for a slot?
 function isEligible(employee, slot, computed) {
   if (computed.absentSet.has(employee.id)) return false;
@@ -1409,13 +1068,13 @@ function isEligible(employee, slot, computed) {
   const isStudentHere = assignment?.studentId === employee.id;
 
   if (alreadyAssigned && !isMainHere && !isStudentHere) return false;
+  if (employee.availableFrom && employee.availableFrom > slot.startHour) return false;
 
   if (slot.pos === 'Dacai')    return true;  // anyone can do 打菜
   if (slot.pos === 'Dishwash') return true;  // anyone can wash dishes
   if (slot.pos === 'Reserve')  return true;  // anyone can be reserve
 
-  // Use toCanonicalPos so Chinese names from positions_master match English BASE_SLOTS keys
-  return employee.positions.some(p => toCanonicalPos(p) === slot.pos);
+  return employee.positions.includes(slot.pos);
 }
 
 // Is this employee eligible to be a student for a slot?
@@ -1429,7 +1088,7 @@ function isStudentEligible(employee, slot, computed) {
 }
 
 function isTrainerFor(employee, position) {
-  return employee.canTrain.some(p => toCanonicalPos(p) === position);
+  return employee.canTrain.includes(position);
 }
 
 // =============================================================================
@@ -1514,13 +1173,6 @@ function el(tag, attrs, ...children) {
         element.addEventListener(key.slice(2).toLowerCase(), value);
       } else if (key === 'style' && typeof value === 'object') {
         Object.assign(element.style, value);
-      } else if (typeof value === 'boolean') {
-        // Boolean attributes (disabled, checked, readonly, …) work by presence:
-        // setAttribute('disabled', false) would STILL disable the element (the
-        // attribute exists). So set the property directly and only add the
-        // attribute when true.
-        element[key] = value;
-        if (value) element.setAttribute(key, ''); else element.removeAttribute(key);
       } else {
         element.setAttribute(key, value);
       }
@@ -1699,7 +1351,7 @@ function renderDayMetaPanel() {
   if (noShow.length) {
     const chips = el('div', { class:'daymeta-tags', style:{ marginTop:'6px' } });
     for (const id of noShow) {
-      const emp  = getEmp(id);
+      const emp  = employees.find(e => e.id === id);
       const chip = el('span', { class:'absent-chip' }, emp ? emp.shortName : id);
       chip.appendChild(el('i', { class:'ti ti-x', style:{ marginLeft:'4px', cursor:'pointer' },
         onClick: () => { m.unplannedAbsent = m.unplannedAbsent.filter(x => x !== id); scheduleSave(); render(); } }));
@@ -1712,7 +1364,7 @@ function renderDayMetaPanel() {
     '计划可用 ', el('b', {}, String(planned)), ' 人 · 实际出勤 ', el('b', {}, String(actualOnDuty)), ' 人');
   if (noShow.length) hcInfo.appendChild(el('span', { class:'short' }, ` (临时缺 ${noShow.length})`));
   if (onLeaveIds.length) {
-    const onLeaveNames = onLeaveIds.map(id => (getEmp(id) || {}).shortName || id);
+    const onLeaveNames = onLeaveIds.map(id => (employees.find(e => e.id === id) || {}).shortName || id);
     hcInfo.appendChild(el('div', { class:'absent' }, `已请假：${onLeaveNames.join('、')}`));
   }
   hcGroup.appendChild(hcInfo);
@@ -1825,11 +1477,9 @@ function renderScheduleTab(computed) {
     for (const { pos, slots } of positions) {
       const isKitchenFixed  = KITCHEN_POSITIONS.includes(pos);
       const isTrainablePos  = isKitchenFixed
-        || pos === 'PIC'
-        || (allPositions.find(p => toCanonicalPos(p.name) === pos)?.trainable === true)
-        || employees.some(e => e.canTrain.some(ct => toCanonicalPos(ct) === pos));
-      // C Chop固定班不带isFlex，但业务上需要能临时加班——单独开放Add Shift
-      const hasFlex        = slots.some(s => s.isFlex) || pos === 'C Chop';
+        || (allPositions.find(p => p.name === pos)?.trainable === true)
+        || employees.some(e => e.canTrain.includes(pos));  // fallback: any trainer exists for this pos
+      const hasFlex        = slots.some(s => s.isFlex);
       const card           = el('div', { class: 'card' });
 
       // Position header
@@ -1858,7 +1508,7 @@ function renderScheduleTab(computed) {
           if (pos === 'Dacai')    return true;
           if (pos === 'Reserve')  return true;
           if (pos === 'Dishwash') return true;
-          return e.positions.some(p => toCanonicalPos(p) === pos);
+          return e.positions.includes(pos);
         });
 
         const startOpts = [['', '-- Start --'], ...FH_START_TIMES.map(t => [t, t])];
@@ -1892,9 +1542,8 @@ function renderScheduleTab(computed) {
         const currentStuId = assignment.studentId;
         const isFilled     = !!currentEmpId;
 
-        const mainEmployee   = getEmp(currentEmpId);
-        const canAddStudent  = isFilled && isTrainablePos && mainEmployee
-          && (slot.pos === 'PIC' || isTrainerFor(mainEmployee, slot.pos));
+        const mainEmployee   = employees.find(e => e.id === currentEmpId);
+        const canAddStudent  = isFilled && isTrainablePos && mainEmployee && isTrainerFor(mainEmployee, slot.pos);
 
         const eligibleStaff  = computed.availableStaff.filter(e => isEligible(e, slot, computed));
         const eligibleStudents = computed.availableStaff.filter(e => isStudentEligible(e, slot, computed));
@@ -2031,21 +1680,10 @@ function renderScheduleTab(computed) {
 
         // Student slot (for kitchen positions and any trainable front positions like D Drink)
         if (isTrainablePos) {
-          // 已存在的学员可能变成"孤儿"：当主岗不再是合格 trainer 时（trainer 失去
-          // canTrain、主岗被换成非 trainer、或复制班表把学员连带搬了过来），
-          // canAddStudent 会变 false。若不显示出来，这个学员会被静默困住——仍占着
-          // 这个人，使其从其他下拉和"未排班"里消失，且无法清除。
-          const hasOrphanStudent = !canAddStudent && !!currentStuId;
-          const studentBox = el('div', { class: 'student-box', style: { opacity: (canAddStudent || hasOrphanStudent) ? '1' : '0.4' } });
+          const studentBox = el('div', { class: 'student-box', style: { opacity: canAddStudent ? '1' : '0.4' } });
           const studentLabel = el('div', { class: 'student-label' });
           studentLabel.appendChild(icon('school'));
-          studentLabel.appendChild(document.createTextNode(
-            canAddStudent
-              ? (slot.pos === 'PIC' ? ' Student PIC' : ' Student')
-              : hasOrphanStudent
-                ? ' Student · trainer 已无资格'
-                : ' Need Trainer to add student'
-          ));
+          studentLabel.appendChild(document.createTextNode(canAddStudent ? ' Student' : ' Need Trainer to add student'));
           studentBox.appendChild(studentLabel);
 
           if (canAddStudent) {
@@ -2065,16 +1703,6 @@ function renderScheduleTab(computed) {
             if (!currentStuId) studentSel.value = '';
             studentSel.addEventListener('change', e => assignStudent(slot.id, e.target.value || undefined));
             studentBox.appendChild(studentSel);
-          } else if (hasOrphanStudent) {
-            // 把被困学员显示出来，并提供一键清除，使其重新可被排班。
-            const stuEmp = getEmp(currentStuId);
-            const row = el('div', { style: { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'6px', marginTop:'2px' } });
-            row.appendChild(el('span', { style: { fontSize:'12px', fontWeight:'600' } }, stuEmp ? stuEmp.shortName : currentStuId));
-            const clearBtn = el('button', { class: 'btn-sm btn-danger', style: { fontSize:'10px' }, onClick: () => assignStudent(slot.id, undefined) });
-            clearBtn.appendChild(icon('x'));
-            clearBtn.appendChild(document.createTextNode(' 清除'));
-            row.appendChild(clearBtn);
-            studentBox.appendChild(row);
           }
 
           slotWrap.appendChild(studentBox);
@@ -2091,934 +1719,6 @@ function renderScheduleTab(computed) {
   }
 
   return frag;
-}
-
-// =============================================================================
-// TALENT BOARD (人才看板)
-// =============================================================================
-// Skill levels per position:
-//   L1 在训 (training[]) → L2 独立 (positions[]) → L3 师傅 (canTrain[])
-// positions/canTrain are reused from the existing schema. A position shows at
-// the HIGHEST level the employee holds it (师傅 implies 独立).
-
-const TB_LEVELS = {
-  0: { key: 'lv0', short: '·',  label: '未涉及' },
-  1: { key: 'lv1', short: '训', label: '在训 (L1)' },
-  2: { key: 'lv2', short: '●',  label: '独立 (L2)' },
-  3: { key: 'lv3', short: '师', label: '师傅 (L3)' },
-};
-
-// Talent board view state
-let talentState = { view: 'matrix', editThresholds: false };  // 'matrix' | 'cards'
-
-// Returns the skill level (0-3) of an employee for a given position name.
-function tbLevel(emp, posName) {
-  // Compare by canonical name so a station stored under any writing
-  // (e.g. 'A1 炒菜' vs 'A1 Wok') is matched consistently.
-  const target = toCanonicalPos(posName);
-  const has = (arr) => (arr || []).some(p => toCanonicalPos(p) === target);
-  if (has(emp.canTrain))  return 3;
-  if (has(emp.positions)) return 2;
-  if (has(emp.training))  return 1;
-  return 0;
-}
-
-// Build the ordered list of positions to show as matrix columns.
-// Source: positions_master if available, else collected from employee data.
-// Excludes "anyone can do" utility slots (Dacai/Dishwash/Reserve).
-const TB_EXCLUDE = ['Dacai', 'Dishwash', 'Reserve'];
-function tbPositions() {
-  // Collect every position string that appears, but DEDUPE BY CANONICAL NAME.
-  // The data may mix writings of the same station (e.g. 'A1 Wok' vs 'A1 炒菜'),
-  // which all map to one canonical id via toCanonicalPos(). Without canonical
-  // dedupe, the same station would appear as multiple identical-looking rows.
-  const byCanon = new Map();  // canonical → representative raw name
-  const consider = (raw) => {
-    const canon = toCanonicalPos(raw);
-    if (TB_EXCLUDE.includes(canon)) return;
-    // Prefer the canonical form itself as the representative when present,
-    // so editing/saving always writes the canonical name going forward.
-    if (!byCanon.has(canon) || raw === canon) byCanon.set(canon, raw === canon ? raw : byCanon.get(canon) ?? raw);
-  };
-  for (const p of (allPositions || []).map(p => p.name)) consider(p);
-  for (const e of employees) {
-    for (const p of [...(e.positions||[]), ...(e.canTrain||[]), ...(e.training||[])]) consider(p);
-  }
-  // Use canonical names as the working list — one entry per station.
-  let list = [...byCanon.keys()];
-
-  // Stable ordering: by area (后厨 first), then by master sort_order if known
-  const order = {}; (allPositions||[]).forEach(p => order[toCanonicalPos(p.name)] = p.sort_order ?? 999);
-  const KITCHEN = new Set(KITCHEN_POSITIONS);
-  list.sort((a, b) => {
-    const ka = KITCHEN.has(a) ? 0 : 1;
-    const kb = KITCHEN.has(b) ? 0 : 1;
-    if (ka !== kb) return ka - kb;
-    return (order[a] ?? 999) - (order[b] ?? 999) || a.localeCompare(b);
-  });
-  return list;
-}
-
-// Short column header for a position (strips the English suffix for compactness).
-function tbPosShort(posName) {
-  const canon = toCanonicalPos(posName);
-  const map = {
-    'A1 Wok':'A1 炒','A2 Steam':'A2 蒸','B Chicken':'B 鸡','C Chop':'C 剁鸡',
-    'Cutting':'切配','D Drink':'D 饮','Service':'前厅','PIC':'PIC',
-  };
-  return map[canon] || posName;
-}
-
-// Coverage stats for a position across all (active) employees.
-// Roles considered management / trainer track — may be reassigned off-floor,
-// so the manager can exclude them to see true front-line bench strength.
-const TB_MGMT_ROLES = ['店长', '培训主管', '培训员'];
-function tbIsFrontline(emp) { return !TB_MGMT_ROLES.includes(emp.role); }
-
-// Coverage for a position. When excludeMgmt is true, management/trainer-track
-// staff are dropped from the counts. Always also returns the full (unfiltered)
-// independent count so the UI can show "10 → 6" style deltas.
-function tbCoverage(posName, excludeMgmt) {
-  let independent = 0, trainers = 0, learning = 0, independentAll = 0;
-  for (const e of employees) {
-    const lv = tbLevel(e, posName);
-    if (lv >= 2) independentAll++;
-    if (excludeMgmt && !tbIsFrontline(e)) continue;  // skip mgmt when filtering
-    if (lv === 3) { trainers++; independent++; }
-    else if (lv === 2) independent++;
-    else if (lv === 1) learning++;
-  }
-  return { independent, trainers, learning, independentAll };
-}
-
-// Risk tier from independent count: ≤1 risk, =2 warn, ≥3 ok.
-// Default thresholds: red line = 2 (below = risk), yellow line = 3 (at/above = ok).
-// i.e. independent < red → risk; red ≤ independent < yellow → warn; ≥ yellow → ok.
-// This matches the original ≤1 risk / =2 warn / ≥3 ok behaviour.
-const TB_DEFAULT_RED = 2, TB_DEFAULT_YELLOW = 3;
-
-function tbThreshold(posName) {
-  const t = (state.posThresholds || {})[posName];
-  let red    = (t && Number.isFinite(t.red))    ? t.red    : TB_DEFAULT_RED;
-  let yellow = (t && Number.isFinite(t.yellow)) ? t.yellow : TB_DEFAULT_YELLOW;
-  if (yellow <= red) yellow = red + 1;  // guard against inverted/equal lines
-  return { red, yellow };
-}
-
-function tbRiskTier(posName, independent) {
-  const { red, yellow } = tbThreshold(posName);
-  if (independent < red)    return 'risk';
-  if (independent < yellow) return 'warn';
-  return 'ok';
-}
-
-function tbIsMultiSkilled(emp) {
-  const skills = new Set([...(emp.positions||[]), ...(emp.canTrain||[])].map(toCanonicalPos));
-  return skills.size >= 4;
-}
-
-// ── Main tab renderer ──
-function renderTalentTab() {
-  const frag = document.createDocumentFragment();
-  const positions = tbPositions();
-  const isManager = currentRole === 'manager';
-
-  // Migration banner (only if Supabase columns are missing)
-  if (talentColumnsMissing) {
-    frag.appendChild(el('div', { class: 'tb-banner' },
-      '提示：Supabase 尚未添加人才看板字段，当前修改仅在本次会话可见。请在 SQL Editor 运行加列脚本以启用云端同步。'));
-  }
-
-  // ── Summary stats ──
-  const onDuty = employees.length;
-  const learningCount = employees.filter(e => (e.training||[]).length > 0).length;
-  const multiCount = employees.filter(tbIsMultiSkilled).length;
-  const riskCount = positions.filter(p => tbRiskTier(p, tbCoverage(p, state.tbExcludeMgmt).independent) === 'risk').length;
-
-  const stats = el('div', { class: 'tb-stats' });
-  const mkStat = (label, val, danger) => {
-    const s = el('div', { class: 'tb-stat' });
-    s.appendChild(el('div', { class: 'tb-stat-label' }, label));
-    s.appendChild(el('div', { class: 'tb-stat-val', style: danger && val > 0 ? { color:'var(--red-600)' } : {} }, String(val)));
-    return s;
-  };
-  stats.appendChild(mkStat('在岗员工', onDuty));
-  stats.appendChild(mkStat('正在带训', learningCount));
-  stats.appendChild(mkStat('多面手 (≥4岗)', multiCount));
-  stats.appendChild(mkStat('风险岗位', riskCount, true));
-  frag.appendChild(stats);
-
-  // ── Skill matrix section ──
-  const matrixTitle = el('div', { class: 'tb-section-title', style: { justifyContent:'space-between' } });
-  matrixTitle.appendChild(el('span', { style: { display:'flex', alignItems:'center', gap:'6px' } }, icon('table'), '技能矩阵'));
-  if (isManager) {
-    const normBtn = el('button', { class: 'btn-sm', style: { padding:'2px 8px' }, onClick: openNormalizeModal });
-    normBtn.appendChild(icon('wand'));
-    normBtn.appendChild(document.createTextNode(' 规范化数据'));
-    matrixTitle.appendChild(normBtn);
-  }
-  frag.appendChild(matrixTitle);
-
-  const toggle = el('div', { class: 'tb-viewtoggle' });
-  const mkToggle = (key, label) => el('button', {
-    class: `tb-viewbtn${talentState.view === key ? ' active' : ''}`,
-    onClick: () => { talentState.view = key; render(); },
-  }, label);
-  toggle.appendChild(mkToggle('matrix', '表格视图'));
-  toggle.appendChild(mkToggle('cards', '卡片视图'));
-  frag.appendChild(toggle);
-
-  if (talentState.view === 'matrix') {
-    frag.appendChild(tbRenderMatrix(positions, isManager));
-  } else {
-    frag.appendChild(tbRenderCards(positions));
-  }
-
-  // Legend
-  const legend = el('div', { class: 'tb-legend' });
-  const mkLeg = (cls, text) => { const s = el('span'); const i = el('i', { class: cls }); s.appendChild(i); s.appendChild(document.createTextNode(text)); return s; };
-  legend.appendChild(mkLeg('lv1', '训 = 在训 L1'));
-  legend.appendChild(mkLeg('lv2', '● = 独立 L2'));
-  legend.appendChild(mkLeg('lv3', '师 = 师傅 L3'));
-  if (isManager && talentState.view === 'matrix') {
-    legend.appendChild(el('span', { style: { color:'var(--text-muted)' } }, '点击格子可切换：空→训→独立→师傅'));
-  }
-  frag.appendChild(legend);
-
-  // ── Risk section ──
-  const riskTitle = el('div', { class: 'tb-section-title', style: { justifyContent:'space-between' } });
-  riskTitle.appendChild(el('span', { style: { display:'flex', alignItems:'center', gap:'6px' } }, icon('alert-triangle'), '岗位风险预警'));
-  if (isManager) {
-    const thBtn = el('button', { class: 'btn-sm', style: { padding:'2px 8px' },
-      onClick: () => { talentState.editThresholds = !talentState.editThresholds; render(); } });
-    thBtn.appendChild(icon('adjustments'));
-    thBtn.appendChild(document.createTextNode(talentState.editThresholds ? ' 完成' : ' 设置阈值'));
-    riskTitle.appendChild(thBtn);
-  }
-  frag.appendChild(riskTitle);
-  frag.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', margin:'0 0 8px' } },
-    '按"能独立顶岗 (L2 及以上) 的人数"评估每个岗位的抗风险能力。'));
-
-  // Exclude-management toggle — see true front-line bench strength.
-  const exToggle = el('label', { class: 'tb-ex-toggle' });
-  const exCb = el('input', { type: 'checkbox' });
-  exCb.checked = !!state.tbExcludeMgmt;
-  exCb.addEventListener('change', (e) => saveTbExcludeMgmt(e.target.checked));
-  exToggle.appendChild(exCb);
-  exToggle.appendChild(el('span', {}, '仅统计一线员工（排除店长 / 培训主管 / 培训员）'));
-  frag.appendChild(exToggle);
-  if (state.tbExcludeMgmt) {
-    const exCount = employees.filter(e => !tbIsFrontline(e)).length;
-    frag.appendChild(el('p', { style: { fontSize:'11px', color:'var(--text-muted)', margin:'2px 0 10px' } },
-      `已排除 ${exCount} 名管理 / 培训人员，下列为一线可长期顶岗的口径。`));
-  } else {
-    frag.appendChild(el('div', { style: { height:'8px' } }));
-  }
-
-  if (isManager && talentState.editThresholds) {
-    frag.appendChild(tbRenderThresholdEditor(positions));
-  }
-  frag.appendChild(tbRenderRisk(positions));
-
-  return frag;
-}
-
-// ── Per-position threshold editor ──
-function tbRenderThresholdEditor(positions) {
-  const wrap = el('div', { style: { background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'11px 13px', marginBottom:'12px' } });
-  wrap.appendChild(el('div', { style: { fontSize:'12px', color:'var(--text-sub)', marginBottom:'8px', lineHeight:'1.5' } },
-    '为每个岗位设置：独立顶岗人数低于「红线」标红（单点风险），低于「黄线」标黄（脆弱），达到黄线及以上标绿（健康）。留空用默认（红线 2、黄线 3）。'));
-
-  if (posThresholdColMissing) {
-    wrap.appendChild(el('div', { class: 'tb-banner', style: { marginBottom:'8px' } },
-      '提示：Supabase 的 coverage_settings 尚未添加 pos_thresholds 列，阈值修改当前仅本会话可见。'));
-  }
-
-  // header row
-  const head = el('div', { style: { display:'flex', alignItems:'center', gap:'8px', fontSize:'11px', color:'var(--text-muted)', paddingBottom:'4px', borderBottom:'1px solid var(--border)' } });
-  head.appendChild(el('div', { style: { flex:'1' } }, '岗位'));
-  head.appendChild(el('div', { style: { width:'68px', textAlign:'center' } }, '红线 <'));
-  head.appendChild(el('div', { style: { width:'68px', textAlign:'center' } }, '黄线 <'));
-  head.appendChild(el('div', { style: { width:'46px', textAlign:'center' } }, '当前'));
-  wrap.appendChild(head);
-
-  const draft = { ...(state.posThresholds || {}) };
-  for (const p of positions) {
-    const cur = tbThreshold(p);
-    const set = (state.posThresholds || {})[p] || {};
-    const c = tbCoverage(p, state.tbExcludeMgmt);
-    const row = el('div', { style: { display:'flex', alignItems:'center', gap:'8px', padding:'5px 0', borderTop:'1px solid var(--gray-100)' } });
-    row.appendChild(el('div', { class: 'tb-skedit-name', style: { flex:'1' } }, tbPosShort(p)));
-
-    const redIn = el('input', { type:'number', min:'0', placeholder:String(TB_DEFAULT_RED),
-      value: Number.isFinite(set.red) ? String(set.red) : '', style:{ width:'68px', textAlign:'center' } });
-    const yelIn = el('input', { type:'number', min:'1', placeholder:String(TB_DEFAULT_YELLOW),
-      value: Number.isFinite(set.yellow) ? String(set.yellow) : '', style:{ width:'68px', textAlign:'center' } });
-
-    const commit = () => {
-      const map = { ...(state.posThresholds || {}) };
-      const r = parseInt(redIn.value); const y = parseInt(yelIn.value);
-      const entry = {};
-      if (Number.isFinite(r)) entry.red = r;
-      if (Number.isFinite(y)) entry.yellow = y;
-      if (Object.keys(entry).length) map[p] = entry; else delete map[p];
-      savePosThresholds(map);
-    };
-    redIn.addEventListener('change', commit);
-    yelIn.addEventListener('change', commit);
-    row.appendChild(redIn);
-    row.appendChild(yelIn);
-
-    const tier = tbRiskTier(p, c.independent);
-    const tierCol = tier === 'risk' ? 'var(--red-600)' : tier === 'warn' ? 'var(--amber-600)' : 'var(--green-600)';
-    row.appendChild(el('div', { style: { width:'46px', textAlign:'center', fontWeight:'700', color: tierCol } }, String(c.independent)));
-    wrap.appendChild(row);
-  }
-  return wrap;
-}
-
-// ── Matrix (table) view ──
-function tbRenderMatrix(positions, isManager) {
-  const wrap = el('div', { class: 'tb-matrix-wrap' });
-  const table = el('table', { class: 'tb-matrix' });
-
-  // Header: position names, then a coverage row directly beneath them.
-  // Both rows are sticky to the top so coverage stays visible while scrolling.
-  const thead = el('thead');
-  const htr = el('tr');
-  htr.appendChild(el('th', { class: 'tb-name' }, '员工'));
-  for (const p of positions) htr.appendChild(el('th', { title: p }, tbPosShort(p)));
-  thead.appendChild(htr);
-
-  // Coverage row — right under the position names.
-  const cov = el('tr', { class: 'tb-cover-row' });
-  cov.appendChild(el('th', { class: 'tb-name' }, '岗位覆盖'));
-  for (const p of positions) {
-    const c = tbCoverage(p, state.tbExcludeMgmt);
-    const tier = tbRiskTier(p, c.independent);
-    const cls = tier === 'risk' ? 'tb-cover-risk' : tier === 'warn' ? 'tb-cover-warn' : 'tb-cover-ok';
-    const th = tbThreshold(p);
-    const delta = (state.tbExcludeMgmt && c.independentAll !== c.independent) ? `（全员 ${c.independentAll}）` : '';
-    cov.appendChild(el('th', { class: cls, title: `一线独立 ${c.independent}${delta} · 师傅 ${c.trainers} · 在训 ${c.learning}（红线<${th.red}，黄线<${th.yellow}）` },
-      c.independent + (tier === 'risk' ? '!' : '')));
-  }
-  thead.appendChild(cov);
-  table.appendChild(thead);
-
-  // Body: one row per employee.
-  const tbody = el('tbody');
-  const sorted = [...employees].sort((a, b) => a.shortName.localeCompare(b.shortName, 'zh'));
-  for (const emp of sorted) {
-    const tr = el('tr');
-    const nameTd = el('td', { class: 'tb-name', style: { cursor:'pointer' }, onClick: () => openDevCard(emp.id) }, emp.shortName);
-    tr.appendChild(nameTd);
-    for (const p of positions) {
-      const lv = tbLevel(emp, p);
-      const cell = el('span', {
-        class: `tb-cell ${TB_LEVELS[lv].key}`,
-        title: `${emp.shortName} · ${tbPosShort(p)} · ${TB_LEVELS[lv].label}`,
-      }, TB_LEVELS[lv].short);
-      if (isManager) {
-        cell.addEventListener('click', (ev) => { ev.stopPropagation(); tbCycleSkill(emp.id, p); });
-      }
-      const td = el('td'); td.appendChild(cell); tr.appendChild(td);
-    }
-    tbody.appendChild(tr);
-  }
-
-  table.appendChild(tbody);
-  wrap.appendChild(table);
-  return wrap;
-}
-
-// ── Card list view (mobile-friendly) ──
-function tbRenderCards(positions) {
-  const grid = el('div', { class: 'tb-cards' });
-  const sorted = [...employees].sort((a, b) => a.shortName.localeCompare(b.shortName, 'zh'));
-  for (const emp of sorted) {
-    const card = el('div', { class: 'tb-card', onClick: () => openDevCard(emp.id) });
-    const head = el('div', { class: 'tb-card-head' });
-    head.appendChild(el('div', { class: 'tb-card-name' }, emp.shortName));
-    const rs = getRoleStyle(emp.role);
-    head.appendChild(el('span', { class: 'badge', style: { background: rs.bg, color: rs.color } }, emp.role));
-    card.appendChild(head);
-
-    const skillRow = el('div', { class: 'tb-skillrow' });
-    let any = false;
-    for (const p of positions) {
-      const lv = tbLevel(emp, p);
-      if (lv === 0) continue;
-      any = true;
-      const lvCls = TB_LEVELS[lv].key;
-      const bg = lv === 3 ? 'var(--amber-100)' : lv === 2 ? 'var(--green-100)' : 'var(--blue-50)';
-      const col = lv === 3 ? 'var(--amber-700)' : lv === 2 ? 'var(--green-700)' : 'var(--blue-700)';
-      const suffix = lv === 3 ? ' 师' : lv === 1 ? ' 训' : '';
-      skillRow.appendChild(el('span', { class: 'tb-skill', style: { background: bg, color: col } }, tbPosShort(p) + suffix));
-    }
-    if (!any) skillRow.appendChild(el('span', { style: { fontSize:'12px', color:'var(--text-muted)' } }, '暂无技能记录'));
-    card.appendChild(skillRow);
-
-    if ((emp.training||[]).length > 0) {
-      card.appendChild(el('div', { style: { fontSize:'11px', color:'var(--blue-600)', marginTop:'6px' } },
-        '在训：' + emp.training.map(tbPosShort).join('、')));
-    }
-    grid.appendChild(card);
-  }
-  return grid;
-}
-
-// ── Risk cards ──
-function tbRenderRisk(positions) {
-  const frag = document.createDocumentFragment();
-  const ex = state.tbExcludeMgmt;
-  const ranked = positions
-    .map(p => ({ p, c: tbCoverage(p, ex), tier: tbRiskTier(p, tbCoverage(p, ex).independent) }))
-    .sort((a, b) => a.c.independent - b.c.independent);
-
-  for (const { p, c, tier } of ranked) {
-    const card = el('div', { class: `tb-risk-card ${tier}` });
-    const head = el('div', { class: 'tb-risk-head' });
-    const nameWrap = el('div', { class: 'tb-risk-name' });
-    const iconName = tier === 'risk' ? 'alert-triangle' : tier === 'warn' ? 'alert-circle' : 'circle-check';
-    const iconColor = tier === 'risk' ? 'var(--red-600)' : tier === 'warn' ? 'var(--amber-600)' : 'var(--green-600)';
-    const ic = icon(iconName); ic.style.color = iconColor;
-    nameWrap.appendChild(ic);
-    nameWrap.appendChild(document.createTextNode(tbPosShort(p)));
-    head.appendChild(nameWrap);
-    const tierLabel = tier === 'risk' ? '单点风险' : tier === 'warn' ? '脆弱' : '健康';
-    const tierBadge = tier === 'risk' ? 'badge-red' : tier === 'warn' ? 'badge-amber' : 'badge-green';
-    head.appendChild(badge(tierLabel, tierBadge));
-    card.appendChild(head);
-
-    const delta = (ex && c.independentAll !== c.independent)
-      ? `（含管理层共 ${c.independentAll} 人）` : '';
-    card.appendChild(el('div', { class: 'tb-risk-meta' },
-      `一线独立顶岗 ${c.independent} 人${delta} · 师傅 ${c.trainers} 人 · 在训 ${c.learning} 人`));
-
-    // Advice + who holds it (uses this position's own thresholds).
-    // Holders list respects the exclude-mgmt filter so it matches the count.
-    const thr = tbThreshold(p);
-    let advice = '';
-    if (tier === 'risk') {
-      const holders = employees.filter(e => tbLevel(e, p) >= 2 && (!ex || tbIsFrontline(e))).map(e => e.shortName);
-      const gap = Math.max(1, thr.yellow - c.independent);
-      advice = c.independent === 0
-        ? `当前无一线员工能独立顶岗，须立即安排培养（健康线 ${thr.yellow} 人）。`
-        : `${holders.join('、')} 扛岗，低于红线 ${thr.red} 人。建议再培养 ${gap} 名一线员工达到健康线 ${thr.yellow} 人。`;
-    } else if (tier === 'warn') {
-      const gap = Math.max(1, thr.yellow - c.independent);
-      advice = c.learning > 0
-        ? `已有人在训，保持跟进即可达到健康线 ${thr.yellow} 人。`
-        : `未达健康线，建议再培养 ${gap} 人（目标 ${thr.yellow} 人）。`;
-    }
-    if (advice) card.appendChild(el('div', { class: 'tb-risk-advice' }, advice));
-    frag.appendChild(card);
-  }
-  return frag;
-}
-
-// ── Skill editing: cycle a cell empty→L1→L2→L3→empty ──
-// Set an employee's skill level (0-3) for a position. Single source of truth
-// for all skill mutations — both the matrix cell-cycle and the dev-card editor
-// route through here, so the three arrays can never drift out of sync.
-async function tbSetSkill(empId, posName, level) {
-  const emp = getEmp(empId);
-  if (!emp) return;
-  const canon = toCanonicalPos(posName);
-  // Remove the station under ANY writing (canonical or variant) from all three
-  // arrays, then re-add under the canonical name. This also self-heals legacy
-  // data: editing a station rewrites it to the canonical form everywhere.
-  const drop = (arr) => (arr || []).filter(p => toCanonicalPos(p) !== canon);
-  const training  = drop(emp.training);
-  const positions = drop(emp.positions);
-  const canTrain  = drop(emp.canTrain);
-  if (level === 1) training.push(canon);
-  if (level === 2) positions.push(canon);
-  if (level === 3) { positions.push(canon); canTrain.push(canon); }
-
-  const updated = { ...emp, training, positions, canTrain };
-  try {
-    await saveEmployee(updated);
-  } catch (e) {
-    console.error('tbSetSkill', e?.message || e);
-  }
-}
-
-async function tbCycleSkill(empId, posName) {
-  const emp = getEmp(empId);
-  if (!emp) return;
-  const next = (tbLevel(emp, posName) + 1) % 4;
-  await tbSetSkill(empId, posName, next);
-}
-
-// =============================================================================
-// DATA NORMALIZATION (一键规范化)
-// =============================================================================
-// Rewrites every employee's positions/canTrain/training to canonical English
-// names, de-duplicates, and reports anything it doesn't recognise. Storage
-// layer becomes uniformly English; display stays Chinese via tbPosShort.
-
-// The set of valid canonical names a station can normalise to.
-const TB_CANONICAL_SET = ['A1 Wok','A2 Steam','B Chicken','C Chop','Cutting','D Drink','Service','PIC','Dacai','Dishwash','Reserve'];
-
-// Normalise one raw position string. Returns { canon, known }.
-// known=false means the writing isn't in our map AND isn't already canonical —
-// we keep it untouched and surface it for the manager to review.
-function tbNormalizeOne(raw) {
-  const mapped = toCanonicalPos(raw);  // applies POSITION_SLOT_MAP, else returns raw
-  const known = TB_CANONICAL_SET.includes(mapped);
-  return { canon: mapped, known };
-}
-
-// Normalise one employee's three skill arrays. Returns the cleaned arrays plus
-// a per-array changelog. Does NOT touch any other field. De-dupes by canonical.
-function tbNormalizeEmployee(emp) {
-  const unknown = new Set();
-  const cleanArr = (arr) => {
-    const seen = new Set();
-    const out = [];
-    for (const raw of (arr || [])) {
-      const { canon, known } = tbNormalizeOne(raw);
-      if (!known) unknown.add(raw);
-      if (seen.has(canon)) continue;  // de-dup by canonical
-      seen.add(canon);
-      out.push(canon);
-    }
-    return out;
-  };
-  const positions = cleanArr(emp.positions);
-  const canTrain  = cleanArr(emp.canTrain);
-  const training  = cleanArr(emp.training);
-
-  // Invariant: a station can't be both "still learning" (training) and already
-  // "independent/master" (positions). If both exist after cleaning, the higher
-  // level wins — drop it from training.
-  const trainingFiltered = training.filter(p => !positions.includes(p) && !canTrain.includes(p));
-
-  return { positions, canTrain, training: trainingFiltered, unknown: [...unknown] };
-}
-
-// Build a preview of all changes without writing anything.
-function tbBuildNormalizationPreview() {
-  const changes = [];   // { emp, before:{...}, after:{...} }
-  const unknownAll = new Set();
-  for (const emp of employees) {
-    const after = tbNormalizeEmployee(emp);
-    const before = {
-      positions: [...(emp.positions||[])],
-      canTrain:  [...(emp.canTrain||[])],
-      training:  [...(emp.training||[])],
-    };
-    after.unknown.forEach(u => unknownAll.add(u));
-    const changed =
-      JSON.stringify(before.positions) !== JSON.stringify(after.positions) ||
-      JSON.stringify(before.canTrain)  !== JSON.stringify(after.canTrain)  ||
-      JSON.stringify(before.training)  !== JSON.stringify(after.training);
-    if (changed) changes.push({ emp, before, after });
-  }
-  return { changes, unknown: [...unknownAll] };
-}
-
-// Normalization modal state
-let normModal = { open: false, preview: null, running: false, done: null, error: '' };
-
-function openNormalizeModal() {
-  normModal = { open: true, preview: tbBuildNormalizationPreview(), running: false, done: null, error: '' };
-  render();
-}
-function closeNormalizeModal() { normModal = { open: false, preview: null, running: false, done: null, error: '' }; render(); }
-
-// Execute: write all changed employees back to Supabase.
-async function tbRunNormalization() {
-  if (!normModal.preview) return;
-  normModal.running = true; render();
-  let savedCount = 0, mergedDupes = 0, failed = 0;
-  for (const ch of normModal.preview.changes) {
-    // count merged duplicates (length shrinkage across the three arrays)
-    const beforeLen = ch.before.positions.length + ch.before.canTrain.length + ch.before.training.length;
-    const afterLen  = ch.after.positions.length + ch.after.canTrain.length + ch.after.training.length;
-    if (afterLen < beforeLen) mergedDupes += (beforeLen - afterLen);
-    try {
-      await saveEmployee({
-        ...ch.emp,
-        positions: ch.after.positions,
-        canTrain:  ch.after.canTrain,
-        training:  ch.after.training,
-      });
-      savedCount++;
-    } catch (e) {
-      failed++; console.error('normalize save failed for', ch.emp.shortName, e?.message || e);
-    }
-  }
-  normModal.running = false;
-  normModal.done = { savedCount, mergedDupes, failed, unknown: normModal.preview.unknown };
-  render();
-}
-
-function renderNormalizeModal() {
-  if (!normModal.open) return null;
-  const overlay = el('div', { class: 'modal-overlay', onClick: (e) => { if (e.target === overlay && !normModal.running) closeNormalizeModal(); } });
-  const box = el('div', { class: 'modal-box', style: { maxWidth:'560px' } });
-
-  const header = el('div', { class: 'modal-header' });
-  header.appendChild(el('div', { style: { fontWeight:'700', fontSize:'15px', display:'flex', alignItems:'center', gap:'6px' } }, icon('wand'), '规范化岗位数据'));
-  if (!normModal.running) header.appendChild(el('button', { class: 'btn-sm', onClick: closeNormalizeModal }, icon('x')));
-  box.appendChild(header);
-
-  const body = el('div', { class: 'modal-body' });
-
-  // ── Done state: show summary report ──
-  if (normModal.done) {
-    const d = normModal.done;
-    const ok = el('div', { class: 'tb-banner', style: { background:'var(--green-50)', borderColor:'var(--green-100)', color:'var(--green-700)' } },
-      `完成：已规范化 ${d.savedCount} 名员工，合并重复 ${d.mergedDupes} 条。` + (d.failed ? ` ${d.failed} 名保存失败（见控制台）。` : ''));
-    body.appendChild(ok);
-    if (d.unknown.length) {
-      body.appendChild(el('div', { class: 'tb-banner', style: { marginTop:'8px' } },
-        '以下写法不在已知映射中，已原样保留，请手动检查：' + d.unknown.join('、')));
-    }
-    body.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', marginTop:'10px' } },
-      '所有技能数据现已统一为标准名称。排班、矩阵、风险预警将使用一致的岗位口径。'));
-    box.appendChild(body);
-    const footer = el('div', { class: 'modal-footer' });
-    footer.appendChild(el('button', { class: 'btn-primary', onClick: closeNormalizeModal }, '知道了'));
-    box.appendChild(footer);
-    overlay.appendChild(box);
-    return overlay;
-  }
-
-  // ── Preview state ──
-  const pv = normModal.preview;
-  if (!pv || pv.changes.length === 0) {
-    body.appendChild(el('div', { class: 'tb-banner', style: { background:'var(--green-50)', borderColor:'var(--green-100)', color:'var(--green-700)' } },
-      '全店数据已经是规范格式，无需清洗。'));
-    if (pv && pv.unknown.length) {
-      body.appendChild(el('div', { class: 'tb-banner', style: { marginTop:'8px' } },
-        '但发现未知写法（已保留）：' + pv.unknown.join('、')));
-    }
-    box.appendChild(body);
-    const footer = el('div', { class: 'modal-footer' });
-    footer.appendChild(el('button', { class: 'btn-primary', onClick: closeNormalizeModal }, '关闭'));
-    box.appendChild(footer);
-    overlay.appendChild(box);
-    return overlay;
-  }
-
-  body.appendChild(el('p', { style: { fontSize:'13px', marginBottom:'4px' } },
-    `将规范化 ${pv.changes.length} 名员工的技能数据。请先确认下列改动：`));
-  body.appendChild(el('p', { style: { fontSize:'12px', color:'var(--text-sub)', marginBottom:'10px' } },
-    '强烈建议先在 Supabase 后台导出 employees 表备份。此操作直接写入数据库，无法自动撤销。'));
-
-  if (pv.unknown.length) {
-    body.appendChild(el('div', { class: 'tb-banner', style: { marginBottom:'10px' } },
-      '注意：以下写法不在已知映射中，将原样保留不动：' + pv.unknown.join('、')));
-  }
-
-  // Change list
-  const list = el('div', { style: { maxHeight:'320px', overflowY:'auto', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' } });
-  const fmtArr = (arr) => arr.length ? arr.map(tbPosShort).join('、') : '（空）';
-  for (const ch of pv.changes) {
-    const row = el('div', { style: { padding:'8px 11px', borderTop:'1px solid var(--gray-100)' } });
-    row.appendChild(el('div', { style: { fontWeight:'600', fontSize:'13px', marginBottom:'3px' } }, ch.emp.shortName));
-    const mkLine = (label, before, after) => {
-      if (JSON.stringify(before) === JSON.stringify(after)) return;
-      const line = el('div', { style: { fontSize:'12px', color:'var(--text-sub)', lineHeight:'1.5' } });
-      line.appendChild(el('span', {}, `${label}：`));
-      line.appendChild(el('span', { style: { textDecoration:'line-through', color:'var(--text-muted)' } }, before.join('、') || '（空）'));
-      line.appendChild(el('span', {}, ' → '));
-      line.appendChild(el('span', { style: { color:'var(--green-700)' } }, fmtArr(after)));
-      row.appendChild(line);
-    };
-    mkLine('独立', ch.before.positions, ch.after.positions);
-    mkLine('带训', ch.before.canTrain, ch.after.canTrain);
-    mkLine('在训', ch.before.training, ch.after.training);
-    list.appendChild(row);
-  }
-  body.appendChild(list);
-  box.appendChild(body);
-
-  const footer = el('div', { class: 'modal-footer' });
-  footer.appendChild(el('button', { class: 'btn-sm', onClick: closeNormalizeModal, disabled: normModal.running }, '取消'));
-  const runBtn = el('button', { class: 'btn-primary', onClick: tbRunNormalization, disabled: normModal.running },
-    normModal.running ? '正在写入…' : `确认规范化 ${pv.changes.length} 名员工`);
-  footer.appendChild(runBtn);
-  box.appendChild(footer);
-
-  overlay.appendChild(box);
-  return overlay;
-}
-
-// =============================================================================
-// DEV CARD (个人发展卡 — modal)
-// =============================================================================
-
-let devCard = { open: false, empId: null, newLog: '', goalDraft: null, saving: false, editSkills: false };
-
-function openDevCard(empId) {
-  devCard = { open: true, empId, newLog: '', goalDraft: null, saving: false, editSkills: false };
-  render();
-}
-function closeDevCard() { devCard.open = false; devCard.empId = null; render(); }
-
-// Suggest the next position to learn: a risk/warn position the employee doesn't
-// yet hold, preferring those they have an adjacent skill for.
-function tbSuggestNext(emp, positions) {
-  const held = new Set([...(emp.positions||[]), ...(emp.canTrain||[]), ...(emp.training||[])]);
-  const candidates = positions
-    .filter(p => !held.has(p))
-    .map(p => ({ p, c: tbCoverage(p), thr: tbThreshold(p) }))
-    .filter(x => x.c.independent < x.thr.yellow)  // below this position's health line
-    .sort((a, b) => (a.c.independent - a.thr.yellow) - (b.c.independent - b.thr.yellow));
-  return candidates.length ? candidates[0] : null;
-}
-
-function renderDevCard() {
-  if (!devCard.open) return null;
-  const emp = getEmp(devCard.empId);
-  if (!emp) return null;
-  const isManager = currentRole === 'manager';
-  const positions = tbPositions();
-
-  const overlay = el('div', { class: 'modal-overlay', onClick: (e) => { if (e.target === overlay) closeDevCard(); } });
-  const box = el('div', { class: 'modal-box', style: { maxWidth:'480px' } });
-
-  // Header
-  const header = el('div', { class: 'modal-header' });
-  const hLeft = el('div', { style: { display:'flex', alignItems:'center', gap:'10px' } });
-  const rs = getRoleStyle(emp.role);
-  const avatar = el('div', {
-    style: { width:'40px', height:'40px', borderRadius:'50%', background: rs.bg, color: rs.color,
-             display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', flexShrink:'0' }
-  }, emp.shortName.slice(0, 2));
-  hLeft.appendChild(avatar);
-  const hInfo = el('div');
-  hInfo.appendChild(el('div', { style: { fontWeight:'700', fontSize:'15px' } }, emp.fullName));
-  hInfo.appendChild(el('div', { style: { fontSize:'12px', color:'var(--text-sub)' } }, emp.role + (tbIsMultiSkilled(emp) ? ' · 多面手' : '')));
-  hLeft.appendChild(hInfo);
-  header.appendChild(hLeft);
-  header.appendChild(el('button', { class: 'btn-sm', onClick: closeDevCard }, icon('x')));
-  box.appendChild(header);
-
-  const body = el('div', { class: 'modal-body' });
-
-  // ── Skill status (with inline editor for managers) ──
-  const skSec = el('div', { class: 'tb-dev-section' });
-  const skLabel = el('div', { class: 'tb-dev-label', style: { justifyContent:'space-between' } });
-  const skLabelLeft = el('span', { style: { display:'flex', alignItems:'center', gap:'5px' } }, icon('award'), '技能状态');
-  skLabel.appendChild(skLabelLeft);
-  if (isManager) {
-    const editBtn = el('button', { class: 'btn-sm', style: { padding:'2px 8px' },
-      onClick: () => { devCard.editSkills = !devCard.editSkills; render(); } });
-    editBtn.appendChild(icon(devCard.editSkills ? 'check' : 'edit'));
-    editBtn.appendChild(document.createTextNode(devCard.editSkills ? ' 完成' : ' 编辑'));
-    skLabel.appendChild(editBtn);
-  }
-  skSec.appendChild(skLabel);
-
-  if (isManager && devCard.editSkills) {
-    // Editable: every position as a row with a 4-level segmented control.
-    const editor = el('div');
-    const SEG = [ {lv:0,t:'未涉及'}, {lv:1,t:'在训'}, {lv:2,t:'独立'}, {lv:3,t:'师傅'} ];
-    for (const p of positions) {
-      const cur = tbLevel(emp, p);
-      const row = el('div', { class: 'tb-skedit-row' });
-      row.appendChild(el('div', { class: 'tb-skedit-name' }, tbPosShort(p)));
-      const seg = el('div', { class: 'tb-seg' });
-      for (const s of SEG) {
-        const b = el('button', { class: cur === s.lv ? `on${s.lv}` : '',
-          onClick: () => tbSetSkill(emp.id, p, s.lv) }, s.t);
-        seg.appendChild(b);
-      }
-      row.appendChild(seg);
-      editor.appendChild(row);
-    }
-    skSec.appendChild(editor);
-    skSec.appendChild(el('p', { style: { fontSize:'11px', color:'var(--text-muted)', marginTop:'6px' } },
-      '师傅档自动包含独立顶岗能力。修改即时保存。'));
-  } else {
-    // Read-only: pills.
-    const skRow = el('div', { class: 'tb-skillrow' });
-    let anySkill = false;
-    for (const p of positions) {
-      const lv = tbLevel(emp, p);
-      if (lv === 0) continue;
-      anySkill = true;
-      const bg = lv === 3 ? 'var(--amber-100)' : lv === 2 ? 'var(--green-100)' : 'var(--blue-50)';
-      const col = lv === 3 ? 'var(--amber-700)' : lv === 2 ? 'var(--green-700)' : 'var(--blue-700)';
-      const lvName = lv === 3 ? '师傅' : lv === 2 ? '独立' : '在训';
-      skRow.appendChild(el('span', { class: 'tb-skill', style: { background: bg, color: col } }, `${tbPosShort(p)} · ${lvName}`));
-    }
-    if (!anySkill) skRow.appendChild(el('span', { style: { fontSize:'12px', color:'var(--text-muted)' } }, '暂无技能记录'));
-    skSec.appendChild(skRow);
-  }
-  body.appendChild(skSec);
-
-  // ── Training goals ──
-  const goalSec = el('div', { class: 'tb-dev-section' });
-  goalSec.appendChild(el('div', { class: 'tb-dev-label' }, icon('target'), '训练目标'));
-  const goals = emp.devGoals || [];
-  if (goals.length === 0 && !devCard.goalDraft) {
-    goalSec.appendChild(el('div', { style: { fontSize:'12px', color:'var(--text-muted)', marginBottom:'6px' } }, '暂无训练目标'));
-  }
-  goals.forEach((g, idx) => {
-    const gEl = el('div', { class: 'tb-goal' });
-    const gHead = el('div', { style: { display:'flex', justifyContent:'space-between', alignItems:'center' } });
-    gHead.appendChild(el('div', { style: { fontSize:'13px', fontWeight:'600' } },
-      `${tbPosShort(g.position)} ${g.fromLevel||''}${g.fromLevel?' → ':''}${g.toLevel||'独立'}`));
-    if (isManager) {
-      gHead.appendChild(el('button', { class: 'btn-sm', style: { padding:'2px 6px' }, onClick: () => tbRemoveGoal(emp.id, idx) }, icon('trash')));
-    }
-    gEl.appendChild(gHead);
-    const metaBits = [];
-    if (g.mentor) metaBits.push('师傅：' + g.mentor);
-    if (g.dueDate) metaBits.push('目标 ' + g.dueDate);
-    metaBits.push('进度 ' + (g.progress||0) + '%');
-    gEl.appendChild(el('div', { style: { fontSize:'12px', color:'var(--text-sub)', marginTop:'3px' } }, metaBits.join(' · ')));
-    const prog = el('div', { class: 'tb-goal-prog' });
-    prog.appendChild(el('div', { class: 'tb-goal-prog-bar', style: { width: (g.progress||0) + '%' } }));
-    gEl.appendChild(prog);
-    if (isManager) {
-      const slider = el('input', { type:'range', min:'0', max:'100', step:'10', value:String(g.progress||0), style:{ width:'100%', marginTop:'6px' } });
-      slider.addEventListener('change', e => tbSetGoalProgress(emp.id, idx, parseInt(e.target.value)||0));
-      gEl.appendChild(slider);
-    }
-    goalSec.appendChild(gEl);
-  });
-
-  if (isManager) {
-    if (devCard.goalDraft) {
-      goalSec.appendChild(tbRenderGoalDraft(emp, positions));
-    } else {
-      goalSec.appendChild(el('button', { class: 'btn-sm', onClick: () => { devCard.goalDraft = { position: positions[0]||'', toLevel:'独立', mentor:'', dueDate:'', progress:0 }; render(); } },
-        icon('plus'), ' 添加训练目标'));
-    }
-  }
-  body.appendChild(goalSec);
-
-  // ── System suggestion ──
-  const suggestion = tbSuggestNext(emp, positions);
-  if (suggestion) {
-    const sSec = el('div', { class: 'tb-dev-section' });
-    sSec.appendChild(el('div', { class: 'tb-dev-label' }, icon('bulb'), '系统建议下一步'));
-    const reason = suggestion.c.independent < suggestion.thr.red ? '全店紧缺岗位' : '全店人手偏少';
-    sSec.appendChild(el('div', { class: 'tb-suggest' },
-      `建议学 ${tbPosShort(suggestion.p)}（${reason}，当前 ${suggestion.c.independent} 人能独立顶岗，健康线 ${suggestion.thr.yellow} 人）`));
-    body.appendChild(sSec);
-  }
-
-  // ── Coaching log ──
-  const logSec = el('div', { class: 'tb-dev-section' });
-  logSec.appendChild(el('div', { class: 'tb-dev-label' }, icon('message'), '带训 / 一对一记录'));
-  const log = emp.coachingLog || [];
-  if (log.length === 0) {
-    logSec.appendChild(el('div', { style: { fontSize:'12px', color:'var(--text-muted)', marginBottom:'8px' } }, '暂无记录'));
-  }
-  // Newest first
-  [...log].reverse().forEach((entry, ri) => {
-    const realIdx = log.length - 1 - ri;
-    const e2 = el('div', { class: 'tb-log-entry' });
-    const dHead = el('div', { style: { display:'flex', justifyContent:'space-between', alignItems:'center' } });
-    dHead.appendChild(el('div', { class: 'tb-log-date' }, entry.date || '初始备注'));
-    if (isManager) {
-      dHead.appendChild(el('button', { class: 'btn-sm', style: { padding:'1px 5px' }, onClick: () => tbRemoveLog(emp.id, realIdx) }, icon('trash')));
-    }
-    e2.appendChild(dHead);
-    e2.appendChild(el('div', { class: 'tb-log-note' }, entry.note));
-    logSec.appendChild(e2);
-  });
-  if (isManager) {
-    const inputRow = el('div', { style: { display:'flex', gap:'8px', marginTop:'4px' } });
-    const inp = el('input', { type:'text', placeholder:'添加一条带训记录…', value: devCard.newLog, style:{ flex:'1' } });
-    inp.addEventListener('input', e => devCard.newLog = e.target.value);
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') tbAddLog(emp.id); });
-    inputRow.appendChild(inp);
-    const addBtn = el('button', { onClick: () => tbAddLog(emp.id) }, '记录');
-    inputRow.appendChild(addBtn);
-    logSec.appendChild(inputRow);
-  }
-  body.appendChild(logSec);
-
-  box.appendChild(body);
-  overlay.appendChild(box);
-  return overlay;
-}
-
-function tbRenderGoalDraft(emp, positions) {
-  const d = devCard.goalDraft;
-  const wrap = el('div', { class: 'tb-goal' });
-  // Position select
-  const posSel = el('select', { style: { width:'100%', marginBottom:'6px' } });
-  for (const p of positions) {
-    const o = el('option', { value: p }, tbPosShort(p));
-    if (p === d.position) o.selected = true;
-    posSel.appendChild(o);
-  }
-  posSel.addEventListener('change', e => { d.position = e.target.value; });
-  wrap.appendChild(posSel);
-
-  // Mentor select (people who can train this position)
-  const mentorSel = el('select', { style: { width:'100%', marginBottom:'6px' } });
-  mentorSel.appendChild(el('option', { value:'' }, '（选择师傅，可留空）'));
-  const mentors = employees.filter(e => (e.canTrain||[]).includes(d.position));
-  for (const m of mentors) {
-    const o = el('option', { value: m.shortName }, m.shortName);
-    if (m.shortName === d.mentor) o.selected = true;
-    mentorSel.appendChild(o);
-  }
-  mentorSel.addEventListener('change', e => { d.mentor = e.target.value; });
-  wrap.appendChild(mentorSel);
-
-  // Due date
-  const dateIn = el('input', { type:'date', value: d.dueDate, style:{ width:'100%', marginBottom:'6px' } });
-  dateIn.addEventListener('input', e => { d.dueDate = e.target.value; });
-  wrap.appendChild(dateIn);
-
-  const btnRow = el('div', { style: { display:'flex', gap:'6px' } });
-  btnRow.appendChild(el('button', { class:'btn-sm', onClick: () => { devCard.goalDraft = null; render(); } }, '取消'));
-  btnRow.appendChild(el('button', { onClick: () => tbSaveGoal(emp.id) }, '保存目标'));
-  wrap.appendChild(btnRow);
-  return wrap;
-}
-
-// ── Dev card mutations ──
-async function tbAddLog(empId) {
-  const note = (devCard.newLog || '').trim();
-  if (!note) return;
-  const emp = getEmp(empId);
-  if (!emp) return;
-  const today = todayLocalStr();
-  const coachingLog = [...(emp.coachingLog||[]), { date: today, note }];
-  devCard.newLog = '';
-  try { await saveEmployee({ ...emp, coachingLog }); } catch(e) { console.error(e); }
-}
-async function tbRemoveLog(empId, idx) {
-  const emp = getEmp(empId);
-  if (!emp) return;
-  const coachingLog = (emp.coachingLog||[]).filter((_, i) => i !== idx);
-  try { await saveEmployee({ ...emp, coachingLog }); } catch(e) { console.error(e); }
-}
-async function tbSaveGoal(empId) {
-  const emp = getEmp(empId);
-  if (!emp || !devCard.goalDraft) return;
-  const d = devCard.goalDraft;
-  // Infer fromLevel from current skill
-  const cur = tbLevel(emp, d.position);
-  d.fromLevel = cur === 0 ? '未学' : cur === 1 ? '在训' : cur === 2 ? '独立' : '师傅';
-  const devGoals = [...(emp.devGoals||[]), { ...d }];
-  devCard.goalDraft = null;
-  try { await saveEmployee({ ...emp, devGoals }); } catch(e) { console.error(e); }
-}
-async function tbRemoveGoal(empId, idx) {
-  const emp = getEmp(empId);
-  if (!emp) return;
-  const devGoals = (emp.devGoals||[]).filter((_, i) => i !== idx);
-  try { await saveEmployee({ ...emp, devGoals }); } catch(e) { console.error(e); }
-}
-async function tbSetGoalProgress(empId, idx, val) {
-  const emp = getEmp(empId);
-  if (!emp) return;
-  const devGoals = (emp.devGoals||[]).map((g, i) => i === idx ? { ...g, progress: val } : g);
-  try { await saveEmployee({ ...emp, devGoals }); } catch(e) { console.error(e); }
 }
 
 // =============================================================================
@@ -3133,6 +1833,7 @@ function buildEmpRow(emp, absences, isMgr, isInactive) {
 
   const metaRow = el('div', { class: 'emp-meta' });
   metaRow.appendChild(el('span', { class: 'badge badge-gray', style: { background: roleStyle.bg, color: roleStyle.color } }, emp.role));
+  if (emp.availableFrom > 0) metaRow.appendChild(badge(`From ${emp.availableFrom}:00`, 'badge-amber'));
   for (const tag of emp.tags) metaRow.appendChild(badge(tag, 'badge-blue'));
   info.appendChild(metaRow);
 
@@ -3146,19 +1847,18 @@ function buildEmpRow(emp, absences, isMgr, isInactive) {
     info.appendChild(trainerRow);
   }
   if (emp.offDay) {
-    const offRow = el('div', { class: 'flex items-center gap-1 text-xs', style: { color:'var(--text-sub)', marginBottom: (emp.coachingLog && emp.coachingLog.length) ? '4px' : '0' } });
+    const offRow = el('div', { class: 'flex items-center gap-1 text-xs', style: { color:'var(--text-sub)', marginBottom: emp.managerNote ? '4px' : '0' } });
     offRow.appendChild(icon('calendar-off'));
     offRow.appendChild(document.createTextNode(' ' + emp.offDay));
     info.appendChild(offRow);
   }
-  if (currentRole === 'manager' && emp.coachingLog && emp.coachingLog.length > 0) {
-    const latest = emp.coachingLog[emp.coachingLog.length - 1];
+  if (emp.managerNote && currentRole === 'manager') {
     const noteBox   = el('div', { class: 'manager-note' });
     const noteTitle = el('div', { class: 'flex items-center gap-1', style: { fontWeight:'600', marginBottom:'2px', fontSize:'11px' } });
-    noteTitle.appendChild(icon('message'));
-    noteTitle.appendChild(document.createTextNode(latest.date ? ` 带训记录 · ${latest.date}` : ' 备注'));
+    noteTitle.appendChild(icon('lock'));
+    noteTitle.appendChild(document.createTextNode(' Manager note'));
     noteBox.appendChild(noteTitle);
-    noteBox.appendChild(document.createTextNode(latest.note));
+    noteBox.appendChild(document.createTextNode(emp.managerNote));
     info.appendChild(noteBox);
   }
   row.appendChild(info);
@@ -3216,15 +1916,14 @@ function openEmpModal(mode, emp) {
     empModal.role        = emp.role;
     empModal.positions   = [...emp.positions];
     empModal.canTrain    = [...emp.canTrain];
-    empModal.training    = [...(emp.training || [])];
     empModal.tags        = [...emp.tags];
+    empModal.managerNote = emp.managerNote;
     empModal.offDay      = emp.offDay;
-    empModal.devGoals    = (emp.devGoals || []).map(g => ({ ...g }));
-    empModal.coachingLog = (emp.coachingLog || []).map(c => ({ ...c }));
+    empModal.availableFrom = emp.availableFrom;
   } else {
     empModal.empId = null; empModal.fullName = ''; empModal.shortName = ''; empModal.role = '员工';
-    empModal.positions = []; empModal.canTrain = []; empModal.training = []; empModal.tags = [];
-    empModal.offDay = ''; empModal.devGoals = []; empModal.coachingLog = [];
+    empModal.positions = []; empModal.canTrain = []; empModal.tags = [];
+    empModal.managerNote = ''; empModal.offDay = ''; empModal.availableFrom = 0;
   }
   renderEmpModal();
 }
@@ -3350,8 +2049,14 @@ function renderEmpModal() {
   offIn.addEventListener('input', e => empModal.offDay = e.target.value);
   body.appendChild(formRow('惯例休息日', offIn));
 
-  body.appendChild(el('p', { style: { fontSize:'11px', color:'var(--text-muted)', marginTop:'4px' } },
-    '技能等级、训练目标与带训记录请在「人才看板」中编辑。'));
+  const availIn = el('input', { type:'number', placeholder:'0', value: String(empModal.availableFrom), style:{ width:'80px' } });
+  availIn.addEventListener('input', e => empModal.availableFrom = parseInt(e.target.value) || 0);
+  body.appendChild(formRow('最早上班时间（0 = 全天，18 = 仅晚班）', availIn));
+
+  const noteIn = el('textarea', { placeholder: '仅 Manager 可见...' });
+  noteIn.value = empModal.managerNote;
+  noteIn.addEventListener('input', e => empModal.managerNote = e.target.value);
+  body.appendChild(formRow('Manager 备注', noteIn));
 
   if (empModal.error) {
     body.appendChild(el('p', { style: { color:'var(--red-600)', fontSize:'12px', marginTop:'8px' } }, empModal.error));
@@ -3372,8 +2077,8 @@ function renderEmpModal() {
       await saveEmployee({
         id, fullName: empModal.fullName.trim(), shortName: empModal.shortName.trim(),
         role: empModal.role, positions: empModal.positions, canTrain: empModal.canTrain,
-        training: empModal.training, tags: empModal.tags, offDay: empModal.offDay,
-        devGoals: empModal.devGoals, coachingLog: empModal.coachingLog,
+        tags: empModal.tags, managerNote: empModal.managerNote,
+        offDay: empModal.offDay, availableFrom: empModal.availableFrom,
       });
       closeEmpModal();
     } catch(e) { empModal.saving = false; empModal.error = '保存失败，请重试'; renderEmpModal(); }
@@ -3492,31 +2197,6 @@ function renderWeekPreview() {
   const weekDates  = getWeekDates(state.selectedDate);
   const weekAbs    = weekDates.map(d => getAbsencesForDate(d));
 
-  // ── Coverage thresholds (manager-set, from DB) ──
-  const TH_ONDUTY = state.coverageThresholds?.onDuty ?? 30;
-  const TH_FRONT  = state.coverageThresholds?.front  ?? 7;
-
-  // Determine each employee's "home" area from their own position list (independent
-  // of any given day's roster) so per-day counting stays stable across the week.
-  function empHomeArea(emp) {
-    const counts = {};
-    for (const posName of (emp.positions || [])) {
-      const area = getPositionArea(posName);   // canonical 解析，不再静默漏匹配
-      counts[area] = (counts[area] || 0) + 1;
-    }
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    return sorted[0]?.[0] || '后备';
-  }
-  const totalStaff = employees.length;
-  const frontStaff = employees.filter(e => empHomeArea(e) === '前厅');
-  const frontTotal = frontStaff.length;
-
-  // Per-day on-duty counts = total staff minus those absent that day
-  const onDutyByDay = weekDates.map((d, i) => totalStaff - Object.keys(weekAbs[i]).length);
-  const frontOnDutyByDay = weekDates.map((d, i) =>
-    frontStaff.filter(e => !(e.id in weekAbs[i])).length
-  );
-
   // Split employees: has any absence this week vs. none
   const withLeave    = employees.filter(emp => weekAbs.some(dayAbs => emp.id in dayAbs));
   const withoutLeave = employees.filter(emp => !weekAbs.some(dayAbs => emp.id in dayAbs));
@@ -3541,83 +2221,6 @@ function renderWeekPreview() {
         return th;
       })
     ]));
-  }
-
-  // ── Coverage summary: per-day "on duty" counts + manager-set warning thresholds ──
-  {
-    const covWrap = el('div', { style: 'overflow-x:auto; margin-bottom:14px; border:1px solid var(--border); border-radius:var(--radius-md);' });
-    const covTable = el('table', { style: 'width:100%; border-collapse:collapse; font-size:12px;' });
-    covTable.appendChild(buildHeader());
-    const covBody = el('tbody', {});
-
-    // Row builder: label + 7 day counts, red when below threshold
-    function coverageRow(label, counts, threshold, totalLabel) {
-      const tr = el('tr', {});
-      const labelCell = el('td', { style: tdBase + 'text-align:left; font-weight:700;' });
-      labelCell.appendChild(document.createTextNode(label));
-      if (totalLabel != null) {
-        labelCell.appendChild(el('span', { style: 'font-weight:400; color:var(--text-muted); font-size:11px; margin-left:4px;' }, `(${totalLabel} total)`));
-      }
-      tr.appendChild(labelCell);
-      for (let i = 0; i < 7; i++) {
-        const isSel = weekDates[i] === state.selectedDate;
-        const low   = counts[i] < threshold;
-        let cell = tdBase + 'font-weight:700;';
-        if (low)        cell += 'background:var(--red-50); color:var(--red-700);';
-        else if (isSel) cell += 'background:var(--blue-50);';
-        const td = el('td', { style: cell });
-        td.appendChild(document.createTextNode(String(counts[i])));
-        if (low) {
-          const w = icon('alert-triangle');
-          w.style.fontSize = '12px'; w.style.marginLeft = '3px'; w.style.verticalAlign = '-1px';
-          td.appendChild(w);
-        }
-        tr.appendChild(td);
-      }
-      return tr;
-    }
-
-    covBody.appendChild(coverageRow('On Duty', onDutyByDay, TH_ONDUTY, totalStaff));
-    covBody.appendChild(coverageRow('前厅 FOH', frontOnDutyByDay, TH_FRONT, frontTotal));
-    covTable.appendChild(covBody);
-    covWrap.appendChild(covTable);
-    frag.appendChild(covWrap);
-
-    // ── Threshold settings (manager-editable, persisted to DB) ──
-    const setRow = el('div', { style: 'display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; margin-bottom:18px; padding:10px 12px; background:var(--gray-50); border:1px solid var(--border); border-radius:var(--radius-sm);' });
-    const warnIcon = icon('alert-triangle'); warnIcon.style.color = 'var(--red-600)';
-    setRow.appendChild(el('div', { style: 'display:flex; align-items:center; gap:5px; font-size:12px; font-weight:600; color:var(--text-sub);' },
-      warnIcon,
-      document.createTextNode('低于警戒线变红')
-    ));
-
-    function thresholdField(labelText, value, onCommit) {
-      const grp = el('div', { class: 'form-group' });
-      grp.appendChild(el('label', { class: 'form-label' }, labelText));
-      const inp = el('input', { type: 'number', value: String(value), style: 'width:80px;' });
-      inp.min = '0';
-      const commit = () => {
-        let v = parseInt(inp.value, 10);
-        if (isNaN(v) || v < 0) v = 0;
-        inp.value = String(v);
-        onCommit(v);
-      };
-      inp.addEventListener('change', commit);
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
-      grp.appendChild(inp);
-      return grp;
-    }
-
-    setRow.appendChild(thresholdField('On Duty 最低', TH_ONDUTY, v => {
-      saveCoverageSettings(v, TH_FRONT).then(render);
-    }));
-    setRow.appendChild(thresholdField('前厅 FOH 最低', TH_FRONT, v => {
-      saveCoverageSettings(TH_ONDUTY, v).then(render);
-    }));
-    frag.appendChild(setRow);
-
-    // ── Rest tracker — sits directly below coverage numbers for at-a-glance comparison ──
-    frag.appendChild(renderRestTracker());
   }
 
   // ── Section 1: employees WITH leave ──
@@ -3710,201 +2313,6 @@ function renderWeekPreview() {
   return frag;
 }
 
-// =============================================================================
-// REST TRACKER — weekly rest-day summary panel
-// =============================================================================
-
-// Types that count as a "rest/off day" for the weekly rest tracker.
-// Planned Leave = the manager's current way of marking off-days;
-// Rest Day = the new dedicated type. MC, unplanned, noshow are NOT counted.
-function isRestType(type) {
-  return type === 'planned' || type === 'rest';
-}
-
-function computeRestData() {
-  const weekDates = getWeekDates(state.selectedDate);
-  const weekStart = weekDates[0];
-
-  // ── Step 1: rest days THIS week per employee (use getAbsencesForDate so
-  //   dailyLeave overrides on top of plannedLeave are handled correctly) ──
-  const restThisWeek = {};   // empId → [dateStr …]
-  for (const d of weekDates) {
-    const abs = getAbsencesForDate(d);
-    for (const [empId, type] of Object.entries(abs)) {
-      if (isRestType(type)) {
-        if (!restThisWeek[empId]) restThisWeek[empId] = [];
-        restThisWeek[empId].push(d);
-      }
-    }
-  }
-
-  // ── Step 2: last rest day BEFORE this week per employee ──
-  const lastRest = {};   // empId → dateStr
-
-  // 2a. from dailyLeave direct entries
-  for (const [date, dayMap] of Object.entries(state.dailyLeave)) {
-    if (date >= weekStart) continue;
-    for (const [empId, type] of Object.entries(dayMap)) {
-      if (isRestType(type) && (!lastRest[empId] || date > lastRest[empId])) {
-        lastRest[empId] = date;
-      }
-    }
-  }
-
-  // 2b. from plannedLeave ranges with type=planned|rest that end before this week
-  for (const [empId, leaves] of Object.entries(state.plannedLeave)) {
-    if (!Array.isArray(leaves)) continue;
-    for (const lv of leaves) {
-      if (!isRestType(lv.type)) continue;
-      if (lv.from >= weekStart) continue;            // starts this week or later → skip
-      // The latest relevant date in this range before weekStart
-      let effectiveTo = lv.to < weekStart ? lv.to : (() => {
-        const d = new Date(weekStart + 'T00:00:00');
-        d.setDate(d.getDate() - 1);
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      })();
-      if (!lastRest[empId] || effectiveTo > lastRest[empId]) lastRest[empId] = effectiveTo;
-    }
-  }
-
-  return { restThisWeek, lastRest, weekDates, weekStart };
-}
-
-function renderRestTracker() {
-  const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const { restThisWeek, lastRest, weekDates, weekStart } = computeRestData();
-
-  const rested    = employees.filter(e => restThisWeek[e.id]);
-  const notRested = employees.filter(e => !restThisWeek[e.id]);
-  const multiRest = rested.filter(e => restThisWeek[e.id].length >= 2);
-  const pct       = employees.length > 0 ? Math.round(rested.length / employees.length * 100) : 0;
-
-  const frag = document.createDocumentFragment();
-  const card = el('div', { class: 'rt-card' });
-
-  // ── Header ──
-  const hdr = el('div', { class: 'rt-header' });
-  const titleEl = el('div', { class: 'rt-title' });
-  titleEl.appendChild(icon('beach'));
-  titleEl.appendChild(document.createTextNode(' 本周休息安排'));
-  titleEl.appendChild(el('span', { style: 'font-size:11px; color:var(--text-sub); font-weight:400; margin-left:4px;' },
-    `${weekDates[0].slice(5).replace('-','/')} – ${weekDates[6].slice(5).replace('-','/')}`));
-  hdr.appendChild(titleEl);
-  hdr.appendChild(el('span', { style: 'font-size:12px; color:var(--text-sub);' },
-    `${rested.length} / ${employees.length} 人已安排`));
-  card.appendChild(hdr);
-
-  // ── Progress bar ──
-  const prog = el('div', { class: 'rt-progress' });
-  prog.appendChild(el('div', { class: 'rt-progress-fill', style: { width: pct + '%' } }));
-  card.appendChild(prog);
-
-  // ── Stat boxes ──
-  const statsRow = el('div', { class: 'rt-stats' });
-  const statData = [
-    { num: rested.length,    lbl: '✓ 已排休',   color: 'var(--green-600)' },
-    { num: notRested.length, lbl: '✗ 未排休',   color: 'var(--red-600)'   },
-    { num: multiRest.length, lbl: '≥2天 注意',  color: 'var(--amber-600)' },
-  ];
-  for (const s of statData) {
-    const box = el('div', { class: 'rt-stat' });
-    box.appendChild(el('div', { class: 'rt-stat-num', style: { color: s.color } }, String(s.num)));
-    box.appendChild(el('div', { class: 'rt-stat-lbl' }, s.lbl));
-    statsRow.appendChild(box);
-  }
-  card.appendChild(statsRow);
-  card.appendChild(el('div', { class: 'rt-divider' }));
-
-  // ── 已排休 collapsible section ──
-  const restedHdr = el('div', {
-    style: `display:flex; align-items:center; gap:6px; cursor:pointer; padding:6px 10px;
-            background:var(--gray-50); border:1px solid var(--border);
-            border-radius:var(--radius-sm); margin-bottom:${restRestedExpanded ? '0' : '10px'};
-            user-select:none;`,
-    onClick: () => { restRestedExpanded = !restRestedExpanded; render(); },
-  });
-  restedHdr.appendChild(icon(restRestedExpanded ? 'chevron-down' : 'chevron-right'));
-  restedHdr.appendChild(el('span', { style: 'font-size:12px; font-weight:600; color:var(--text-sub);' },
-    `✓ 已安排休息 (${rested.length} 人)`));
-  card.appendChild(restedHdr);
-
-  if (restRestedExpanded && rested.length > 0) {
-    const row = el('div', { class: 'rt-chips', style: 'margin-top:8px; margin-bottom:10px; padding:0 2px;' });
-    for (const emp of rested) {
-      const days    = restThisWeek[emp.id];
-      const isMulti = days.length >= 2;
-      const label   = days.map(d => DAY_SHORT[weekDates.indexOf(d)]).join(' + ');
-      const chip    = el('div', { class: `rt-chip ${isMulti ? 'rested-multi' : 'rested'}` });
-      chip.appendChild(el('span', { class: 'rt-chip-name' }, emp.shortName));
-      chip.appendChild(el('span', { class: 'rt-chip-hint' }, `${label}${isMulti ? ' ⚠' : ''}`));
-      row.appendChild(chip);
-    }
-    card.appendChild(row);
-  }
-
-  // ── 未排休 chips (clickable → quick-fill) ──
-  const notRestedTitle = el('p', { class: 'section-title', style: 'margin-top:0;' });
-  notRestedTitle.textContent = notRested.length === 0
-    ? '✓ 全员本周已安排休息 🎉'
-    : `✗ 尚未安排 (${notRested.length}人) — 点击员工名快速填入表单`;
-  card.appendChild(notRestedTitle);
-
-  if (notRested.length > 0) {
-    const row2 = el('div', { class: 'rt-chips' });
-    for (const emp of notRested) {
-      const lastD = lastRest[emp.id];
-      let hintText  = '无记录';
-      let hintClass = 'rt-chip-hint rt-hint-none';
-      let chipBorderColor = '';
-      let chipBg = '';
-
-      if (lastD) {
-        const daysSince = Math.floor(
-          (new Date(weekStart + 'T00:00:00') - new Date(lastD + 'T00:00:00')) / 86400000
-        );
-        const mmdd = lastD.slice(5).replace('-', '/');
-        hintText = `上次 ${mmdd} · ${daysSince}天前`;
-        if (daysSince >= 10) {
-          hintClass = 'rt-chip-hint rt-hint-alert';
-          chipBorderColor = 'var(--red-100)';
-          chipBg = 'var(--red-50)';
-        } else if (daysSince >= 6) {
-          hintClass = 'rt-chip-hint rt-hint-warn';
-          chipBorderColor = 'var(--amber-100)';
-          chipBg = 'var(--amber-50)';
-        }
-      }
-
-      const chipStyle = [
-        chipBg          ? `background:${chipBg};`          : '',
-        chipBorderColor ? `border-color:${chipBorderColor};` : '',
-      ].join('');
-
-      const chip = el('div', {
-        class:  'rt-chip clickable',
-        style:  chipStyle,
-        title:  `点击快速填入 ${emp.shortName}，并自动选择 Rest Day`,
-        onClick: () => {
-          leaveForm.employeeId = emp.id;
-          leaveForm.type       = 'rest';
-          render();
-          // Scroll to the schedule form after re-render
-          setTimeout(() => {
-            const target = document.getElementById('leave-schedule-form');
-            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 60);
-        },
-      });
-      chip.appendChild(el('span', { class: 'rt-chip-name', style: 'color:var(--text);' }, emp.shortName));
-      chip.appendChild(el('span', { class: hintClass }, hintText));
-      row2.appendChild(chip);
-    }
-    card.appendChild(row2);
-  }
-
-  frag.appendChild(card);
-  return frag;
-}
 
 
 function renderLeaveTab(computed) {
@@ -3922,7 +2330,7 @@ function renderLeaveTab(computed) {
     frag.appendChild(el('p', { style: { fontSize:'13px', color:'var(--text-sub)', marginBottom:'12px' } }, 'No absences today.'));
   } else {
     for (const [empId, leaveType] of absList) {
-      const emp = getEmp(empId);
+      const emp = employees.find(e => e.id === empId);
       if (!emp) continue;
       const lt = LEAVE_TYPES[leaveType] || { label: leaveType, badgeClass: 'badge-gray' };
 
@@ -3966,7 +2374,7 @@ function renderLeaveTab(computed) {
   // ── Schedule leave ahead ──
   frag.appendChild(el('p', { class: 'section-title' }, 'Schedule Leave Ahead'));
 
-  const formCard = el('div', { class: 'card', id: 'leave-schedule-form' });
+  const formCard = el('div', { class: 'card' });
 
   const empOpts  = employees.map(e => ({ id: e.id, short: e.shortName, full: e.fullName }));
   const typeOpts = Object.entries(LEAVE_TYPES).map(([k, v]) => [k, v.label]);
@@ -3974,7 +2382,7 @@ function renderLeaveTab(computed) {
   const typeSel  = createSelect(typeOpts, leaveForm.type, v => { leaveForm.type = v; });
 
   // ── Searchable employee picker ──
-  const currentEmp = leaveForm.employeeId ? getEmp(leaveForm.employeeId) : null;
+  const currentEmp = leaveForm.employeeId ? employees.find(e => e.id === leaveForm.employeeId) : null;
   const empSearchWrap = el('div', { class: 'emp-search-wrap' });
   const empSearchInput = el('input', {
     type: 'text',
@@ -4050,144 +2458,15 @@ function renderLeaveTab(computed) {
 
   empSearchWrap.appendChild(empSearchInput);
 
-  // Lazily init picker display month (== null safe: January = 0 is falsy)
-  if (leaveForm.pickerYear  == null) leaveForm.pickerYear  = new Date().getFullYear();
-  if (leaveForm.pickerMonth == null) leaveForm.pickerMonth = new Date().getMonth();
+  // Default to selectedDate if not yet set — ensures submitting without touching dates still works
+  if (!leaveForm.fromDate) leaveForm.fromDate = state.selectedDate;
+  if (!leaveForm.toDate)   leaveForm.toDate   = state.selectedDate;
 
-  // ── Date range picker (hotel-style inline calendar) ──
-  function buildDateRangePicker() {
-    const py = leaveForm.pickerYear;
-    const pm = leaveForm.pickerMonth;
-    const MONTH_ZH = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  const fromInput = el('input', { type: 'date', value: leaveForm.fromDate });
+  fromInput.addEventListener('change', e => { leaveForm.fromDate = e.target.value; });
 
-    const wrap = el('div', { class: 'drp-wrap' });
-
-    // Header: prev / month+year / next
-    const drpHeader = el('div', { class: 'drp-header' });
-    const prevBtn = el('button', { class: 'drp-nav' });
-    prevBtn.appendChild(icon('chevron-left'));
-    prevBtn.addEventListener('click', e => {
-      e.preventDefault();
-      let m = leaveForm.pickerMonth - 1, y = leaveForm.pickerYear;
-      if (m < 0) { m = 11; y--; }
-      leaveForm.pickerMonth = m; leaveForm.pickerYear = y; render();
-    });
-    const nextBtn = el('button', { class: 'drp-nav' });
-    nextBtn.appendChild(icon('chevron-right'));
-    nextBtn.addEventListener('click', e => {
-      e.preventDefault();
-      let m = leaveForm.pickerMonth + 1, y = leaveForm.pickerYear;
-      if (m > 11) { m = 0; y++; }
-      leaveForm.pickerMonth = m; leaveForm.pickerYear = y; render();
-    });
-    drpHeader.appendChild(prevBtn);
-    drpHeader.appendChild(el('span', { class: 'drp-month-label' }, `${MONTH_ZH[pm]} ${py}`));
-    drpHeader.appendChild(nextBtn);
-    wrap.appendChild(drpHeader);
-
-    // Day-of-week headers (Mon-first)
-    const grid = el('div', { class: 'drp-grid' });
-    for (const dh of ['Mo','Tu','We','Th','Fr','Sa','Su']) {
-      grid.appendChild(el('div', { class: 'drp-dh' }, dh));
-    }
-
-    // Blank leading cells + day cells
-    const firstDow  = new Date(py, pm, 1).getDay();          // 0=Sun
-    const blanks    = firstDow === 0 ? 6 : firstDow - 1;     // offset to Mon-first
-    const daysInMo  = new Date(py, pm + 1, 0).getDate();
-    const todayStr2 = todayLocalStr();
-    const cellData  = [];
-
-    for (let b = 0; b < blanks; b++) {
-      grid.appendChild(el('div', { class: 'drp-cell drp-blank' }));
-      cellData.push({ cellEl: null, date: null });
-    }
-    for (let d = 1; d <= daysInMo; d++) {
-      const dateStr2 = `${py}-${String(pm + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const cellEl = el('div', { class: 'drp-cell' }, String(d));
-      if (dateStr2 === todayStr2) cellEl.classList.add('today');
-      grid.appendChild(cellEl);
-      cellData.push({ cellEl, date: dateStr2 });
-    }
-    wrap.appendChild(grid);
-
-    // Range highlight — direct DOM mutation, no full re-render
-    function applyRange(hovDate) {
-      const from  = leaveForm.fromDate;
-      const rawTo = leaveForm.pickStep === 'to' ? (hovDate || leaveForm.toDate) : leaveForm.toDate;
-      const lo    = from && rawTo ? (from <= rawTo ? from : rawTo) : from;
-      const hi    = from && rawTo ? (from <= rawTo ? rawTo : from) : rawTo;
-      for (const { cellEl, date } of cellData) {
-        if (!cellEl || !date) continue;
-        cellEl.classList.remove('range-start','range-end','in-range');
-        if (!lo) continue;
-        if (date === lo)                       cellEl.classList.add('range-start');
-        if (hi && date === hi)                 cellEl.classList.add('range-end');
-        if (lo < date && hi && date < hi)      cellEl.classList.add('in-range');
-      }
-    }
-    applyRange(null);
-
-    // Summary strip + hint
-    const summaryEl = el('div', { class: 'drp-summary' });
-    const hintEl    = el('div', { class: 'drp-hint' });
-
-    function refreshSummary() {
-      summaryEl.innerHTML = '';
-      const from = leaveForm.fromDate, to = leaveForm.toDate;
-      if (!from) {
-        summaryEl.appendChild(el('span', { style: 'color:var(--text-muted);' }, '选择开始休息日'));
-      } else if (!to) {
-        summaryEl.appendChild(icon('calendar-event'));
-        const b = el('b', {}); b.textContent = from; summaryEl.appendChild(b);
-        summaryEl.appendChild(el('span', { style: 'color:var(--text-muted);' }, ' → 选择结束日期'));
-      } else {
-        summaryEl.appendChild(icon('calendar-event'));
-        const days = Math.round((new Date(to+'T00:00:00') - new Date(from+'T00:00:00')) / 86400000) + 1;
-        const b = el('b', {}); b.textContent = `${from} → ${to}`; summaryEl.appendChild(b);
-        summaryEl.appendChild(el('span', { style: 'color:var(--text-muted); margin-left:4px;' }, `(共 ${days} 天)`));
-        const clrBtn = el('button', { class: 'btn-sm', style: 'margin-left:auto;' });
-        clrBtn.appendChild(icon('x')); clrBtn.appendChild(document.createTextNode(' 清除'));
-        clrBtn.addEventListener('click', e => {
-          e.preventDefault();
-          leaveForm.fromDate = ''; leaveForm.toDate = ''; leaveForm.pickStep = 'from'; render();
-        });
-        summaryEl.appendChild(clrBtn);
-      }
-      hintEl.textContent = leaveForm.pickStep === 'from'
-        ? '① 点击选择开始日期'
-        : '② 再点击选择结束日期（可翻页选其他月份）';
-    }
-    refreshSummary();
-    wrap.appendChild(summaryEl);
-    wrap.appendChild(hintEl);
-
-    // Click + hover interactions on day cells
-    for (const { cellEl, date } of cellData) {
-      if (!cellEl || !date) continue;
-      cellEl.addEventListener('click', () => {
-        if (leaveForm.pickStep === 'from') {
-          leaveForm.fromDate = date; leaveForm.toDate = ''; leaveForm.pickStep = 'to';
-        } else {
-          if (date >= leaveForm.fromDate) {
-            leaveForm.toDate = date; leaveForm.pickStep = 'from';
-          } else {
-            // Clicked before start → reset with new start date
-            leaveForm.fromDate = date; leaveForm.toDate = ''; leaveForm.pickStep = 'to';
-          }
-        }
-        applyRange(null); refreshSummary();
-      });
-      cellEl.addEventListener('mouseover', () => {
-        if (leaveForm.pickStep === 'to' && leaveForm.fromDate) applyRange(date);
-      });
-      cellEl.addEventListener('mouseout', () => {
-        if (leaveForm.pickStep === 'to') applyRange(null);
-      });
-    }
-
-    return wrap;
-  }
+  const toInput = el('input', { type: 'date', value: leaveForm.toDate });
+  toInput.addEventListener('change', e => { leaveForm.toDate = e.target.value; });
 
   const row1 = el('div', { class: 'flex gap-2', style: { flexWrap: 'wrap', marginBottom: '8px' } });
   const empFormGroup = el('div', { class: 'form-group', style: { flex: '2', minWidth: '160px' } });
@@ -4196,26 +2475,22 @@ function renderLeaveTab(computed) {
   row1.appendChild(empFormGroup);
   row1.appendChild(el('div', { class: 'form-group' }, el('label', { class: 'form-label' }, 'Leave Type'), typeSel));
 
-  const row2 = el('div', { style: { display:'flex', flexWrap:'wrap', gap:'10px', alignItems:'flex-start', marginTop:'4px' } });
-  row2.appendChild(buildDateRangePicker());
+  const row2 = el('div', { class: 'flex gap-2', style: { flexWrap: 'wrap', alignItems: 'flex-end' } });
+  row2.appendChild(el('div', { class: 'form-group' }, el('label', { class: 'form-label' }, 'From'), fromInput));
+  row2.appendChild(el('div', { class: 'form-group' }, el('label', { class: 'form-label' }, 'To'), toInput));
 
-  const scheduleBtn = el('button', { style: { alignSelf: 'flex-start', marginTop: '6px' }, onClick: () => {
+  const scheduleBtn = el('button', { style: { alignSelf: 'flex-end' }, onClick: () => {
     if (!leaveForm.employeeId) {
       empSearchInput.style.borderColor = 'var(--red-600)';
       empSearchInput.focus();
       setTimeout(() => { empSearchInput.style.borderColor = ''; }, 1800);
       return;
     }
-    if (!leaveForm.fromDate || !leaveForm.toDate) {
-      // Flash picker border to hint user to select a date range
-      const drpEl = row2.querySelector('.drp-wrap');
-      if (drpEl) { drpEl.style.borderColor = 'var(--red-600)'; setTimeout(() => { drpEl.style.borderColor = ''; }, 1800); }
-      return;
-    }
-    const toastEmp = getEmp(leaveForm.employeeId);
+    if (!leaveForm.fromDate || !leaveForm.toDate) return;
+    const toastEmp = employees.find(e => e.id === leaveForm.employeeId);
     const { employeeId, fromDate, toDate, type } = leaveForm;
     leaveFormToast = { empName: toastEmp?.shortName || '', from: fromDate, to: toDate };
-    leaveForm.employeeId = ''; leaveForm.fromDate = ''; leaveForm.toDate = ''; leaveForm.pickStep = 'from'; // reset for next entry
+    leaveForm.employeeId = ''; leaveForm.fromDate = ''; leaveForm.toDate = ''; // reset all for next entry
     addPlannedLeave(employeeId, fromDate, toDate, type); // async, re-renders when done
     setTimeout(() => { leaveFormToast = null; render(); }, 2500);
   }});
@@ -4242,7 +2517,7 @@ function renderLeaveTab(computed) {
     if (!Array.isArray(leaves)) continue;
     for (const [index, lv] of leaves.entries()) {
       if (lv.to >= state.selectedDate) {
-        const emp = getEmp(empId);
+        const emp = employees.find(e => e.id === empId);
         if (emp) upcoming.push({ emp, lv, empId, index });
       }
     }
@@ -4294,11 +2569,11 @@ function renderRosterTab() {
     // Only show in 管理 if assigned to a PIC slot today
     const slot = mainMap[emp.id] || studentMap[emp.id]?.slot;
     if (slot) return slot.area;
-    // Fallback: majority area from positions list (resolved canonically)
+    // Fallback: majority area from positions list
     const counts = {};
-    for (const posName of (emp.positions || [])) {
-      const area = getPositionArea(posName);
-      counts[area] = (counts[area] || 0) + 1;
+    for (const posName of emp.positions) {
+      const posObj = allPositions.find(p => p.name === posName);
+      if (posObj) counts[posObj.area] = (counts[posObj.area] || 0) + 1;
     }
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     return sorted[0]?.[0] || '后备';
@@ -4319,6 +2594,10 @@ function renderRosterTab() {
   const grouped = {};  // area → emp[]  (on duty)
   for (const a of AREA_ORDER) { grouped[a] = []; }
   for (const emp of onDuty) { const a = getEmpArea(emp); (grouped[a] || grouped['后备']).push(emp); }
+  // Sort each area alphabetically by shortName so staff can scan to their name fast.
+  for (const a of AREA_ORDER) {
+    grouped[a].sort((x, y) => x.shortName.localeCompare(y.shortName, 'en'));
+  }
 
   // Off today: flat list sorted A→Z by shortName
   const offSorted = [...offToday].sort((a, b) => a.shortName.localeCompare(b.shortName));
@@ -4386,7 +2665,9 @@ function renderRosterTab() {
 
       const isOdd = idx % 2 === 0;
       const row = document.createElement('div');
-      row.style.cssText = `display:flex;align-items:center;padding:6px 14px 6px 22px;gap:7px;border-bottom:1px solid #f5f4f2;min-height:36px;${isOdd ? 'border-right:1px solid #f5f4f2;' : ''}`;
+      row.dataset.empId = emp.id;
+      // padding-left 22px includes 3px reserved for an optional change-bar (added async)
+      row.style.cssText = `display:flex;align-items:center;padding:6px 14px 6px 22px;gap:7px;border-bottom:1px solid #f5f4f2;min-height:36px;position:relative;${isOdd ? 'border-right:1px solid #f5f4f2;' : ''}`;
 
       // Name
       const nameEl = document.createElement('span');
@@ -4477,8 +2758,54 @@ function renderRosterTab() {
     <div style="font-size:10px;color:rgba(255,255,255,0.22);">Generated ${tStr}</div>`;
   card.appendChild(footer);
 
-  frag.appendChild(el('p', { class: 'roster-hint' }, '按区域分组 · T = Trainer · S = Student · 9h班自动标注 break'));
+  frag.appendChild(el('p', { class: 'roster-hint' }, '按区域分组 · 区域内按字母排序 · T = Trainer · S = Student · 🟢今上 🟡时间/岗位变 · 9h班自动标注 break'));
   frag.appendChild(card);
+
+  // ── Async: highlight employees whose shift changed vs. yesterday ──
+  // Build today's effective shift map (empId → {startHour,endHour,pos}).
+  const todayShiftMap = {};
+  for (const [empId, eff] of Object.entries(mainMap)) {
+    todayShiftMap[empId] = { startHour: eff.startHour, endHour: eff.endHour, pos: eff.pos };
+  }
+  for (const [empId, info] of Object.entries(studentMap)) {
+    const eff = info.slot;
+    todayShiftMap[empId] = { startHour: eff.startHour, endHour: eff.endHour, pos: eff.pos };
+  }
+
+  const CHANGE_STYLE = {
+    new:  { bar: '#16a34a', chipBg: '#dcfce7', chipFg: '#166534' },
+    pos:  { bar: '#d97706', chipBg: '#fef3c7', chipFg: '#92400e' },
+    time: { bar: '#d97706', chipBg: '#fef3c7', chipFg: '#92400e' },
+  };
+
+  const renderDateForChange = state.selectedDate;
+  fetchYesterdayShiftMap(renderDateForChange).then(yMap => {
+    if (!yMap) return;                               // no yesterday data → no marks
+    if (state.selectedDate !== renderDateForChange) return;  // date changed since fetch
+    const liveCard = document.getElementById('roster-export-card');
+    if (!liveCard) return;
+    const rows = liveCard.querySelectorAll('[data-emp-id]');
+    rows.forEach(row => {
+      const empId = row.dataset.empId;
+      const change = computeShiftChange(empId, todayShiftMap[empId], yMap);
+      if (!change) return;
+      const st = CHANGE_STYLE[change.kind];
+      // Left color bar (occupies the reserved 3px gutter inside the 22px padding)
+      const bar = document.createElement('div');
+      bar.style.cssText = `position:absolute;left:0;top:0;bottom:0;width:3px;background:${st.bar};`;
+      row.appendChild(bar);
+      // Small chip after the name (name is first child)
+      const nameEl = row.firstChild;
+      const chip = document.createElement('span');
+      chip.style.cssText = `font-size:9px;font-weight:700;background:${st.chipBg};color:${st.chipFg};border-radius:4px;padding:1px 5px;flex-shrink:0;margin-left:2px;`;
+      chip.textContent = change.label;
+      if (nameEl && nameEl.nextSibling) {
+        row.insertBefore(chip, nameEl.nextSibling);
+      } else {
+        row.appendChild(chip);
+      }
+    });
+  });
 
   // ── Action buttons ──
   const btnRow = el('div', { class: 'roster-btn-row' });
@@ -4531,7 +2858,7 @@ function renderRosterTab() {
         lines.push(`${emp.shortName}\t${s.pos}\t${formatHourNum(s.startHour)}–${formatHourNum(s.endHour)}${isT ? ' (T)' : ''}`);
       } else if (sm[emp.id]) {
         const { s, tid } = sm[emp.id];
-        const t = getEmp(tid);
+        const t = employees.find(e => e.id === tid);
         lines.push(`${emp.shortName}\t${s.pos}\t${formatHourNum(s.startHour)}–${formatHourNum(s.endHour)} (Student w/ ${t?.shortName || '?'})`);
       } else {
         lines.push(`${emp.shortName}\t—`);
@@ -4564,7 +2891,7 @@ function renderGanttTab() {
   const view = GANTT_VIEWS[state.ganttView];
   const span = view.endHour - view.startHour;
 
-  // View toggle (time window)
+  // View toggle
   const toggleRow = el('div', { class: 'view-toggle' });
   for (const [key, v] of Object.entries(GANTT_VIEWS)) {
     const btn = el('button', { class: `view-btn${state.ganttView === key ? ' active' : ''}`, onClick: () => { state.ganttView = key; render(); } }, v.label);
@@ -4572,16 +2899,7 @@ function renderGanttTab() {
   }
   frag.appendChild(toggleRow);
 
-  // Group-by toggle (by station / by person)
-  const groupRow = el('div', { class: 'view-toggle' });
-  const groupOpts = { position: '按岗位 By Station', person: '按人 By Person' };
-  for (const [key, label] of Object.entries(groupOpts)) {
-    const btn = el('button', { class: `view-btn${state.ganttGroupBy === key ? ' active' : ''}`, onClick: () => { state.ganttGroupBy = key; render(); } }, label);
-    groupRow.appendChild(btn);
-  }
-  frag.appendChild(groupRow);
-
-  // Filter slots for this view (only assigned slots)
+  // Filter slots for this view
   const visibleSlots = allSlots().filter(slot => {
     if (!state.assignments[slot.id]?.empId) return false;
     if (state.ganttView === 'early') return slot.startHour < 16;
@@ -4589,15 +2907,7 @@ function renderGanttTab() {
     return true;
   });
 
-  // For by-station mode we also need the full set of slots in this time window,
-  // even unassigned ones, so we can surface empty stations.
-  const windowSlots = allSlots().filter(slot => {
-    if (state.ganttView === 'early') return slot.startHour < 16;
-    if (state.ganttView === 'late')  return slot.endHour   > 14;
-    return true;
-  });
-
-  if (visibleSlots.length === 0 && state.ganttGroupBy === 'person') {
+  if (visibleSlots.length === 0) {
     const empty = el('div', { class: 'empty-state' });
     empty.appendChild(icon('chart-gantt'));
     empty.appendChild(el('p', {}, 'No shifts assigned for this view'));
@@ -4618,122 +2928,63 @@ function renderGanttTab() {
 
   const absences = getTodayAbsences();
 
-  // Colour based on area
-  const barColors = {
-    '后厨': { bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6' },
-    '前厅': { bg: '#dcfce7', color: '#065f46', dot: '#22c55e' },
-    '管理': { bg: '#fef3c7', color: '#92400e', dot: '#f59e0b' },
-    '后备': { bg: '#f5f5f4', color: '#57534e', dot: '#a8a29e' },
-  };
+  for (const area of AREAS) {
+    const areaSlots = visibleSlots.filter(s => s.area === area);
+    if (areaSlots.length === 0) continue;
 
-  // ── Helper: render trainer (+ student) rows for a single assigned slot ──
-  // showStation: include the station name in the bar label (used in by-person mode)
-  function appendSlotRows(slot, area) {
-    const assignment  = state.assignments[slot.id];
-    const mainEmp     = getEmp(assignment.empId);
-    const studentEmp  = assignment.studentId ? getEmp(assignment.studentId) : null;
-    const isTrainer   = KITCHEN_POSITIONS.includes(slot.pos) && mainEmp && isTrainerFor(mainEmp, slot.pos);
-    const bc          = barColors[area] || barColors['后备'];
+    const areaStyle = AREA_LABEL_CLASS[area] || 'area-reserve';
+    wrapper.appendChild(el('div', { class: `gantt-al ${areaStyle}` }, area));
 
-    // Clamp bar to view window
-    const eff = getEffectiveSlot(slot);
-    const barStart  = Math.max(eff.startHour, view.startHour);
-    const barEnd    = Math.min(eff.endHour,   view.endHour);
-    const leftPct   = ((barStart - view.startHour) / span) * 100;
-    const widthPct  = ((barEnd - barStart)          / span) * 100;
-    const isFront   = FRONT_POSITIONS.includes(eff.pos);
+    for (const slot of areaSlots) {
+      const assignment  = state.assignments[slot.id];
+      const mainEmp     = employees.find(e => e.id === assignment.empId);
+      const studentEmp  = assignment.studentId ? employees.find(e => e.id === assignment.studentId) : null;
+      const isTrainer   = KITCHEN_POSITIONS.includes(slot.pos) && mainEmp && isTrainerFor(mainEmp, slot.pos);
 
-    // In by-station mode the station is already the header, so drop it from the bar label.
-    const barLabel  = state.ganttGroupBy === 'position'
-      ? cleanShift(eff.shift)
-      : `${eff.pos} ${cleanShift(eff.shift)}`;
+      // Clamp bar to view window
+      const eff = getEffectiveSlot(slot);
+      const barStart  = Math.max(eff.startHour, view.startHour);
+      const barEnd    = Math.min(eff.endHour,   view.endHour);
+      const leftPct   = ((barStart - view.startHour) / span) * 100;
+      const widthPct  = ((barEnd - barStart)          / span) * 100;
 
-    const absent = mainEmp && absences[mainEmp.id];
+      const barLabel  = `${eff.pos} ${cleanShift(eff.shift)}`;
+      const isFront   = FRONT_POSITIONS.includes(eff.pos);
 
-    // Main row
-    const mainRow = el('div', { class: 'gantt-row' });
-    mainRow.appendChild(el('div', { class: 'gantt-nm' }, `${mainEmp?.shortName || '?'}${isTrainer ? ' T' : ''}${absent ? ' ✕' : ''}`));
+      // Main row
+      const mainRow = el('div', { class: 'gantt-row' });
+      mainRow.appendChild(el('div', { class: 'gantt-nm' }, `${mainEmp?.shortName || '?'}${isTrainer ? ' T' : ''}`));
 
-    const barArea = el('div', { class: 'gantt-ba' });
-    for (let h = view.startHour; h <= view.endHour; h++) {
-      barArea.appendChild(el('div', { class: 'gantt-gl', style: { left: `${((h - view.startHour) / span) * 100}%` } }));
-    }
-    barArea.appendChild(el('div', { class: 'gantt-bar', style: {
-      left: `${leftPct}%`, width: `${widthPct}%`, background: bc.bg, color: bc.color,
-      opacity: absent ? '0.4' : '1', textDecoration: absent ? 'line-through' : 'none'
-    } }, barLabel + (isFront ? ' (1h break)' : '')));
-    mainRow.appendChild(barArea);
-    wrapper.appendChild(mainRow);
-
-    // Student row (if any) — kept directly under its trainer
-    if (studentEmp) {
-      const stuLabel = state.ganttGroupBy === 'position' ? 'Student' : `Student · ${slot.pos}`;
-      const stuRow = el('div', { class: 'gantt-row' });
-      stuRow.appendChild(el('div', { class: 'gantt-nm gantt-stu' }, `${studentEmp.shortName} S`));
-      const stuBarArea = el('div', { class: 'gantt-ba' });
+      const barArea = el('div', { class: 'gantt-ba' });
       for (let h = view.startHour; h <= view.endHour; h++) {
-        stuBarArea.appendChild(el('div', { class: 'gantt-gl', style: { left: `${((h - view.startHour) / span) * 100}%` } }));
+        barArea.appendChild(el('div', { class: 'gantt-gl', style: { left: `${((h - view.startHour) / span) * 100}%` } }));
       }
-      stuBarArea.appendChild(el('div', { class: 'gantt-bar', style: { left: `${leftPct}%`, width: `${widthPct}%`, background: '#f5f5f4', color: '#57534e', borderLeft: `3px solid ${bc.bg}` } }, stuLabel));
-      stuRow.appendChild(stuBarArea);
-      wrapper.appendChild(stuRow);
-    }
-  }
 
-  // Sort key for slots within a station: time window start asc, then trainer-first.
-  function slotSortKey(slot) {
-    const eff   = getEffectiveSlot(slot);
-    const emp   = getEmp(state.assignments[slot.id]?.empId);
-    const isTr  = KITCHEN_POSITIONS.includes(slot.pos) && emp && isTrainerFor(emp, slot.pos);
-    return [eff.startHour, isTr ? 0 : 1];
-  }
-  function bySlotSort(a, b) {
-    const ka = slotSortKey(a), kb = slotSortKey(b);
-    return ka[0] - kb[0] || ka[1] - kb[1];
-  }
-
-  if (state.ganttGroupBy === 'position') {
-    // ── BY STATION: area → station → people ──
-    for (const area of AREAS) {
-      const areaWindowSlots = windowSlots.filter(s => s.area === area);
-      if (areaWindowSlots.length === 0) continue;
-
-      const areaStyle = AREA_LABEL_CLASS[area] || 'area-reserve';
-      wrapper.appendChild(el('div', { class: `gantt-al ${areaStyle}` }, area));
-
-      // Distinct stations in this area, preserving slot definition order
-      const stations = [];
-      for (const s of areaWindowSlots) if (!stations.includes(s.pos)) stations.push(s.pos);
-
+      // Colour based on area
+      const barColors = {
+        '后厨': { bg: '#dbeafe', color: '#1e40af' },
+        '前厅': { bg: '#dcfce7', color: '#065f46' },
+        '管理': { bg: '#fef3c7', color: '#92400e' },
+        '后备': { bg: '#f5f5f4', color: '#57534e' },
+      };
       const bc = barColors[area] || barColors['后备'];
-      for (const station of stations) {
-        const assignedHere = visibleSlots
-          .filter(s => s.area === area && s.pos === station)
-          .sort(bySlotSort);
+      barArea.appendChild(el('div', { class: 'gantt-bar', style: { left: `${leftPct}%`, width: `${widthPct}%`, background: bc.bg, color: bc.color } }, barLabel + (isFront ? ' (1h break)' : '')));
+      mainRow.appendChild(barArea);
+      wrapper.appendChild(mainRow);
 
-        // Station sub-header
-        const isEmpty = assignedHere.length === 0;
-        const head = el('div', { class: `gantt-pos${isEmpty ? ' gantt-pos-empty' : ''}`, style: { '--pos-dot': bc.dot } },
-          station + (isEmpty ? ' · 空岗 (no one assigned)' : ''));
-        wrapper.appendChild(head);
+      // Student row (if any)
+      if (studentEmp) {
+        const stuRow = el('div', { class: 'gantt-row' });
+        stuRow.appendChild(el('div', { class: 'gantt-nm gantt-stu' }, `${studentEmp.shortName} S`));
 
-        if (isEmpty) {
-          wrapper.appendChild(el('div', { class: 'gantt-empty-row' }, '— 待补人 —'));
-          continue;
+        const stuBarArea = el('div', { class: 'gantt-ba' });
+        for (let h = view.startHour; h <= view.endHour; h++) {
+          stuBarArea.appendChild(el('div', { class: 'gantt-gl', style: { left: `${((h - view.startHour) / span) * 100}%` } }));
         }
-        for (const slot of assignedHere) appendSlotRows(slot, area);
+        stuBarArea.appendChild(el('div', { class: 'gantt-bar', style: { left: `${leftPct}%`, width: `${widthPct}%`, background: '#f5f5f4', color: '#57534e', borderLeft: `3px solid ${bc.bg}` } }, `Student · ${slot.pos}`));
+        stuRow.appendChild(stuBarArea);
+        wrapper.appendChild(stuRow);
       }
-    }
-  } else {
-    // ── BY PERSON: area → assigned slot (original behaviour) ──
-    for (const area of AREAS) {
-      const areaSlots = visibleSlots.filter(s => s.area === area);
-      if (areaSlots.length === 0) continue;
-
-      const areaStyle = AREA_LABEL_CLASS[area] || 'area-reserve';
-      wrapper.appendChild(el('div', { class: `gantt-al ${areaStyle}` }, area));
-
-      for (const slot of areaSlots) appendSlotRows(slot, area);
     }
   }
 
@@ -4784,8 +3035,8 @@ function renderAttendanceTab() {
     const assignment = state.assignments[slot.id];
     if (!assignment?.empId) continue;
 
-    const mainEmp    = getEmp(assignment.empId);
-    const studentEmp = assignment.studentId ? getEmp(assignment.studentId) : null;
+    const mainEmp    = employees.find(e => e.id === assignment.empId);
+    const studentEmp = assignment.studentId ? employees.find(e => e.id === assignment.studentId) : null;
 
     const eff            = getEffectiveSlot(slot);
     const hours          = eff.endHour - eff.startHour;
@@ -4841,7 +3092,7 @@ function renderAttendanceTab() {
   if (absList.length > 0) {
     tbody.appendChild(el('tr', {}, el('td', { colspan: '8', style: { padding:'8px 12px', fontWeight:'700', fontSize:'11px', color:'var(--text-sub)', background:'var(--gray-50)', textTransform:'uppercase', letterSpacing:'0.4px' } }, 'Leave Record')));
     for (const [empId, leaveType] of absList) {
-      const emp = getEmp(empId);
+      const emp = employees.find(e => e.id === empId);
       if (!emp) continue;
       const lt  = LEAVE_TYPES[leaveType];
       const tr  = el('tr', {});
@@ -4866,7 +3117,7 @@ function renderAttendanceTab() {
     const header = ['Name','Full Name','Position','Sched In','Sched Out','Actual In','Actual Out','Paid Hours'].join('\t');
     const body   = rows.map(r => [r.name, r.fullName, r.position, r.schedIn, r.schedOut, '', '', r.paidHours+'h'].join('\t')).join('\n');
     const lvRecs = Object.entries(absences).map(([id, t]) => {
-      const e = getEmp(id);
+      const e = employees.find(x => x.id === id);
       return e ? [e.shortName, e.fullName, '—','—','—','—','—', LEAVE_TYPES[t]?.label || t].join('\t') : '';
     }).filter(Boolean).join('\n');
 
@@ -5092,15 +3343,9 @@ function downloadCSV(filename, csv) {
 
 const WD_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-// 性能/扩展性优化：历史排班会随时间无限增长，全量拉回浏览器是「数据涨10倍」时
-// 最先变慢的地方。这里加上可选的日期范围参数：
-//   - 不传参数 → 行为与原来完全一致（拉取全部，保证现有导出不受影响）；
-//   - 传入 fromDate / toDate → 只拉该区间，导出量受用户控制，不再随年份累积变慢。
-async function fetchAllScheduleRows(fromDate, toDate) {
-  let q = db.from('daily_schedule').select('*').eq('store_id', STORE_ID);
-  if (fromDate) q = q.gte('schedule_date', fromDate);
-  if (toDate)   q = q.lte('schedule_date', toDate);
-  const { data, error } = await q.order('schedule_date');
+async function fetchAllScheduleRows() {
+  const { data, error } = await db.from('daily_schedule').select('*')
+    .eq('store_id', STORE_ID).order('schedule_date');
   if (error) throw error;
   return data || [];
 }
@@ -5133,9 +3378,9 @@ async function exportSummaryCSV() {
     const wd   = WD_SHORT[d.getDay()];
     const onLeaveIds   = Object.keys(getAbsencesForDate(date));
     const planned      = employees.length - onLeaveIds.length;
-    const onLeaveNames = onLeaveIds.map(id => (getEmp(id) || {}).shortName || id);
+    const onLeaveNames = onLeaveIds.map(id => (employees.find(e => e.id === id) || {}).shortName || id);
     const noShow       = (row.unplanned_absent || []);
-    const noShowNames  = noShow.map(id => (getEmp(id) || {}).shortName || id);
+    const noShowNames  = noShow.map(id => (employees.find(e => e.id === id) || {}).shortName || id);
     const actualAtt    = planned - noShow.length;
     const labor = computeRowLabor(row);
     const est = row.est_revenue, act = row.actual_revenue;
@@ -5176,7 +3421,7 @@ async function exportDetailCSV() {
       const paid  = (foh && !(sh >= 18) && h >= 8.5) ? h - 1 : h;
       const paidStr = (Math.round(paid * 10) / 10);
       const emit = (seat, empId) => {
-        const emp = getEmp(empId);
+        const emp = employees.find(e => e.id === empId);
         lines.push([date, wd, slot.area, slot.pos, slot.id,
           formatHourNum(sh), formatHourNum(eh), paidStr, seat,
           emp?.shortName || empId, emp?.fullName || ''].map(csvEscape).join(','));
@@ -5186,185 +3431,6 @@ async function exportDetailCSV() {
     }
   }
   downloadCSV(`roster_detail_${todayLocalStr()}.csv`, lines.join('\n'));
-}
-
-// =============================================================================
-// COPY SCHEDULE FEATURE
-// =============================================================================
-
-function getCopySourceDates() {
-  const WD_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const fmtLocal = dd => {
-    const y = dd.getFullYear(), mo = String(dd.getMonth()+1).padStart(2,'0'), dy = String(dd.getDate()).padStart(2,'0');
-    return `${y}-${mo}-${dy}`;
-  };
-  const base = new Date(state.selectedDate + 'T00:00:00');
-  const yesterday = new Date(base); yesterday.setDate(base.getDate() - 1);
-  const lastWeek  = new Date(base); lastWeek.setDate(base.getDate() - 7);
-  return [
-    { dateStr: fmtLocal(yesterday), label: '复制昨天',       sub: `${WD_LABELS[yesterday.getDay()]} · ${fmtLocal(yesterday)}`, icon: 'calendar-minus' },
-    { dateStr: fmtLocal(lastWeek),  label: '复制上周同一天', sub: `${WD_LABELS[lastWeek.getDay()]} · ${fmtLocal(lastWeek)}`,  icon: 'calendar-week'  },
-  ];
-}
-
-function openCopyDropdown(e) {
-  e.stopPropagation();
-  if (copyScheduleState.dropdownOpen) { copyScheduleState.dropdownOpen = false; render(); return; }
-  copyScheduleState.dropdownOpen = true;
-  render();
-  if (_copyDropdownCloseHandler) document.removeEventListener('click', _copyDropdownCloseHandler);
-  _copyDropdownCloseHandler = () => {
-    copyScheduleState.dropdownOpen = false;
-    _copyDropdownCloseHandler = null;
-    render();
-  };
-  setTimeout(() => document.addEventListener('click', _copyDropdownCloseHandler, { once: true }), 0);
-}
-
-async function initiateCopySchedule(sourceDate) {
-  // Remove outside-click listener and close dropdown
-  if (_copyDropdownCloseHandler) { document.removeEventListener('click', _copyDropdownCloseHandler); _copyDropdownCloseHandler = null; }
-  copyScheduleState.dropdownOpen = false;
-  render();
-
-  const { data, error } = await db.from('daily_schedule').select('*')
-    .eq('store_id', STORE_ID).eq('schedule_date', sourceDate).maybeSingle();
-
-  if (error) { alert('加载失败：' + (error.message || error)); return; }
-
-  const sourceAssignments = data?.assignments || {};
-  const filledCount = Object.values(sourceAssignments).filter(a => a?.empId).length;
-  if (filledCount === 0) { alert(`${sourceDate} 暂无排班数据，无法复制`); return; }
-
-  // Which employees from the source are on leave TODAY
-  const todayAbsences = getTodayAbsences();
-  const absentIds = new Set(Object.keys(todayAbsences));
-  const absentNamesSet = new Set();
-  for (const a of Object.values(sourceAssignments)) {
-    if (a?.empId && absentIds.has(a.empId)) {
-      const emp = getEmp(a.empId);
-      if (emp) absentNamesSet.add(emp.shortName);
-    }
-  }
-  const absentNames = [...absentNamesSet];
-  const hasExisting = Object.values(state.assignments).some(a => a?.empId);
-
-  // Show confirmation modal when there's existing data or absent collisions
-  if (hasExisting || absentNames.length > 0) {
-    copyScheduleState.modal = { sourceDate, absentNames, assignments: sourceAssignments, hasExisting };
-    render();
-  } else {
-    await executeCopySchedule(sourceAssignments, sourceDate);
-  }
-}
-
-async function executeCopySchedule(sourceAssignments, sourceDate) {
-  const todayAbsences = getTodayAbsences();
-  const absentIds = new Set(Object.keys(todayAbsences));
-  let blankedCount = 0;
-
-  const newAssignments = {};
-  for (const [slotId, a] of Object.entries(sourceAssignments)) {
-    if (!a) continue;
-    const entry = { ...a };
-    if (entry.empId && absentIds.has(entry.empId))     { entry.empId = null; entry.studentId = null; blankedCount++; }
-    if (entry.studentId && absentIds.has(entry.studentId)) { entry.studentId = null; }
-    // 若主岗已不是该岗位的合格 trainer（失去资格 / 换人 / 主岗空缺），
-    // 不要把学员一起搬过来，否则会在新一天制造一个看不见的"孤儿学员"。
-    if (entry.studentId) {
-      const slot = allSlots().find(s => s.id === slotId);
-      if (slot) {
-        const main = entry.empId ? getEmp(entry.empId) : null;
-        const trainerOk = !!main && (slot.pos === 'PIC' || isTrainerFor(main, slot.pos));
-        if (!trainerOk) entry.studentId = null;
-      }
-    }
-    newAssignments[slotId] = entry;
-  }
-
-  state.assignments = newAssignments;
-  // extraSlots intentionally NOT copied (per design decision)
-  copyScheduleState.modal = null;
-
-  await saveSchedule();
-
-  const srcLabel = formatDate(sourceDate);
-  copyScheduleState.toast = { msg: `已从「${srcLabel}」复制班表${blankedCount > 0 ? `，${blankedCount} 个班次因请假已留空` : ''}` };
-  render();
-  setTimeout(() => { copyScheduleState.toast = null; render(); }, 4500);
-}
-
-function renderCopyDropdown() {
-  if (!copyScheduleState.dropdownOpen) return null;
-  const wrap = el('div', { class: 'copy-dropdown', onClick: e => e.stopPropagation() });
-  wrap.appendChild(el('div', { class: 'copy-dropdown-title' }, '选择复制来源'));
-  for (const src of getCopySourceDates()) {
-    const opt = el('div', { class: 'copy-opt', onClick: () => initiateCopySchedule(src.dateStr) });
-    const iconBox = el('div', { class: 'copy-opt-icon' }); iconBox.appendChild(icon(src.icon));
-    opt.appendChild(iconBox);
-    const textWrap = el('div', {});
-    textWrap.appendChild(el('div', { class: 'copy-opt-label' }, src.label));
-    textWrap.appendChild(el('div', { class: 'copy-opt-sub'   }, src.sub));
-    opt.appendChild(textWrap);
-    wrap.appendChild(opt);
-  }
-  const note = el('div', { class: 'copy-dropdown-note' });
-  note.appendChild(icon('info-circle')); note.appendChild(document.createTextNode(' 仅复制人员分配，不含临时班次'));
-  wrap.appendChild(note);
-  return wrap;
-}
-
-function renderCopyModal() {
-  if (!copyScheduleState.modal) return null;
-  const { sourceDate, absentNames, assignments, hasExisting } = copyScheduleState.modal;
-
-  const overlay = el('div', { class: 'copy-modal-overlay' });
-  overlay.addEventListener('click', e => { if (e.target === overlay) { copyScheduleState.modal = null; render(); } });
-
-  const modal = el('div', { class: 'copy-modal' });
-
-  const head = el('div', { class: 'copy-modal-head' });
-  head.appendChild(icon('copy'));
-  head.appendChild(document.createTextNode(hasExisting ? '确认覆盖班表' : '确认复制班表'));
-  modal.appendChild(head);
-
-  if (hasExisting) {
-    modal.appendChild(el('div', { class: 'copy-modal-body' },
-      `当前日期（${formatDate(state.selectedDate)}）已有排班记录，复制将覆盖当前内容。`));
-  }
-
-  if (absentNames.length > 0) {
-    const warn = el('div', { class: 'copy-modal-warn' });
-    warn.appendChild(icon('user-off'));
-    const warnBody = el('div', {});
-    warnBody.appendChild(document.createTextNode(`以下 ${absentNames.length} 位员工今天请假，对应班次将留空：`));
-    const chips = el('div', { class: 'copy-absent-chips' });
-    for (const name of absentNames) chips.appendChild(el('span', { class: 'copy-absent-chip' }, name));
-    warnBody.appendChild(chips);
-    warn.appendChild(warnBody);
-    modal.appendChild(warn);
-  }
-
-  if (!hasExisting && absentNames.length > 0) {
-    modal.appendChild(el('div', { class: 'copy-modal-body' }, '其余班次将正常复制，是否继续？'));
-  }
-
-  const actions = el('div', { class: 'copy-modal-actions' });
-  actions.appendChild(el('button', { onClick: () => { copyScheduleState.modal = null; render(); } }, '取消'));
-  const confirmBtn = el('button', { class: 'btn-info', onClick: () => executeCopySchedule(assignments, sourceDate) });
-  confirmBtn.appendChild(icon('copy')); confirmBtn.appendChild(document.createTextNode(' 确认复制'));
-  actions.appendChild(confirmBtn);
-  modal.appendChild(actions);
-
-  overlay.appendChild(modal);
-  return overlay;
-}
-
-function renderCopyToast() {
-  if (!copyScheduleState.toast) return null;
-  const toast = el('div', { class: 'copy-toast' });
-  toast.appendChild(icon('check')); toast.appendChild(document.createTextNode(copyScheduleState.toast.msg));
-  return toast;
 }
 
 function render() {
@@ -5386,16 +3452,6 @@ function render() {
   dateInput.addEventListener('change', async e => { state.selectedDate = e.target.value; await loadScheduleForDate(state.selectedDate); render(); });
   headerRight.appendChild(dateInput);
   headerRight.appendChild(el('span', { class: 'role-badge' }, currentRole === 'manager' ? 'Manager' : 'PIC'));
-
-  // ── Copy Schedule button (manager only) ──
-  const copyBtnWrap = el('div', { class: 'copy-btn-wrap' });
-  const copyBtn = el('button', { class: 'btn-sm btn-info', onClick: openCopyDropdown });
-  copyBtn.appendChild(icon('copy')); copyBtn.appendChild(document.createTextNode(' 复制班表'));
-  copyBtnWrap.appendChild(copyBtn);
-  const dropdown = renderCopyDropdown();
-  if (dropdown) copyBtnWrap.appendChild(dropdown);
-  headerRight.appendChild(copyBtnWrap);
-
   headerRight.appendChild(el('button', { class: 'btn-sm', onClick: exportSummaryCSV }, icon('download'), ' 导出汇总'));
   headerRight.appendChild(el('button', { class: 'btn-sm', onClick: exportDetailCSV }, icon('list-details'), ' 导出明细'));
   headerRight.appendChild(el('button', { class: 'btn-sm', onClick: logout }, icon('logout'), ' Logout'));
@@ -5426,7 +3482,6 @@ function render() {
   const tabDefs = [
     { id: 'schedule',   label: '排班',        iconName: 'calendar'    },
     { id: 'employees',  label: '员工',        iconName: 'users'       },
-    { id: 'talent',     label: '人才看板',    iconName: 'chart-dots-3'},
     { id: 'shifts',     label: '班次',        iconName: 'clock-edit'  },
     { id: 'leave',      label: `Leave${leaveCount > 0 ? ` (${leaveCount})` : ''}`, iconName: 'calendar-off' },
     { id: 'roster',     label: 'Roster',      iconName: 'table'       },
@@ -5445,27 +3500,12 @@ function render() {
   switch (state.currentTab) {
     case 'schedule':   appEl.appendChild(renderScheduleTab(computed));  break;
     case 'employees':  appEl.appendChild(renderEmployeesTab());          break;
-    case 'talent':     appEl.appendChild(renderTalentTab());             break;
     case 'shifts':     appEl.appendChild(renderShiftsTab());             break;
     case 'leave':      appEl.appendChild(renderLeaveTab(computed));      break;
     case 'roster':     appEl.appendChild(renderRosterTab());             break;
     case 'gantt':      appEl.appendChild(renderGanttTab());              break;
     case 'attendance': appEl.appendChild(renderAttendanceTab());         break;
   }
-
-  // ── Copy-schedule overlays (modal + toast) ──
-  const copyModal = renderCopyModal();
-  if (copyModal) appEl.appendChild(copyModal);
-  const copyToast = renderCopyToast();
-  if (copyToast) appEl.appendChild(copyToast);
-
-  // ── Dev card modal (talent board) ──
-  const devCardEl = renderDevCard();
-  if (devCardEl) appEl.appendChild(devCardEl);
-
-  // ── Data normalization modal (talent board) ──
-  const normEl = renderNormalizeModal();
-  if (normEl) appEl.appendChild(normEl);
 }
 
 // =============================================================================
@@ -5480,7 +3520,6 @@ async function initApp() {
     loadEmployees(),
     loadPositions(),
     loadSlotOverrides(),
-    loadCoverageSettings(),
   ]);
   subscribeToChanges();
   render();
