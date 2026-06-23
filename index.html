@@ -338,6 +338,15 @@
     .gantt-bar { position: absolute; height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 6px; font-size: 10px; overflow: hidden; white-space: nowrap; }
     .gantt-gl  { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
     .gantt-stu { font-style: italic; color: var(--text-sub); }
+    /* position sub-header inside an area (by-position grouping) */
+    .gantt-pos { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
+                 color: var(--text-sub); padding: 6px 0 2px 4px; min-width: 440px; }
+    .gantt-pos::before { content: ''; width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
+                         background: var(--pos-dot, #d6d3d1); }
+    .gantt-pos-empty { font-style: italic; font-weight: 400; color: var(--text-muted); }
+    /* empty-slot placeholder row */
+    .gantt-empty-row { display: flex; align-items: center; height: 22px; margin-bottom: 3px; min-width: 440px;
+                       font-size: 11px; font-style: italic; color: var(--text-muted); padding-left: 14px; }
     .view-toggle { display: flex; gap: 4px; margin-bottom: 12px; }
     .view-btn { padding: 5px 12px; font-size: 12px; }
     .view-btn.active { background: var(--blue-50); color: var(--blue-700); border-color: var(--blue-100); }
@@ -1198,6 +1207,7 @@ let state = {
   searchQuery:     '',
   showUnassigned:  false,
   ganttView:       'full',
+  ganttGroupBy:    'position',   // 'position' (by station, default) | 'person'
 };
 
 // Per-day time override popover state
@@ -4554,7 +4564,7 @@ function renderGanttTab() {
   const view = GANTT_VIEWS[state.ganttView];
   const span = view.endHour - view.startHour;
 
-  // View toggle
+  // View toggle (time window)
   const toggleRow = el('div', { class: 'view-toggle' });
   for (const [key, v] of Object.entries(GANTT_VIEWS)) {
     const btn = el('button', { class: `view-btn${state.ganttView === key ? ' active' : ''}`, onClick: () => { state.ganttView = key; render(); } }, v.label);
@@ -4562,7 +4572,16 @@ function renderGanttTab() {
   }
   frag.appendChild(toggleRow);
 
-  // Filter slots for this view
+  // Group-by toggle (by station / by person)
+  const groupRow = el('div', { class: 'view-toggle' });
+  const groupOpts = { position: '按岗位 By Station', person: '按人 By Person' };
+  for (const [key, label] of Object.entries(groupOpts)) {
+    const btn = el('button', { class: `view-btn${state.ganttGroupBy === key ? ' active' : ''}`, onClick: () => { state.ganttGroupBy = key; render(); } }, label);
+    groupRow.appendChild(btn);
+  }
+  frag.appendChild(groupRow);
+
+  // Filter slots for this view (only assigned slots)
   const visibleSlots = allSlots().filter(slot => {
     if (!state.assignments[slot.id]?.empId) return false;
     if (state.ganttView === 'early') return slot.startHour < 16;
@@ -4570,7 +4589,15 @@ function renderGanttTab() {
     return true;
   });
 
-  if (visibleSlots.length === 0) {
+  // For by-station mode we also need the full set of slots in this time window,
+  // even unassigned ones, so we can surface empty stations.
+  const windowSlots = allSlots().filter(slot => {
+    if (state.ganttView === 'early') return slot.startHour < 16;
+    if (state.ganttView === 'late')  return slot.endHour   > 14;
+    return true;
+  });
+
+  if (visibleSlots.length === 0 && state.ganttGroupBy === 'person') {
     const empty = el('div', { class: 'empty-state' });
     empty.appendChild(icon('chart-gantt'));
     empty.appendChild(el('p', {}, 'No shifts assigned for this view'));
@@ -4591,63 +4618,122 @@ function renderGanttTab() {
 
   const absences = getTodayAbsences();
 
-  for (const area of AREAS) {
-    const areaSlots = visibleSlots.filter(s => s.area === area);
-    if (areaSlots.length === 0) continue;
+  // Colour based on area
+  const barColors = {
+    '后厨': { bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6' },
+    '前厅': { bg: '#dcfce7', color: '#065f46', dot: '#22c55e' },
+    '管理': { bg: '#fef3c7', color: '#92400e', dot: '#f59e0b' },
+    '后备': { bg: '#f5f5f4', color: '#57534e', dot: '#a8a29e' },
+  };
 
-    const areaStyle = AREA_LABEL_CLASS[area] || 'area-reserve';
-    wrapper.appendChild(el('div', { class: `gantt-al ${areaStyle}` }, area));
+  // ── Helper: render trainer (+ student) rows for a single assigned slot ──
+  // showStation: include the station name in the bar label (used in by-person mode)
+  function appendSlotRows(slot, area) {
+    const assignment  = state.assignments[slot.id];
+    const mainEmp     = getEmp(assignment.empId);
+    const studentEmp  = assignment.studentId ? getEmp(assignment.studentId) : null;
+    const isTrainer   = KITCHEN_POSITIONS.includes(slot.pos) && mainEmp && isTrainerFor(mainEmp, slot.pos);
+    const bc          = barColors[area] || barColors['后备'];
 
-    for (const slot of areaSlots) {
-      const assignment  = state.assignments[slot.id];
-      const mainEmp     = getEmp(assignment.empId);
-      const studentEmp  = assignment.studentId ? getEmp(assignment.studentId) : null;
-      const isTrainer   = KITCHEN_POSITIONS.includes(slot.pos) && mainEmp && isTrainerFor(mainEmp, slot.pos);
+    // Clamp bar to view window
+    const eff = getEffectiveSlot(slot);
+    const barStart  = Math.max(eff.startHour, view.startHour);
+    const barEnd    = Math.min(eff.endHour,   view.endHour);
+    const leftPct   = ((barStart - view.startHour) / span) * 100;
+    const widthPct  = ((barEnd - barStart)          / span) * 100;
+    const isFront   = FRONT_POSITIONS.includes(eff.pos);
 
-      // Clamp bar to view window
-      const eff = getEffectiveSlot(slot);
-      const barStart  = Math.max(eff.startHour, view.startHour);
-      const barEnd    = Math.min(eff.endHour,   view.endHour);
-      const leftPct   = ((barStart - view.startHour) / span) * 100;
-      const widthPct  = ((barEnd - barStart)          / span) * 100;
+    // In by-station mode the station is already the header, so drop it from the bar label.
+    const barLabel  = state.ganttGroupBy === 'position'
+      ? cleanShift(eff.shift)
+      : `${eff.pos} ${cleanShift(eff.shift)}`;
 
-      const barLabel  = `${eff.pos} ${cleanShift(eff.shift)}`;
-      const isFront   = FRONT_POSITIONS.includes(eff.pos);
+    const absent = mainEmp && absences[mainEmp.id];
 
-      // Main row
-      const mainRow = el('div', { class: 'gantt-row' });
-      mainRow.appendChild(el('div', { class: 'gantt-nm' }, `${mainEmp?.shortName || '?'}${isTrainer ? ' T' : ''}`));
+    // Main row
+    const mainRow = el('div', { class: 'gantt-row' });
+    mainRow.appendChild(el('div', { class: 'gantt-nm' }, `${mainEmp?.shortName || '?'}${isTrainer ? ' T' : ''}${absent ? ' ✕' : ''}`));
 
-      const barArea = el('div', { class: 'gantt-ba' });
+    const barArea = el('div', { class: 'gantt-ba' });
+    for (let h = view.startHour; h <= view.endHour; h++) {
+      barArea.appendChild(el('div', { class: 'gantt-gl', style: { left: `${((h - view.startHour) / span) * 100}%` } }));
+    }
+    barArea.appendChild(el('div', { class: 'gantt-bar', style: {
+      left: `${leftPct}%`, width: `${widthPct}%`, background: bc.bg, color: bc.color,
+      opacity: absent ? '0.4' : '1', textDecoration: absent ? 'line-through' : 'none'
+    } }, barLabel + (isFront ? ' (1h break)' : '')));
+    mainRow.appendChild(barArea);
+    wrapper.appendChild(mainRow);
+
+    // Student row (if any) — kept directly under its trainer
+    if (studentEmp) {
+      const stuLabel = state.ganttGroupBy === 'position' ? 'Student' : `Student · ${slot.pos}`;
+      const stuRow = el('div', { class: 'gantt-row' });
+      stuRow.appendChild(el('div', { class: 'gantt-nm gantt-stu' }, `${studentEmp.shortName} S`));
+      const stuBarArea = el('div', { class: 'gantt-ba' });
       for (let h = view.startHour; h <= view.endHour; h++) {
-        barArea.appendChild(el('div', { class: 'gantt-gl', style: { left: `${((h - view.startHour) / span) * 100}%` } }));
+        stuBarArea.appendChild(el('div', { class: 'gantt-gl', style: { left: `${((h - view.startHour) / span) * 100}%` } }));
       }
+      stuBarArea.appendChild(el('div', { class: 'gantt-bar', style: { left: `${leftPct}%`, width: `${widthPct}%`, background: '#f5f5f4', color: '#57534e', borderLeft: `3px solid ${bc.bg}` } }, stuLabel));
+      stuRow.appendChild(stuBarArea);
+      wrapper.appendChild(stuRow);
+    }
+  }
 
-      // Colour based on area
-      const barColors = {
-        '后厨': { bg: '#dbeafe', color: '#1e40af' },
-        '前厅': { bg: '#dcfce7', color: '#065f46' },
-        '管理': { bg: '#fef3c7', color: '#92400e' },
-        '后备': { bg: '#f5f5f4', color: '#57534e' },
-      };
+  // Sort key for slots within a station: time window start asc, then trainer-first.
+  function slotSortKey(slot) {
+    const eff   = getEffectiveSlot(slot);
+    const emp   = getEmp(state.assignments[slot.id]?.empId);
+    const isTr  = KITCHEN_POSITIONS.includes(slot.pos) && emp && isTrainerFor(emp, slot.pos);
+    return [eff.startHour, isTr ? 0 : 1];
+  }
+  function bySlotSort(a, b) {
+    const ka = slotSortKey(a), kb = slotSortKey(b);
+    return ka[0] - kb[0] || ka[1] - kb[1];
+  }
+
+  if (state.ganttGroupBy === 'position') {
+    // ── BY STATION: area → station → people ──
+    for (const area of AREAS) {
+      const areaWindowSlots = windowSlots.filter(s => s.area === area);
+      if (areaWindowSlots.length === 0) continue;
+
+      const areaStyle = AREA_LABEL_CLASS[area] || 'area-reserve';
+      wrapper.appendChild(el('div', { class: `gantt-al ${areaStyle}` }, area));
+
+      // Distinct stations in this area, preserving slot definition order
+      const stations = [];
+      for (const s of areaWindowSlots) if (!stations.includes(s.pos)) stations.push(s.pos);
+
       const bc = barColors[area] || barColors['后备'];
-      barArea.appendChild(el('div', { class: 'gantt-bar', style: { left: `${leftPct}%`, width: `${widthPct}%`, background: bc.bg, color: bc.color } }, barLabel + (isFront ? ' (1h break)' : '')));
-      mainRow.appendChild(barArea);
-      wrapper.appendChild(mainRow);
+      for (const station of stations) {
+        const assignedHere = visibleSlots
+          .filter(s => s.area === area && s.pos === station)
+          .sort(bySlotSort);
 
-      // Student row (if any)
-      if (studentEmp) {
-        const stuRow = el('div', { class: 'gantt-row' });
-        stuRow.appendChild(el('div', { class: 'gantt-nm gantt-stu' }, `${studentEmp.shortName} S`));
+        // Station sub-header
+        const isEmpty = assignedHere.length === 0;
+        const head = el('div', { class: `gantt-pos${isEmpty ? ' gantt-pos-empty' : ''}`, style: { '--pos-dot': bc.dot } },
+          station + (isEmpty ? ' · 空岗 (no one assigned)' : ''));
+        wrapper.appendChild(head);
 
-        const stuBarArea = el('div', { class: 'gantt-ba' });
-        for (let h = view.startHour; h <= view.endHour; h++) {
-          stuBarArea.appendChild(el('div', { class: 'gantt-gl', style: { left: `${((h - view.startHour) / span) * 100}%` } }));
+        if (isEmpty) {
+          wrapper.appendChild(el('div', { class: 'gantt-empty-row' }, '— 待补人 —'));
+          continue;
         }
-        stuBarArea.appendChild(el('div', { class: 'gantt-bar', style: { left: `${leftPct}%`, width: `${widthPct}%`, background: '#f5f5f4', color: '#57534e', borderLeft: `3px solid ${bc.bg}` } }, `Student · ${slot.pos}`));
-        stuRow.appendChild(stuBarArea);
-        wrapper.appendChild(stuRow);
+        for (const slot of assignedHere) appendSlotRows(slot, area);
       }
+    }
+  } else {
+    // ── BY PERSON: area → assigned slot (original behaviour) ──
+    for (const area of AREAS) {
+      const areaSlots = visibleSlots.filter(s => s.area === area);
+      if (areaSlots.length === 0) continue;
+
+      const areaStyle = AREA_LABEL_CLASS[area] || 'area-reserve';
+      wrapper.appendChild(el('div', { class: `gantt-al ${areaStyle}` }, area));
+
+      for (const slot of areaSlots) appendSlotRows(slot, area);
     }
   }
 
