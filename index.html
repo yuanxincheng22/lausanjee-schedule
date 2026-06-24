@@ -4338,9 +4338,9 @@ function renderLeaveTab(computed) {
 // 按岗视图的单行渲染：名字(+badge+chip锚点) ··· 时间。student 缩进+左竖条。
 // 复用变更高亮锚点(data-emp-id/sh/eh/pos)，与按人视图一致，高亮函数无需改。
 function rosterStationRow({ emp, shiftSlot, cfg, badge, indent }) {
-  const padLeft = indent ? 36 : 22;
+  const padLeft = indent ? 30 : 18;
   const row = document.createElement('div');
-  row.style.cssText = `display:flex;align-items:center;gap:7px;padding:5px 22px 5px ${padLeft}px;border-bottom:1px solid #f5f4f2;min-height:32px;${indent ? 'border-left:2px solid #d6d3d1;' : ''}`;
+  row.style.cssText = `display:flex;align-items:center;gap:6px;padding:4px 18px 4px ${padLeft}px;border-bottom:1px solid #f5f4f2;min-height:30px;${indent ? 'border-left:2px solid #d6d3d1;' : ''}`;
   row.setAttribute('data-emp-id', emp.id);
   if (shiftSlot) {
     row.setAttribute('data-sh',  shiftSlot.startHour);
@@ -4565,14 +4565,44 @@ function renderRosterTab() {
     card.appendChild(block);
   }
   } else {
-    // ── BY STATION: area → station → people (trainer + 缩进 student)，按到岗时间排 ──
-    const KITCHEN_AREA = '后厨';
+    // ── BY STATION: area → station → people（双列紧凑版） ──
+    // 后厨/前厅用双列（岗位组严格交替砌入左右栏）；管理等小区域单列。
+    const TWO_COL_AREAS = ['后厨', '前厅'];
     // 收集"今天有人上班"的 slot，按区域→岗位归类
     const slotsToday = [];
     for (const slot of allSlots()) {
       const a = state.assignments[slot.id];
       if (!a || (!a.empId && !a.studentId)) continue;
       slotsToday.push({ slot: getEffectiveSlot(slot), a });
+    }
+
+    // 渲染单个岗位组（岗位头 + 人行），返回一个整块 div（双列里不可拆）
+    function buildStationGroup(station, stSlots, cfg) {
+      const group = document.createElement('div');
+      group.style.cssText = 'break-inside:avoid;';
+      // 该岗有多少人（trainer + student）
+      let stCount = 0;
+      for (const x of stSlots) { if (x.a.empId) stCount++; if (x.a.studentId) stCount++; }
+
+      const sHdr = document.createElement('div');
+      sHdr.style.cssText = 'display:flex;align-items:center;gap:6px;padding:7px 18px 2px;';
+      sHdr.innerHTML = `
+        <span style="font-size:13px;font-weight:700;color:${cfg.posColor};">${station}</span>
+        <span style="font-size:11px;color:#a8a29e;font-weight:500;">· ${stCount} 人</span>`;
+      group.appendChild(sHdr);
+
+      for (const x of stSlots) {
+        const mainEmp = x.a.empId ? getEmp(x.a.empId) : null;
+        const stuEmp  = x.a.studentId ? getEmp(x.a.studentId) : null;
+        const isTrainer = mainEmp && KITCHEN_POSITIONS.includes(x.slot.pos) && isTrainerFor(mainEmp, x.slot.pos);
+        if (mainEmp) {
+          group.appendChild(rosterStationRow({ emp: mainEmp, shiftSlot: x.slot, cfg, badge: isTrainer ? 'T' : null, indent: false }));
+        }
+        if (stuEmp) {
+          group.appendChild(rosterStationRow({ emp: stuEmp, shiftSlot: x.slot, cfg, badge: 'S', indent: true }));
+        }
+      }
+      return group;
     }
 
     for (const area of AREA_ORDER) {
@@ -4598,42 +4628,30 @@ function renderRosterTab() {
       const stations = [];
       for (const x of areaSlots) if (!stations.includes(x.slot.pos)) stations.push(x.slot.pos);
 
-      for (const station of stations) {
-        // 该岗位下所有 slot，按 trainer 起始时间排
-        const stSlots = areaSlots.filter(x => x.slot.pos === station)
-          .sort((p, q) => p.slot.startHour - q.slot.startHour);
-        // 该岗有多少人（trainer + student）
-        let stCount = 0;
-        for (const x of stSlots) { if (x.a.empId) stCount++; if (x.a.studentId) stCount++; }
+      // 为每个岗位组准备 sorted slots
+      const groups = stations.map(station => ({
+        station,
+        stSlots: areaSlots.filter(x => x.slot.pos === station).sort((p, q) => p.slot.startHour - q.slot.startHour),
+      }));
 
-        // Station sub-header（蓝字岗位名 + N 人）
-        const sHdr = document.createElement('div');
-        sHdr.style.cssText = 'display:flex;align-items:center;gap:6px;padding:8px 22px 3px;';
-        sHdr.innerHTML = `
-          <span style="font-size:13px;font-weight:700;color:${cfg.posColor};">${station}</span>
-          <span style="font-size:11px;color:#a8a29e;font-weight:500;">· ${stCount} 人</span>`;
-        block.appendChild(sHdr);
-
-        for (const x of stSlots) {
-          const mainEmp = x.a.empId ? getEmp(x.a.empId) : null;
-          const stuEmp  = x.a.studentId ? getEmp(x.a.studentId) : null;
-          const isTrainer = mainEmp && KITCHEN_POSITIONS.includes(x.slot.pos) && isTrainerFor(mainEmp, x.slot.pos);
-          // Trainer / main row
-          if (mainEmp) {
-            block.appendChild(rosterStationRow({
-              emp: mainEmp, shiftSlot: x.slot, cfg,
-              badge: isTrainer ? 'T' : null, indent: false,
-            }));
-          }
-          // Student row（缩进 + 左竖条）
-          if (stuEmp) {
-            block.appendChild(rosterStationRow({
-              emp: stuEmp, shiftSlot: x.slot, cfg,
-              badge: 'S', indent: true,
-            }));
-          }
-        }
+      if (TWO_COL_AREAS.includes(area) && groups.length > 1) {
+        // 双列：严格交替砌入左右栏
+        const cols = document.createElement('div');
+        cols.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
+        const colL = document.createElement('div');
+        const colR = document.createElement('div');
+        colL.style.cssText = 'border-right:1px solid #f0ede9;';
+        groups.forEach((g, i) => {
+          (i % 2 === 0 ? colL : colR).appendChild(buildStationGroup(g.station, g.stSlots, cfg));
+        });
+        cols.appendChild(colL);
+        cols.appendChild(colR);
+        block.appendChild(cols);
+      } else {
+        // 单列（管理等小区域，或只有 1 个岗位组）
+        for (const g of groups) block.appendChild(buildStationGroup(g.station, g.stSlots, cfg));
       }
+
       card.appendChild(block);
     }
   }
