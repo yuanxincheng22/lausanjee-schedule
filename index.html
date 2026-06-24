@@ -587,6 +587,14 @@ async function loadScheduleForDate(date) {
       .eq('store_id', STORE_ID).eq('schedule_date', date).maybeSingle();
     if (error) throw error;
     state.assignments = data?.assignments  || {};
+    // 清理历史脏数据：同一 slot 里 studentId === empId（自己当自己学员）
+    let _cleanedSelfStudent = false;
+    for (const a of Object.values(state.assignments)) {
+      if (a && a.empId && a.studentId === a.empId) {
+        a.studentId = null;
+        _cleanedSelfStudent = true;
+      }
+    }
     state.extraSlots  = data?.extra_slots  || [];
     state.dayMeta = {
       estRevenue:      data?.est_revenue     ?? '',
@@ -596,6 +604,11 @@ async function loadScheduleForDate(date) {
       workload:        data?.workload        || {},
       unplannedAbsent: data?.unplanned_absent || [],
     };
+    // 如清理过脏数据，写回 Supabase，避免下次加载再次出现
+    if (_cleanedSelfStudent) {
+      saveSchedule();
+      console.warn('Cleaned self-as-student assignment(s) on load for', date);
+    }
   } catch (e) { console.error('loadScheduleForDate', e?.message || e?.code || e); }
 }
 async function saveSchedule() {
@@ -1508,7 +1521,10 @@ function assignSlot(slotId, empId) {
       }
     }
     state.assignments[slotId].empId = empId;
-  } else {
+    // Guard: if this person was the student on the same slot, clear that to avoid self-pairing
+    if (state.assignments[slotId].studentId === empId) {
+      state.assignments[slotId].studentId = null;
+    }
     // Clearing the main person also clears the student
     state.assignments[slotId].empId      = null;
     state.assignments[slotId].studentId  = null;
@@ -1521,6 +1537,11 @@ function assignStudent(slotId, studentId) {
   if (!state.assignments[slotId]) state.assignments[slotId] = {};
 
   if (studentId) {
+    // Guard: a person can't be their own student on the same slot
+    if (state.assignments[slotId].empId === studentId) {
+      console.warn('Ignored: cannot assign employee as student of their own slot', slotId, studentId);
+      return;
+    }
     for (const [otherId, a] of Object.entries(state.assignments)) {
       if (otherId !== slotId) {
         if (a?.empId     === studentId) a.empId = null;
@@ -4374,7 +4395,7 @@ function rosterStationRow({ emp, shiftSlot, cfg, badge, indent }) {
   const shiftWrap = document.createElement('div');
   shiftWrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:1px;';
   const shiftTxt = shiftSlot ? formatHourNum(shiftSlot.startHour) + '–' + formatHourNum(shiftSlot.endHour) : '—';
-  const isLong   = shiftSlot && (shiftSlot.endHour - shiftSlot.startHour) >= 9 && shiftSlot.pos !== 'PIC';
+  const isLong   = shiftSlot && (shiftSlot.endHour - shiftSlot.startHour) >= 9;
   const shiftEl  = document.createElement('span');
   shiftEl.style.cssText = 'font-size:11px;font-weight:600;color:#78716c;white-space:nowrap;';
   shiftEl.textContent = shiftTxt;
@@ -4497,7 +4518,7 @@ function renderRosterTab() {
       let shiftTxt = '—', isLong = false;
       if (shiftSlot) {
         shiftTxt = formatHourNum(shiftSlot.startHour) + '–' + formatHourNum(shiftSlot.endHour);
-        isLong   = (shiftSlot.endHour - shiftSlot.startHour) >= 9 && shiftSlot.pos !== 'PIC';
+        isLong   = (shiftSlot.endHour - shiftSlot.startHour) >= 9;
       }
 
       const isOdd = idx % 2 === 0;
@@ -4568,6 +4589,8 @@ function renderRosterTab() {
     // ── BY STATION: area → station → people（双列紧凑版） ──
     // 后厨/前厅用双列（岗位组严格交替砌入左右栏）；管理等小区域单列。
     const TWO_COL_AREAS = ['后厨', '前厅'];
+    // 同一员工在按岗视图里只渲染一次（正岗优先），防止"自己带自己"等重复
+    const seenEmpIds = new Set();
     // 收集"今天有人上班"的 slot，按区域→岗位归类
     const slotsToday = [];
     for (const slot of allSlots()) {
@@ -4580,29 +4603,31 @@ function renderRosterTab() {
     function buildStationGroup(station, stSlots, cfg) {
       const group = document.createElement('div');
       group.style.cssText = 'break-inside:avoid;';
-      // 该岗有多少人（trainer + student）
-      let stCount = 0;
-      for (const x of stSlots) { if (x.a.empId) stCount++; if (x.a.studentId) stCount++; }
+
+      const rows = [];
+      for (const x of stSlots) {
+        const mainEmp = x.a.empId ? getEmp(x.a.empId) : null;
+        const stuEmp  = x.a.studentId ? getEmp(x.a.studentId) : null;
+        const isTrainer = mainEmp && KITCHEN_POSITIONS.includes(x.slot.pos) && isTrainerFor(mainEmp, x.slot.pos);
+        if (mainEmp && !seenEmpIds.has(mainEmp.id)) {
+          seenEmpIds.add(mainEmp.id);
+          rows.push(rosterStationRow({ emp: mainEmp, shiftSlot: x.slot, cfg, badge: isTrainer ? 'T' : null, indent: false }));
+        }
+        if (stuEmp && !seenEmpIds.has(stuEmp.id)) {
+          seenEmpIds.add(stuEmp.id);
+          rows.push(rosterStationRow({ emp: stuEmp, shiftSlot: x.slot, cfg, badge: 'S', indent: true }));
+        }
+      }
 
       const sHdr = document.createElement('div');
       sHdr.style.cssText = 'display:flex;align-items:center;gap:6px;padding:7px 18px 2px;';
       sHdr.innerHTML = `
         <span style="font-size:13px;font-weight:700;color:${cfg.posColor};">${station}</span>
-        <span style="font-size:11px;color:#a8a29e;font-weight:500;">· ${stCount} 人</span>`;
+        <span style="font-size:11px;color:#a8a29e;font-weight:500;">· ${rows.length} 人</span>`;
       group.appendChild(sHdr);
 
-      for (const x of stSlots) {
-        const mainEmp = x.a.empId ? getEmp(x.a.empId) : null;
-        const stuEmp  = x.a.studentId ? getEmp(x.a.studentId) : null;
-        const isTrainer = mainEmp && KITCHEN_POSITIONS.includes(x.slot.pos) && isTrainerFor(mainEmp, x.slot.pos);
-        if (mainEmp) {
-          group.appendChild(rosterStationRow({ emp: mainEmp, shiftSlot: x.slot, cfg, badge: isTrainer ? 'T' : null, indent: false }));
-        }
-        if (stuEmp) {
-          group.appendChild(rosterStationRow({ emp: stuEmp, shiftSlot: x.slot, cfg, badge: 'S', indent: true }));
-        }
-      }
-      return group;
+      for (const r of rows) group.appendChild(r);
+      return rows.length ? group : null;
     }
 
     for (const area of AREA_ORDER) {
@@ -4610,46 +4635,53 @@ function renderRosterTab() {
       if (!areaSlots.length) continue;
       const cfg = AREA_CONFIG[area];
 
+      // Distinct stations in area, preserving BASE_SLOTS order
+      const stations = [];
+      for (const x of areaSlots) if (!stations.includes(x.slot.pos)) stations.push(x.slot.pos);
+
+      // 为每个岗位组准备 sorted slots，先构建（buildStationGroup 内部去重，可能返回 null）
+      const builtGroups = stations.map(station => {
+        const stSlots = areaSlots
+          .filter(x => x.slot.pos === station)
+          .sort((p, q) => p.slot.startHour - q.slot.startHour);
+        return { station, node: buildStationGroup(station, stSlots, cfg) };
+      }).filter(g => g.node);
+
+      if (!builtGroups.length) continue;  // 整个区域去重后没人，跳过
+
+      // 区域实际渲染人数 = 各岗位组渲染行数之和
+      const areaCount = builtGroups.reduce(
+        (n, g) => n + g.node.querySelectorAll('[data-emp-id]').length, 0
+      );
+
       const block = document.createElement('div');
       block.style.cssText = 'border-bottom:1px solid #f0ede9;';
 
       // Area header
       const aHdr = document.createElement('div');
       aHdr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 22px 8px;background:#fafaf9;border-bottom:1px solid #f0ede9;';
-      const areaPeople = new Set();
-      for (const x of areaSlots) { if (x.a.empId) areaPeople.add(x.a.empId); if (x.a.studentId) areaPeople.add(x.a.studentId); }
       aHdr.innerHTML = `
         <div style="width:8px;height:8px;border-radius:50%;background:${cfg.dot};flex-shrink:0;"></div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#57534e;">${cfg.label}</div>
-        <div style="margin-left:auto;font-size:11px;color:#a8a29e;font-weight:500;">${areaPeople.size} 人</div>`;
+        <div style="margin-left:auto;font-size:11px;color:#a8a29e;font-weight:500;">${areaCount} 人</div>`;
       block.appendChild(aHdr);
 
-      // Distinct stations in area, preserving BASE_SLOTS order
-      const stations = [];
-      for (const x of areaSlots) if (!stations.includes(x.slot.pos)) stations.push(x.slot.pos);
-
-      // 为每个岗位组准备 sorted slots
-      const groups = stations.map(station => ({
-        station,
-        stSlots: areaSlots.filter(x => x.slot.pos === station).sort((p, q) => p.slot.startHour - q.slot.startHour),
-      }));
-
-      if (TWO_COL_AREAS.includes(area) && groups.length > 1) {
+      if (TWO_COL_AREAS.includes(area) && builtGroups.length > 1) {
         // 双列：严格交替砌入左右栏
         const cols = document.createElement('div');
         cols.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
         const colL = document.createElement('div');
         const colR = document.createElement('div');
         colL.style.cssText = 'border-right:1px solid #f0ede9;';
-        groups.forEach((g, i) => {
-          (i % 2 === 0 ? colL : colR).appendChild(buildStationGroup(g.station, g.stSlots, cfg));
+        builtGroups.forEach((g, i) => {
+          (i % 2 === 0 ? colL : colR).appendChild(g.node);
         });
         cols.appendChild(colL);
         cols.appendChild(colR);
         block.appendChild(cols);
       } else {
         // 单列（管理等小区域，或只有 1 个岗位组）
-        for (const g of groups) block.appendChild(buildStationGroup(g.station, g.stSlots, cfg));
+        for (const g of builtGroups) block.appendChild(g.node);
       }
 
       card.appendChild(block);
@@ -4680,18 +4712,6 @@ function renderRosterTab() {
     offBlock.appendChild(chips);
     card.appendChild(offBlock);
   }
-
-  // Legend for change badges (NEW / CP / CT)
-  const legend = document.createElement('div');
-  legend.style.cssText = 'background:#fff;border-top:1px solid #f0ede9;padding:8px 22px 9px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;';
-  legend.innerHTML = `
-    <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#78716c;">
-      <span style="font-size:9px;font-weight:700;background:#dcfce7;color:#166534;border-radius:4px;padding:1px 5px;">NEW</span>新上班 New on duty</span>
-    <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#78716c;">
-      <span style="font-size:9px;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;">CP</span>换岗 Change Position</span>
-    <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#78716c;">
-      <span style="font-size:9px;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;">CT</span>改时间 Change Time</span>`;
-  card.appendChild(legend);
 
   // Footer with timestamp
   const nowT  = new Date();
