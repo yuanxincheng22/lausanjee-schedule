@@ -2591,12 +2591,40 @@ function renderRosterTab() {
   const onDuty = employees.filter(e => !absences[e.id]);
   const offToday = employees.filter(e => !!absences[e.id]);
 
-  const grouped = {};  // area → emp[]  (on duty)
-  for (const a of AREA_ORDER) { grouped[a] = []; }
-  for (const emp of onDuty) { const a = getEmpArea(emp); (grouped[a] || grouped['后备']).push(emp); }
-  // Sort each area alphabetically by shortName so staff can scan to their name fast.
+  // ── Station-centric grouping: area → position → [{emp, eff, isTrainer, isStudent}] ──
+  // Position order within each area follows BASE_SLOTS definition order (matches Gantt).
+  const posOrderByArea = {};   // area → [posName...] in BASE_SLOTS order, de-duped
+  for (const a of AREA_ORDER) posOrderByArea[a] = [];
+  for (const s of BASE_SLOTS) {
+    const arr = posOrderByArea[s.area];
+    if (arr && !arr.includes(s.pos)) arr.push(s.pos);
+  }
+
+  // Build area → posName → members
+  const stationGroups = {};    // area → { posName → member[] }
+  for (const a of AREA_ORDER) stationGroups[a] = {};
+  for (const emp of onDuty) {
+    const eff = mainMap[emp.id] || studentMap[emp.id]?.slot;
+    const area = getEmpArea(emp);
+    const posName = eff ? eff.pos : '__unassigned__';
+    const bucket = stationGroups[area] || (stationGroups[area] = {});
+    (bucket[posName] || (bucket[posName] = [])).push({ emp, eff });
+  }
+  // Sort members within each station by start time (early first), then name
   for (const a of AREA_ORDER) {
-    grouped[a].sort((x, y) => x.shortName.localeCompare(y.shortName, 'en'));
+    for (const posName of Object.keys(stationGroups[a])) {
+      stationGroups[a][posName].sort((x, y) => {
+        const sx = x.eff ? x.eff.startHour : 99;
+        const sy = y.eff ? y.eff.startHour : 99;
+        if (sx !== sy) return sx - sy;
+        return x.emp.shortName.localeCompare(y.emp.shortName, 'en');
+      });
+    }
+  }
+  // Count on-duty per area (for area header)
+  const areaCount = {};
+  for (const a of AREA_ORDER) {
+    areaCount[a] = Object.values(stationGroups[a]).reduce((n, arr) => n + arr.length, 0);
   }
 
   // Off today: flat list sorted A→Z by shortName
@@ -2627,11 +2655,11 @@ function renderRosterTab() {
     </div>`;
   card.appendChild(hdr);
 
-  // Area blocks
+  // Area blocks (station-centric, single column)
   for (const area of AREA_ORDER) {
-    const emps = grouped[area];
-    if (!emps.length) continue;
+    if (areaCount[area] === 0) continue;
     const cfg = AREA_CONFIG[area];
+    const groups = stationGroups[area];
 
     const block = document.createElement('div');
     block.style.cssText = 'border-bottom:1px solid #f0ede9;';
@@ -2642,84 +2670,99 @@ function renderRosterTab() {
     aHdr.innerHTML = `
       <div style="width:8px;height:8px;border-radius:50%;background:${cfg.dot};flex-shrink:0;"></div>
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#57534e;">${cfg.label}</div>
-      <div style="margin-left:auto;font-size:11px;color:#a8a29e;font-weight:500;">${emps.length} 人</div>`;
+      <div style="margin-left:auto;font-size:11px;color:#a8a29e;font-weight:500;">${areaCount[area]} 人</div>`;
     block.appendChild(aHdr);
 
-    // Two-column grid
-    const grid = document.createElement('div');
-    grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
+    // Iterate positions in BASE_SLOTS order; show every defined station (Vacant if empty)
+    const orderedPositions = posOrderByArea[area] || [];
+    // Append any positions that exist in data but not in the canonical order (safety)
+    for (const p of Object.keys(groups)) {
+      if (p !== '__unassigned__' && !orderedPositions.includes(p)) orderedPositions.push(p);
+    }
+    // Unassigned on-duty employees (present but no slot) shown last
+    if (groups['__unassigned__']?.length) orderedPositions.push('__unassigned__');
 
-    emps.forEach((emp, idx) => {
-      const slot    = mainMap[emp.id];
-      const stuInfo = studentMap[emp.id];
-      const shiftSlot = slot || stuInfo?.slot;
-      const isTrainer = slot && KITCHEN_POSITIONS.includes(slot.pos) && isTrainerFor(emp, slot.pos);
-      const isStudent = !!stuInfo && !slot;
+    orderedPositions.forEach((posName, gi) => {
+      const members = groups[posName] || [];
 
-      // Shift text + break detection
-      let shiftTxt = '—', isLong = false;
-      if (shiftSlot) {
-        shiftTxt = formatHourNum(shiftSlot.startHour) + '–' + formatHourNum(shiftSlot.endHour);
-        isLong   = (shiftSlot.endHour - shiftSlot.startHour) >= 9;
+      // Station group container
+      const grp = document.createElement('div');
+      grp.style.cssText = `${gi > 0 ? 'border-top:1px solid #f5f4f2;' : ''}`;
+
+      // Station header
+      const stationLabel = posName === '__unassigned__' ? 'Not assigned 未排班' : posName;
+      const sHdr = document.createElement('div');
+      sHdr.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 22px 3px;';
+      sHdr.innerHTML = `
+        <span style="font-size:11px;font-weight:700;color:${posName === '__unassigned__' ? '#a8a29e' : cfg.posColor};">${stationLabel}</span>
+        <span style="font-size:10px;color:#a8a29e;font-weight:500;">· ${members.length || 0}</span>`;
+      grp.appendChild(sHdr);
+
+      if (members.length === 0) {
+        // Vacant placeholder
+        const vac = document.createElement('div');
+        vac.style.cssText = 'padding:4px 22px 8px;';
+        vac.innerHTML = `<span style="font-size:12px;font-weight:600;color:#b91c1c;background:#fef2f2;border:1px dashed #fecaca;border-radius:5px;padding:2px 9px;">Vacant</span>`;
+        grp.appendChild(vac);
+        block.appendChild(grp);
+        return;
       }
 
-      const isOdd = idx % 2 === 0;
-      const row = document.createElement('div');
-      row.dataset.empId = emp.id;
-      // padding-left 22px includes 3px reserved for an optional change-bar (added async)
-      row.style.cssText = `display:flex;align-items:center;padding:6px 14px 6px 22px;gap:7px;border-bottom:1px solid #f5f4f2;min-height:36px;position:relative;${isOdd ? 'border-right:1px solid #f5f4f2;' : ''}`;
+      members.forEach(({ emp, eff }) => {
+        const slot = mainMap[emp.id];
+        const isTrainer = slot && KITCHEN_POSITIONS.includes(slot.pos) && isTrainerFor(emp, slot.pos);
+        const isStudent = !slot && !!studentMap[emp.id];
 
-      // Name
-      const nameEl = document.createElement('span');
-      nameEl.style.cssText = 'font-size:13px;font-weight:700;color:#1c1917;min-width:44px;flex-shrink:0;';
-      nameEl.textContent = emp.shortName;
-      row.appendChild(nameEl);
+        let shiftTxt = '—', isLong = false;
+        if (eff) {
+          shiftTxt = formatHourNum(eff.startHour) + '–' + formatHourNum(eff.endHour);
+          isLong   = (eff.endHour - eff.startHour) >= 9;
+        }
 
-      // Position
-      const posEl = document.createElement('span');
-      posEl.style.cssText = `font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${cfg.posColor};`;
-      posEl.textContent = shiftSlot ? shiftSlot.pos : '—';
-      row.appendChild(posEl);
+        const row = document.createElement('div');
+        row.dataset.empId = emp.id;
+        row.style.cssText = 'display:flex;align-items:center;padding:5px 22px 5px 30px;gap:7px;border-bottom:1px solid #f7f6f4;min-height:30px;position:relative;';
 
-      // Shift + break tag
-      const shiftWrap = document.createElement('div');
-      shiftWrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:1px;';
-      const shiftEl = document.createElement('span');
-      shiftEl.style.cssText = 'font-size:11px;font-weight:600;color:#78716c;white-space:nowrap;';
-      shiftEl.textContent = shiftTxt;
-      shiftWrap.appendChild(shiftEl);
-      if (isLong) {
-        const brk = document.createElement('span');
-        brk.style.cssText = 'font-size:9px;font-weight:600;color:#d97706;background:#fef3c7;border-radius:3px;padding:1px 4px;white-space:nowrap;';
-        brk.textContent = 'break 1hr';
-        shiftWrap.appendChild(brk);
-      }
-      row.appendChild(shiftWrap);
+        // Name
+        const nameEl = document.createElement('span');
+        nameEl.style.cssText = 'font-size:13px;font-weight:700;color:#1c1917;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        nameEl.textContent = emp.shortName;
+        row.appendChild(nameEl);
 
-      // Trainer / Student badge
-      if (isTrainer) {
-        const tb = document.createElement('span');
-        tb.style.cssText = 'font-size:10px;font-weight:700;background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 5px;flex-shrink:0;';
-        tb.textContent = 'T';
-        row.appendChild(tb);
-      } else if (isStudent) {
-        const sb = document.createElement('span');
-        sb.style.cssText = 'font-size:10px;font-weight:700;background:#f0fdf4;color:#166534;border-radius:4px;padding:1px 5px;flex-shrink:0;';
-        sb.textContent = 'S';
-        row.appendChild(sb);
-      }
+        // Trainer / Student badge (before time, compact)
+        if (isTrainer) {
+          const tb = document.createElement('span');
+          tb.style.cssText = 'font-size:10px;font-weight:700;background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 5px;flex-shrink:0;';
+          tb.textContent = 'T';
+          row.appendChild(tb);
+        } else if (isStudent) {
+          const sb = document.createElement('span');
+          sb.style.cssText = 'font-size:10px;font-weight:700;background:#f0fdf4;color:#166534;border-radius:4px;padding:1px 5px;flex-shrink:0;';
+          sb.textContent = 'S';
+          row.appendChild(sb);
+        }
 
-      grid.appendChild(row);
+        // Shift + break tag
+        const shiftWrap = document.createElement('div');
+        shiftWrap.style.cssText = 'display:flex;align-items:center;flex-shrink:0;gap:5px;';
+        const shiftEl = document.createElement('span');
+        shiftEl.style.cssText = 'font-size:11px;font-weight:600;color:#78716c;white-space:nowrap;font-variant-numeric:tabular-nums;';
+        shiftEl.textContent = shiftTxt;
+        shiftWrap.appendChild(shiftEl);
+        if (isLong) {
+          const brk = document.createElement('span');
+          brk.style.cssText = 'font-size:9px;font-weight:600;color:#d97706;background:#fef3c7;border-radius:3px;padding:1px 4px;white-space:nowrap;';
+          brk.textContent = 'break 1hr';
+          shiftWrap.appendChild(brk);
+        }
+        row.appendChild(shiftWrap);
+
+        grp.appendChild(row);
+      });
+
+      block.appendChild(grp);
     });
 
-    // Spacer for odd-count areas (keep grid even)
-    if (emps.length % 2 !== 0) {
-      const spacer = document.createElement('div');
-      spacer.style.cssText = 'border-bottom:1px solid #f5f4f2;min-height:36px;';
-      grid.appendChild(spacer);
-    }
-
-    block.appendChild(grid);
     card.appendChild(block);
   }
 
@@ -2759,7 +2802,7 @@ function renderRosterTab() {
     <div style="font-size:10px;color:rgba(255,255,255,0.22);">Generated ${tStr}</div>`;
   card.appendChild(footer);
 
-  frag.appendChild(el('p', { class: 'roster-hint' }, '按区域分组 · 区域内按字母排序 · T = Trainer · S = Student · 🟢 NEW = 今天新上班 · 🟡 CT = change time · CP = change position · 9h班自动标注 break'));
+  frag.appendChild(el('p', { class: 'roster-hint' }, '区域 → 岗位 → 按到岗时间排 · 空岗位标 Vacant · T = Trainer · S = Student · 🟢 NEW · 🟡 CT/CP · 9h班自动标注 break'));
   frag.appendChild(card);
 
   // ── Async: highlight employees whose shift changed vs. yesterday ──
