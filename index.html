@@ -1208,6 +1208,7 @@ let state = {
   showUnassigned:  false,
   ganttView:       'full',
   ganttGroupBy:    'position',   // 'position' (by station, default) | 'person'
+  rosterView:      'person',     // 'person' (by area→人, default) | 'station' (by area→岗位→人)
 };
 
 // Per-day time override popover state
@@ -4334,6 +4335,61 @@ function renderLeaveTab(computed) {
 // ROSTER TAB
 // =============================================================================
 
+// 按岗视图的单行渲染：名字(+badge+chip锚点) ··· 时间。student 缩进+左竖条。
+// 复用变更高亮锚点(data-emp-id/sh/eh/pos)，与按人视图一致，高亮函数无需改。
+function rosterStationRow({ emp, shiftSlot, cfg, badge, indent }) {
+  const padLeft = indent ? 36 : 22;
+  const row = document.createElement('div');
+  row.style.cssText = `display:flex;align-items:center;gap:7px;padding:5px 22px 5px ${padLeft}px;border-bottom:1px solid #f5f4f2;min-height:32px;${indent ? 'border-left:2px solid #d6d3d1;' : ''}`;
+  row.setAttribute('data-emp-id', emp.id);
+  if (shiftSlot) {
+    row.setAttribute('data-sh',  shiftSlot.startHour);
+    row.setAttribute('data-eh',  shiftSlot.endHour);
+    row.setAttribute('data-pos', shiftSlot.pos);
+  }
+
+  // Name
+  const nameEl = document.createElement('span');
+  nameEl.style.cssText = 'font-size:13px;font-weight:700;color:#1c1917;flex-shrink:0;';
+  nameEl.textContent = emp.shortName;
+  row.appendChild(nameEl);
+
+  // Badge (T / S)
+  if (badge === 'T') {
+    const tb = document.createElement('span');
+    tb.style.cssText = 'font-size:10px;font-weight:700;background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 5px;flex-shrink:0;';
+    tb.textContent = 'T';
+    row.appendChild(tb);
+  } else if (badge === 'S') {
+    const sb = document.createElement('span');
+    sb.style.cssText = 'font-size:10px;font-weight:700;background:#f0fdf4;color:#166534;border-radius:4px;padding:1px 5px;flex-shrink:0;';
+    sb.textContent = 'S';
+    row.appendChild(sb);
+  }
+
+  // Spacer pushes time to the right
+  row.appendChild(el('span', { style: { flex: '1' } }));
+
+  // Shift + break tag
+  const shiftWrap = document.createElement('div');
+  shiftWrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:1px;';
+  const shiftTxt = shiftSlot ? formatHourNum(shiftSlot.startHour) + '–' + formatHourNum(shiftSlot.endHour) : '—';
+  const isLong   = shiftSlot && (shiftSlot.endHour - shiftSlot.startHour) >= 9;
+  const shiftEl  = document.createElement('span');
+  shiftEl.style.cssText = 'font-size:11px;font-weight:600;color:#78716c;white-space:nowrap;';
+  shiftEl.textContent = shiftTxt;
+  shiftWrap.appendChild(shiftEl);
+  if (isLong) {
+    const brk = document.createElement('span');
+    brk.style.cssText = 'font-size:9px;font-weight:600;color:#d97706;background:#fef3c7;border-radius:3px;padding:1px 4px;white-space:nowrap;';
+    brk.textContent = 'break 1hr';
+    shiftWrap.appendChild(brk);
+  }
+  row.appendChild(shiftWrap);
+
+  return row;
+}
+
 function renderRosterTab() {
   const frag    = document.createDocumentFragment();
   const absences = getTodayAbsences();
@@ -4408,6 +4464,7 @@ function renderRosterTab() {
   card.appendChild(hdr);
 
   // Area blocks
+  if (state.rosterView === 'person') {
   for (const area of AREA_ORDER) {
     const emps = grouped[area];
     if (!emps.length) continue;
@@ -4507,6 +4564,79 @@ function renderRosterTab() {
     block.appendChild(grid);
     card.appendChild(block);
   }
+  } else {
+    // ── BY STATION: area → station → people (trainer + 缩进 student)，按到岗时间排 ──
+    const KITCHEN_AREA = '后厨';
+    // 收集"今天有人上班"的 slot，按区域→岗位归类
+    const slotsToday = [];
+    for (const slot of allSlots()) {
+      const a = state.assignments[slot.id];
+      if (!a || (!a.empId && !a.studentId)) continue;
+      slotsToday.push({ slot: getEffectiveSlot(slot), a });
+    }
+
+    for (const area of AREA_ORDER) {
+      const areaSlots = slotsToday.filter(x => x.slot.area === area);
+      if (!areaSlots.length) continue;
+      const cfg = AREA_CONFIG[area];
+
+      const block = document.createElement('div');
+      block.style.cssText = 'border-bottom:1px solid #f0ede9;';
+
+      // Area header
+      const aHdr = document.createElement('div');
+      aHdr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 22px 8px;background:#fafaf9;border-bottom:1px solid #f0ede9;';
+      const areaPeople = new Set();
+      for (const x of areaSlots) { if (x.a.empId) areaPeople.add(x.a.empId); if (x.a.studentId) areaPeople.add(x.a.studentId); }
+      aHdr.innerHTML = `
+        <div style="width:8px;height:8px;border-radius:50%;background:${cfg.dot};flex-shrink:0;"></div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#57534e;">${cfg.label}</div>
+        <div style="margin-left:auto;font-size:11px;color:#a8a29e;font-weight:500;">${areaPeople.size} 人</div>`;
+      block.appendChild(aHdr);
+
+      // Distinct stations in area, preserving BASE_SLOTS order
+      const stations = [];
+      for (const x of areaSlots) if (!stations.includes(x.slot.pos)) stations.push(x.slot.pos);
+
+      for (const station of stations) {
+        // 该岗位下所有 slot，按 trainer 起始时间排
+        const stSlots = areaSlots.filter(x => x.slot.pos === station)
+          .sort((p, q) => p.slot.startHour - q.slot.startHour);
+        // 该岗有多少人（trainer + student）
+        let stCount = 0;
+        for (const x of stSlots) { if (x.a.empId) stCount++; if (x.a.studentId) stCount++; }
+
+        // Station sub-header（蓝字岗位名 + N 人）
+        const sHdr = document.createElement('div');
+        sHdr.style.cssText = 'display:flex;align-items:center;gap:6px;padding:8px 22px 3px;';
+        sHdr.innerHTML = `
+          <span style="font-size:13px;font-weight:700;color:${cfg.posColor};">${station}</span>
+          <span style="font-size:11px;color:#a8a29e;font-weight:500;">· ${stCount} 人</span>`;
+        block.appendChild(sHdr);
+
+        for (const x of stSlots) {
+          const mainEmp = x.a.empId ? getEmp(x.a.empId) : null;
+          const stuEmp  = x.a.studentId ? getEmp(x.a.studentId) : null;
+          const isTrainer = mainEmp && KITCHEN_POSITIONS.includes(x.slot.pos) && isTrainerFor(mainEmp, x.slot.pos);
+          // Trainer / main row
+          if (mainEmp) {
+            block.appendChild(rosterStationRow({
+              emp: mainEmp, shiftSlot: x.slot, cfg,
+              badge: isTrainer ? 'T' : null, indent: false,
+            }));
+          }
+          // Student row（缩进 + 左竖条）
+          if (stuEmp) {
+            block.appendChild(rosterStationRow({
+              emp: stuEmp, shiftSlot: x.slot, cfg,
+              badge: 'S', indent: true,
+            }));
+          }
+        }
+      }
+      card.appendChild(block);
+    }
+  }
 
   // Off Today section — flat list, A→Z
   if (offSorted.length > 0) {
@@ -4542,6 +4672,17 @@ function renderRosterTab() {
     <div style="font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:.3px;">老乡鸡 IOI City Mall · 排班系统</div>
     <div style="font-size:10px;color:rgba(255,255,255,0.22);">Generated ${tStr}</div>`;
   card.appendChild(footer);
+
+  // ── View toggle: 按人 / 按岗 ──
+  const rosterToggle = el('div', { class: 'view-toggle', style: { marginBottom: '10px' } });
+  const rosterOpts = { person: '按人 By Person', station: '按岗 By Station' };
+  for (const [key, label] of Object.entries(rosterOpts)) {
+    rosterToggle.appendChild(el('button', {
+      class: `view-btn${state.rosterView === key ? ' active' : ''}`,
+      onClick: () => { state.rosterView = key; render(); },
+    }, label));
+  }
+  frag.appendChild(rosterToggle);
 
   frag.appendChild(el('p', { class: 'roster-hint' }, '按区域分组 · T = Trainer · S = Student · 9h班自动标注 break · 🟢 NEW 新上班 · 🟡 CP 换岗 · 🟡 CT 改时间'));
   frag.appendChild(card);
@@ -4643,8 +4784,10 @@ function renderRosterTab() {
       if (!change) return;
       const st = CHANGE_STYLE[change.kind];
       // 左色条
+      // 左色条覆盖（按岗视图 student 行原有灰竖条会被变更色条替换）
+      const curPad = parseInt(getComputedStyle(row).paddingLeft, 10) || 22;
       row.style.borderLeft  = `3px solid ${st.bar}`;
-      row.style.paddingLeft = '19px';   // 22 - 3，保持文字左缘不跳动
+      row.style.paddingLeft = (curPad - 3) + 'px';   // 减 3 抵消色条宽度，文字左缘不跳动
       // 名字后小 chip
       const nameEl = row.firstChild;    // v3 行结构：firstChild 即 nameEl
       if (nameEl && nameEl.parentNode === row) {
