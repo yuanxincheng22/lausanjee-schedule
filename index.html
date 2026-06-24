@@ -4374,7 +4374,7 @@ function rosterStationRow({ emp, shiftSlot, cfg, badge, indent }) {
   const shiftWrap = document.createElement('div');
   shiftWrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:1px;';
   const shiftTxt = shiftSlot ? formatHourNum(shiftSlot.startHour) + '–' + formatHourNum(shiftSlot.endHour) : '—';
-  const isLong   = shiftSlot && (shiftSlot.endHour - shiftSlot.startHour) >= 9;
+  const isLong   = shiftSlot && (shiftSlot.endHour - shiftSlot.startHour) >= 9 && shiftSlot.pos !== 'PIC';
   const shiftEl  = document.createElement('span');
   shiftEl.style.cssText = 'font-size:11px;font-weight:600;color:#78716c;white-space:nowrap;';
   shiftEl.textContent = shiftTxt;
@@ -4497,7 +4497,7 @@ function renderRosterTab() {
       let shiftTxt = '—', isLong = false;
       if (shiftSlot) {
         shiftTxt = formatHourNum(shiftSlot.startHour) + '–' + formatHourNum(shiftSlot.endHour);
-        isLong   = (shiftSlot.endHour - shiftSlot.startHour) >= 9;
+        isLong   = (shiftSlot.endHour - shiftSlot.startHour) >= 9 && shiftSlot.pos !== 'PIC';
       }
 
       const isOdd = idx % 2 === 0;
@@ -4680,6 +4680,18 @@ function renderRosterTab() {
     offBlock.appendChild(chips);
     card.appendChild(offBlock);
   }
+
+  // Legend for change badges (NEW / CP / CT)
+  const legend = document.createElement('div');
+  legend.style.cssText = 'background:#fff;border-top:1px solid #f0ede9;padding:8px 22px 9px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;';
+  legend.innerHTML = `
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#78716c;">
+      <span style="font-size:9px;font-weight:700;background:#dcfce7;color:#166534;border-radius:4px;padding:1px 5px;">NEW</span>新上班 New on duty</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#78716c;">
+      <span style="font-size:9px;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;">CP</span>换岗 Change Position</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#78716c;">
+      <span style="font-size:9px;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;">CT</span>改时间 Change Time</span>`;
+  card.appendChild(legend);
 
   // Footer with timestamp
   const nowT  = new Date();
