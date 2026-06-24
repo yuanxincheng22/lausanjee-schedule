@@ -1259,6 +1259,65 @@ function getTodayAbsences() {
   return getAbsencesForDate(state.selectedDate);
 }
 
+// ⚠️ Roster 变更高亮辅助：与昨天对比。改动前先确认 allSlots/getEffectiveSlot 签名一致。
+// 前一天日期字符串 —— 用本地日期部件，避免 toISOString 在 UTC+8 下 off-by-one（跨月/跨年安全）。
+function prevDateStr(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  const y  = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${dy}`;
+}
+
+// 拉取昨天的 assignments，转成 empId → {startHour,endHour,pos} 映射。
+// 用昨天的请假状态（getAbsencesForDate）排除昨天请假者。返回 {} 表示昨天无数据。
+async function fetchYesterdayShiftMap(todayDateStr) {
+  const yDate = prevDateStr(todayDateStr);
+  let yAssignments = {};
+  try {
+    const { data, error } = await db.from('daily_schedule').select('assignments')
+      .eq('store_id', STORE_ID).eq('schedule_date', yDate).maybeSingle();
+    if (error) throw error;
+    yAssignments = data?.assignments || {};
+  } catch (e) {
+    console.error('fetchYesterdayShiftMap', e?.message || e?.code || e);
+    return {};
+  }
+
+  const yAbsent = getAbsencesForDate(yDate);   // 昨天请假者按昨天日期算
+  const slots   = allSlots();                  // slot 定义（含 overrides）今昨共用
+  const map     = {};
+  for (const slot of slots) {
+    const a = yAssignments[slot.id];
+    if (!a) continue;
+    // 还原昨天该 slot 的实际时间（带昨天 assignment 里的 timeOverride）
+    const ov = a.timeOverride;
+    const sh = ov?.startHour ?? slot.startHour;
+    const eh = ov?.endHour   ?? slot.endHour;
+    if (a.empId && !yAbsent[a.empId]) {
+      map[a.empId] = { startHour: sh, endHour: eh, pos: slot.pos };
+    }
+    if (a.studentId && !yAbsent[a.studentId]) {
+      map[a.studentId] = { startHour: sh, endHour: eh, pos: slot.pos };
+    }
+  }
+  return map;
+}
+
+// 对比今昨，返回变更标记或 null。优先级 new > pos > time。
+//   new  → 昨天没上班（不在 yMap），今天上班       label 'NEW'
+//   pos  → 岗位变了                                  label 'CP' (Change Position)
+//   time → 岗位同、起止时间任一变了                  label 'CT' (Change Time)
+function computeShiftChange(empId, todaySlot, yMap) {
+  if (!todaySlot) return null;
+  const y = yMap[empId];
+  if (!y) return { kind: 'new', label: 'NEW' };
+  if (toCanonicalPos(y.pos) !== toCanonicalPos(todaySlot.pos)) return { kind: 'pos', label: 'CP' };
+  if (y.startHour !== todaySlot.startHour || y.endHour !== todaySlot.endHour) return { kind: 'time', label: 'CT' };
+  return null;
+}
+
 // Returns [Mon, Tue, Wed, Thu, Fri, Sat, Sun] ISO strings for the week containing dateStr
 function getWeekDates(dateStr) {
   const d   = new Date(dateStr + 'T00:00:00');
@@ -4387,6 +4446,13 @@ function renderRosterTab() {
       const isOdd = idx % 2 === 0;
       const row = document.createElement('div');
       row.style.cssText = `display:flex;align-items:center;padding:6px 14px 6px 22px;gap:7px;border-bottom:1px solid #f5f4f2;min-height:36px;${isOdd ? 'border-right:1px solid #f5f4f2;' : ''}`;
+      // 变更高亮锚点：记录今天该员工的 emp-id 与实际班次，供异步对比昨天用
+      row.setAttribute('data-emp-id', emp.id);
+      if (shiftSlot) {
+        row.setAttribute('data-sh',  shiftSlot.startHour);
+        row.setAttribute('data-eh',  shiftSlot.endHour);
+        row.setAttribute('data-pos', shiftSlot.pos);
+      }
 
       // Name
       const nameEl = document.createElement('span');
@@ -4477,7 +4543,7 @@ function renderRosterTab() {
     <div style="font-size:10px;color:rgba(255,255,255,0.22);">Generated ${tStr}</div>`;
   card.appendChild(footer);
 
-  frag.appendChild(el('p', { class: 'roster-hint' }, '按区域分组 · T = Trainer · S = Student · 9h班自动标注 break'));
+  frag.appendChild(el('p', { class: 'roster-hint' }, '按区域分组 · T = Trainer · S = Student · 9h班自动标注 break · 🟢 NEW 新上班 · 🟡 CP 换岗 · 🟡 CT 改时间'));
   frag.appendChild(card);
 
   // ── Action buttons ──
@@ -4552,6 +4618,44 @@ function renderRosterTab() {
   btnRow.appendChild(copyBtn);
 
   frag.appendChild(btnRow);
+
+  // ── Roster 变更高亮：与昨天对比，给变更行加左色条 + 名字后 chip ──
+  // 异步：拿当前选中日期快照，拉昨天班表，命中后给对应行打标。
+  const _hlDate = state.selectedDate;
+  fetchYesterdayShiftMap(_hlDate).then(yMap => {
+    if (state.selectedDate !== _hlDate) return;            // 用户已切换日期，放弃
+    const cardEl = document.getElementById('roster-export-card');
+    if (!cardEl) return;
+    const CHANGE_STYLE = {
+      new:  { bar: '#16a34a', chipBg: '#dcfce7', chipFg: '#166534', label: 'NEW' },
+      pos:  { bar: '#d97706', chipBg: '#fef3c7', chipFg: '#92400e', label: 'CP'  },
+      time: { bar: '#d97706', chipBg: '#fef3c7', chipFg: '#92400e', label: 'CT'  },
+    };
+    cardEl.querySelectorAll('[data-emp-id]').forEach(row => {
+      const empId = row.getAttribute('data-emp-id');
+      if (row.getAttribute('data-sh') == null) return;     // 今天没班次的行不比
+      const todaySlot = {
+        startHour: Number(row.getAttribute('data-sh')),
+        endHour:   Number(row.getAttribute('data-eh')),
+        pos:       row.getAttribute('data-pos'),
+      };
+      const change = computeShiftChange(empId, todaySlot, yMap);
+      if (!change) return;
+      const st = CHANGE_STYLE[change.kind];
+      // 左色条
+      row.style.borderLeft  = `3px solid ${st.bar}`;
+      row.style.paddingLeft = '19px';   // 22 - 3，保持文字左缘不跳动
+      // 名字后小 chip
+      const nameEl = row.firstChild;    // v3 行结构：firstChild 即 nameEl
+      if (nameEl && nameEl.parentNode === row) {
+        const chip = document.createElement('span');
+        chip.style.cssText = `font-size:9px;font-weight:700;background:${st.chipBg};color:${st.chipFg};border-radius:3px;padding:1px 4px;margin-left:4px;flex-shrink:0;white-space:nowrap;`;
+        chip.textContent = st.label;
+        nameEl.after(chip);
+      }
+    });
+  });
+
   return frag;
 }
 
@@ -5294,6 +5398,24 @@ async function executeCopySchedule(sourceAssignments, sourceDate) {
   setTimeout(() => { copyScheduleState.toast = null; render(); }, 4500);
 }
 
+// ── 清空今日班表：覆盖式，只清人员分配，不动 dayMeta / extraSlots ──
+function openClearModal() {
+  copyScheduleState.dropdownOpen = false;
+  const hasAny = Object.values(state.assignments || {}).some(a => a && (a.empId || a.studentId));
+  copyScheduleState.clearModal = { hasAny };
+  render();
+}
+
+async function executeClearSchedule() {
+  const clearedDate = state.selectedDate;
+  state.assignments = {};                    // 乐观更新内存态（dayMeta/extraSlots 不动）
+  copyScheduleState.clearModal = null;
+  await saveSchedule();                       // 持久化（会原样写回 dayMeta）
+  copyScheduleState.toast = { msg: `已清空 ${formatDate(clearedDate)} 的排班` };
+  render();
+  setTimeout(() => { copyScheduleState.toast = null; render(); }, 4500);
+}
+
 function renderCopyDropdown() {
   if (!copyScheduleState.dropdownOpen) return null;
   const wrap = el('div', { class: 'copy-dropdown', onClick: e => e.stopPropagation() });
@@ -5360,6 +5482,41 @@ function renderCopyModal() {
   return overlay;
 }
 
+function renderClearModal() {
+  if (!copyScheduleState.clearModal) return null;
+  const { hasAny } = copyScheduleState.clearModal;
+
+  const overlay = el('div', { class: 'copy-modal-overlay' });
+  overlay.addEventListener('click', e => { if (e.target === overlay) { copyScheduleState.clearModal = null; render(); } });
+
+  const modal = el('div', { class: 'copy-modal' });
+
+  const head = el('div', { class: 'copy-modal-head' });
+  head.appendChild(icon('trash'));
+  head.appendChild(document.createTextNode('确认清空班表'));
+  modal.appendChild(head);
+
+  if (hasAny) {
+    modal.appendChild(el('div', { class: 'copy-modal-body' },
+      `确认清空 ${formatDate(state.selectedDate)} 的全部排班？此操作不可撤销（仅清除人员分配，营业额 / 标签等不受影响）。`));
+  } else {
+    modal.appendChild(el('div', { class: 'copy-modal-body' },
+      `${formatDate(state.selectedDate)} 今日暂无任何排班，无需清空。`));
+  }
+
+  const actions = el('div', { class: 'copy-modal-actions' });
+  actions.appendChild(el('button', { onClick: () => { copyScheduleState.clearModal = null; render(); } }, '取消'));
+  if (hasAny) {
+    const confirmBtn = el('button', { class: 'btn-danger', onClick: () => executeClearSchedule() });
+    confirmBtn.appendChild(icon('trash')); confirmBtn.appendChild(document.createTextNode(' 确认清空'));
+    actions.appendChild(confirmBtn);
+  }
+  modal.appendChild(actions);
+
+  overlay.appendChild(modal);
+  return overlay;
+}
+
 function renderCopyToast() {
   if (!copyScheduleState.toast) return null;
   const toast = el('div', { class: 'copy-toast' });
@@ -5395,6 +5552,11 @@ function render() {
   const dropdown = renderCopyDropdown();
   if (dropdown) copyBtnWrap.appendChild(dropdown);
   headerRight.appendChild(copyBtnWrap);
+
+  // ── Clear Schedule button (manager only) ──
+  const clearBtn = el('button', { class: 'btn-sm btn-danger', onClick: openClearModal });
+  clearBtn.appendChild(icon('trash')); clearBtn.appendChild(document.createTextNode(' 清空班表'));
+  headerRight.appendChild(clearBtn);
 
   headerRight.appendChild(el('button', { class: 'btn-sm', onClick: exportSummaryCSV }, icon('download'), ' 导出汇总'));
   headerRight.appendChild(el('button', { class: 'btn-sm', onClick: exportDetailCSV }, icon('list-details'), ' 导出明细'));
@@ -5456,6 +5618,8 @@ function render() {
   // ── Copy-schedule overlays (modal + toast) ──
   const copyModal = renderCopyModal();
   if (copyModal) appEl.appendChild(copyModal);
+  const clearModal = renderClearModal();
+  if (clearModal) appEl.appendChild(clearModal);
   const copyToast = renderCopyToast();
   if (copyToast) appEl.appendChild(copyToast);
 
