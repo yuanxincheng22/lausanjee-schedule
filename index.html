@@ -581,12 +581,55 @@ function showSaving() {
 let _saveTimer = null;
 function scheduleSave() { clearTimeout(_saveTimer); _saveTimer = setTimeout(saveSchedule, 700); }
 
+// ⚠️ 一次性迁移：历史上周末日期误用了工作日 Service slot id（s13/s14/s15a/s15b/s16a/s16b）。
+//    本函数在加载周末日期时，把旧 id 的排班搬到新周末 id（w*）。映射见下表。
+//    目标 id 已被占用时，不覆盖——旧人留在原 slot 之外（进未分配池），控制台记录待手动安置。
+//    搬完旧 id 即删除，不会重复迁移。仅周末触发，工作日不动。
+const WEEKEND_SLOT_MIGRATION = {
+  s13:  'w13',    // 9:30  → 9:30
+  s14:  'w15a',   // 11:00 → 11:00
+  s15a: 'w15b',   // 12:00 → 11:00（12:00 班在新周末已取消，就近搬 11:00）
+  s15b: 'w15c',   // 12:00 → 13:00
+  s16a: 'w16a',   // 14:00 → 14:00
+  s16b: 'w16b',   // 14:00 → 14:00
+};
+function migrateWeekendSlots(date) {
+  if (!isWeekendDate(date)) return false;
+  const a = state.assignments;
+  let changed = false;
+  const skipped = [];
+  for (const [oldId, newId] of Object.entries(WEEKEND_SLOT_MIGRATION)) {
+    const src = a[oldId];
+    if (!src) continue;                       // 该旧 slot 没排人，跳过
+    // 旧 slot 上确实有主岗或学员才需要搬
+    if (!src.empId && !src.studentId) { delete a[oldId]; changed = true; continue; }
+    const dst = a[newId];
+    if (dst && (dst.empId || dst.studentId)) {
+      // 目标已占用：不覆盖，旧人进未分配池（删掉旧 slot 记录即可，渲染时自然回到未分配）
+      skipped.push({ oldId, newId, empId: src.empId, studentId: src.studentId });
+      delete a[oldId];
+      changed = true;
+      continue;
+    }
+    // 目标空闲：整条搬过去（含主岗 + 学员 + 任何其他字段如 timeOverride）
+    a[newId] = { ...src };
+    delete a[oldId];
+    changed = true;
+  }
+  if (skipped.length) {
+    console.warn('周末迁移：以下旧排班的目标班次已占用，相关员工已回到未分配池，请手动安置：', skipped);
+  }
+  return changed;
+}
+
 async function loadScheduleForDate(date) {
   try {
     const { data, error } = await db.from('daily_schedule').select('*')
       .eq('store_id', STORE_ID).eq('schedule_date', date).maybeSingle();
     if (error) throw error;
     state.assignments = data?.assignments  || {};
+    // 一次性周末 slot 迁移（旧工作日 id → 新周末 id）。仅周末触发。
+    let _migratedWeekend = migrateWeekendSlots(date);
     // 清理历史脏数据：同一 slot 里 studentId === empId（自己当自己学员）
     let _cleanedSelfStudent = false;
     for (const a of Object.values(state.assignments)) {
@@ -604,10 +647,11 @@ async function loadScheduleForDate(date) {
       workload:        data?.workload        || {},
       unplannedAbsent: data?.unplanned_absent || [],
     };
-    // 如清理过脏数据，写回 Supabase，避免下次加载再次出现
-    if (_cleanedSelfStudent) {
+    // 如清理过脏数据 / 迁移过周末 slot，写回 Supabase，避免下次加载再次处理
+    if (_cleanedSelfStudent || _migratedWeekend) {
       saveSchedule();
-      console.warn('Cleaned self-as-student assignment(s) on load for', date);
+      if (_migratedWeekend)    console.warn('Migrated legacy weekend slots on load for', date);
+      if (_cleanedSelfStudent) console.warn('Cleaned self-as-student assignment(s) on load for', date);
     }
   } catch (e) { console.error('loadScheduleForDate', e?.message || e?.code || e); }
 }
@@ -1056,14 +1100,27 @@ const BASE_SLOTS = [
   { id: 's11', pos: 'D Drink', area: '前厅', shift: '11:00-20:00', startHour: 11,   endHour: 20   },
   { id: 's12', pos: 'D Drink', area: '前厅', shift: '15:00-23:00', startHour: 15,   endHour: 23   },
 
-  // 前厅 ── Service
-  { id: 's13',  pos: 'Service', area: '前厅', shift: '9:30-18:30',   startHour: 9.5,  endHour: 18.5, isFlex: true },
-  { id: 's14',  pos: 'Service', area: '前厅', shift: '11:00-20:00',  startHour: 11,   endHour: 20,   isFlex: true },
-  { id: 's15a', pos: 'Service', area: '前厅', shift: '12:00-21:00①', startHour: 12,   endHour: 21,   isFlex: true },
-  { id: 's15b', pos: 'Service', area: '前厅', shift: '12:00-21:00②', startHour: 12,   endHour: 21,   isFlex: true },
-  { id: 's16a', pos: 'Service', area: '前厅', shift: '14:00-23:00①', startHour: 14,   endHour: 23,   isFlex: true },
-  { id: 's16b', pos: 'Service', area: '前厅', shift: '14:00-23:00②', startHour: 14,   endHour: 23,   isFlex: true },
-  { id: 'seve', pos: 'Service', area: '前厅', shift: '18:00-23:00',  startHour: 18,   endHour: 23,   note: 'Part-time', isFlex: true },
+  // 前厅 ── Service ───────────────────────────────────────────────────────────
+  // ⚠️ Service 班次区分工作日 / 周末：每条带 weekday/weekend 标记，allSlots() 按
+  //    当前 state.selectedDate 是否周末过滤。编号 A–H 写进 shift 名（张贴到店里）。
+  //    改动前先确认 allSlots() 的周末过滤逻辑同步更新。
+  // 工作日 7 班（去掉旧兼职 18:00-23:00；新增 13:00-22:00）
+  { id: 's13',  pos: 'Service', area: '前厅', shift: 'A 9:30-18:30',   startHour: 9.5,  endHour: 18.5, isFlex: true, weekday: true },
+  { id: 's14',  pos: 'Service', area: '前厅', shift: 'B 11:00-20:00',  startHour: 11,   endHour: 20,   isFlex: true, weekday: true },
+  { id: 's15a', pos: 'Service', area: '前厅', shift: 'C 12:00-21:00',  startHour: 12,   endHour: 21,   isFlex: true, weekday: true },
+  { id: 's15b', pos: 'Service', area: '前厅', shift: 'D 12:00-21:00',  startHour: 12,   endHour: 21,   isFlex: true, weekday: true },
+  { id: 's15c', pos: 'Service', area: '前厅', shift: 'E 13:00-22:00',  startHour: 13,   endHour: 22,   isFlex: true, weekday: true },
+  { id: 's16a', pos: 'Service', area: '前厅', shift: 'F 14:00-23:00',  startHour: 14,   endHour: 23,   isFlex: true, weekday: true },
+  { id: 's16b', pos: 'Service', area: '前厅', shift: 'G 14:00-23:00',  startHour: 14,   endHour: 23,   isFlex: true, weekday: true },
+  // 周末 / 节假日 8 班（午高峰提前：两个 12:00 班提前为两个 10:30 班）
+  { id: 'w13',  pos: 'Service', area: '前厅', shift: 'A 9:30-18:30',   startHour: 9.5,  endHour: 18.5, isFlex: true, weekend: true },
+  { id: 'w14a', pos: 'Service', area: '前厅', shift: 'B 10:30-19:30',  startHour: 10.5, endHour: 19.5, isFlex: true, weekend: true },
+  { id: 'w14b', pos: 'Service', area: '前厅', shift: 'C 10:30-19:30',  startHour: 10.5, endHour: 19.5, isFlex: true, weekend: true },
+  { id: 'w15a', pos: 'Service', area: '前厅', shift: 'D 11:00-20:00',  startHour: 11,   endHour: 20,   isFlex: true, weekend: true },
+  { id: 'w15b', pos: 'Service', area: '前厅', shift: 'E 11:00-20:00',  startHour: 11,   endHour: 20,   isFlex: true, weekend: true },
+  { id: 'w15c', pos: 'Service', area: '前厅', shift: 'F 13:00-22:00',  startHour: 13,   endHour: 22,   isFlex: true, weekend: true },
+  { id: 'w16a', pos: 'Service', area: '前厅', shift: 'G 14:00-23:00',  startHour: 14,   endHour: 23,   isFlex: true, weekend: true },
+  { id: 'w16b', pos: 'Service', area: '前厅', shift: 'H 14:00-23:00',  startHour: 14,   endHour: 23,   isFlex: true, weekend: true },
   // Dishwash
   { id: 's17', pos: 'Dishwash', area: '前厅', shift: '15:00-23:00', startHour: 15, endHour: 23   },
   // 打菜
@@ -1446,12 +1503,30 @@ function computeState() {
 // 因为指纹覆盖了唯一两个会影响结果的来源，所以无需手动清缓存，永远不会读到过期数据。
 let _slotsCache    = null;
 let _slotsCacheKey = null;
+
+// ⚠️ 周末判断助手：用本地日期部件解析（马来西亚 UTC+8），不经 UTC，避免 off-by-one。
+//    周六(6)+周日(0)算周末。Service 班次按此在 allSlots() 中工作日/周末二选一。
+function isWeekendDate(dateStr) {
+  if (!dateStr) return false;
+  const dow = new Date(dateStr + 'T00:00:00').getDay(); // 本地时区，0=周日 6=周六
+  return dow === 0 || dow === 6;
+}
+
 function allSlots() {
-  const key = JSON.stringify(state.slotOverrides) + '|' + JSON.stringify(state.extraSlots);
+  const weekend = isWeekendDate(state.selectedDate);
+  const key = JSON.stringify(state.slotOverrides) + '|' + JSON.stringify(state.extraSlots) + '|wk' + (weekend ? 1 : 0);
   if (_slotsCache !== null && key === _slotsCacheKey) return _slotsCache;
 
+  // Service 班次按工作日 / 周末过滤：weekday 标记只在工作日出现，weekend 标记只在周末出现；
+  // 两个标记都没有的 slot（后厨/管理/D Drink 等）始终保留。
+  const filtered = BASE_SLOTS.filter(s => {
+    if (s.weekday) return !weekend;
+    if (s.weekend) return weekend;
+    return true;
+  });
+
   // Apply permanent slot_overrides on top of BASE_SLOTS
-  const base = BASE_SLOTS.map(s => {
+  const base = filtered.map(s => {
     const ov = state.slotOverrides[s.id];
     if (!ov) return s;
     return { ...s, startHour: ov.startHour, endHour: ov.endHour,
@@ -1525,6 +1600,7 @@ function assignSlot(slotId, empId) {
     if (state.assignments[slotId].studentId === empId) {
       state.assignments[slotId].studentId = null;
     }
+  } else {
     // Clearing the main person also clears the student
     state.assignments[slotId].empId      = null;
     state.assignments[slotId].studentId  = null;
